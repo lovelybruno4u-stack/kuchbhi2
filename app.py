@@ -20,11 +20,13 @@ def setup_db():
     if 'db_initialized' not in app.config:
         gc = get_gspread_client()
         if gc:
-            if init_google_sheet(gc):
+            try:
+                init_google_sheet(gc)
                 app.config['db_initialized'] = True
                 print("Database initialized successfully.")
-            else:
-                print("Database initialization failed.")
+            except Exception as e:
+                print(f"Database initialization failed during auto-setup: {e}")
+                app.config['db_initialized'] = False
         else:
             print("Could not initialize DB: no Google Credentials provided.")
             app.config['db_initialized'] = False
@@ -72,8 +74,8 @@ def init_google_sheet(gc, admin_email=None):
         try:
             sh = gc.open_by_key(SPREADSHEET_ID)
             print(f"Connected to existing spreadsheet: {SPREADSHEET_ID}")
-        except gspread.exceptions.APIError:
-            print("Spreadsheet ID provided but could not be accessed. Creating new one.")
+        except Exception as e:
+            print(f"Spreadsheet ID ({SPREADSHEET_ID}) provided but could not be accessed. Creating new one. Error: {e}")
             sh = None
 
     if not sh:
@@ -89,12 +91,12 @@ def init_google_sheet(gc, admin_email=None):
                     sh.share(share_email, perm_type='user', role='writer')
                     print(f"Shared spreadsheet with {share_email}")
                 except Exception as e:
-                    print(f"Could not share sheet: {e}")
+                    raise Exception(f"Created sheet successfully, but failed to share with {share_email}. Reason: {str(e)}")
             else:
-                print("WARNING: No ADMIN_EMAIL provided in env vars. You will not be able to view this sheet in your Google Drive UI because it is owned by the Service Account. Please add ADMIN_EMAIL to .env or Render and restart.")
+                print("WARNING: No ADMIN_EMAIL provided. You will not be able to view this sheet.")
         except Exception as e:
-            print(f"Failed to create new spreadsheet: {e}")
-            return False
+            print(f"Failed to create new spreadsheet: {str(e)}")
+            raise e
 
     # Ensure all required worksheets exist and have headers
     existing_worksheets = [ws.title for ws in sh.worksheets()]
@@ -106,11 +108,9 @@ def init_google_sheet(gc, admin_email=None):
             ws.append_row(headers)
         else:
             ws = sh.worksheet(sheet_name)
-            # Basic check if empty (might not have headers)
             if len(ws.get_all_values()) == 0:
                 ws.append_row(headers)
 
-    # Remove default 'Sheet1' if it exists and we've created our custom ones
     if 'Sheet1' in existing_worksheets and 'students' in sheets_schema:
         try:
             sh.del_worksheet(sh.worksheet('Sheet1'))
@@ -171,6 +171,30 @@ def login_required(role=None):
     return decorator
 
 # --- Common Routes ---
+
+
+@app.route('/setup', methods=['GET', 'POST'])
+def setup():
+    if request.method == 'POST':
+        admin_email = request.form.get('admin_email')
+        gc = get_gspread_client()
+        if not gc:
+            flash("Failed to authenticate with Google. Check your credentials.json or GOOGLE_CREDENTIALS environment variable.", "error")
+            return render_template('setup.html')
+
+        try:
+            success = init_google_sheet(gc, admin_email=admin_email)
+            if success:
+                global SPREADSHEET_ID
+                sheet_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
+                flash(f"Successfully created and configured Google Sheet!<br><br>Shared with: {admin_email}<br><br><a href='{sheet_url}' target='_blank' style='color: #065f46; text-decoration: underline;'>Click Here to Open Your Google Sheet</a>", "success")
+                app.config['db_initialized'] = True
+            else:
+                flash("Failed to create spreadsheet. Check server logs.", "error")
+        except Exception as e:
+            flash(f"An error occurred: {str(e)}", "error")
+
+    return render_template('setup.html')
 
 @app.route('/')
 def index():
