@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes - {% block title %}Student Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <button class="hamburger-menu" id="hamburger">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Aswathama<br>Classes</h2>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item">
+                <a href="{{ url_for('student_dashboard') }}" class="nav-link {% if request.path == url_for('student_dashboard') %}active{% endif %}">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_my_videos') }}" class="nav-link {% if request.path == url_for('student_my_videos') %}active{% endif %}">
+                    <i class="fas fa-play-circle"></i> My Videos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_attendance_view') }}" class="nav-link {% if request.path == url_for('student_attendance_view') %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_announcements_view') }}" class="nav-link {% if request.path == url_for('student_announcements_view') %}active{% endif %}">
+                    <i class="fas fa-bell"></i> Announcements
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_chatbot') }}" class="nav-link {% if request.path == url_for('student_chatbot') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Study Bot
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-navbar">
+            <h1 class="page-title">{% block page_title %}Student Portal{% endblock %}</h1>
+            <div class="user-profile">
+                <div class="stat-icon" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #be185d);">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <div>
+                    <span style="font-weight: 600;">{{ session.user_name }}</span>
+                    <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">Student</span>
+                </div>
+            </div>
+        </header>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="global-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="loader" style="width: 50px; height: 50px; border-width: 5px; display: block;"></div>
+        <p style="margin-top: 15px; font-weight: 600; color: var(--primary-color);">Processing Request...</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

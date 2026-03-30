@@ -1,0 +1,95 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}Teacher AI Suite{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- Quiz Generator -->
+    <div class="glass-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-question-circle" style="color: var(--primary-color);"></i> Quiz Generator</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+            Automatically generate multiple-choice questions for any subject and topic.
+        </p>
+        <div class="form-group">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g., Photosynthesis">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; margin-bottom: 15px;" onclick="generateQuiz()"><i class="fas fa-magic"></i> Generate 5 MCQs</button>
+        <div id="quiz-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 0.9rem; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Attendance Analysis -->
+    <div class="glass-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-chart-line" style="color: var(--secondary-color);"></i> Attendance Analysis</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+            Analyze overall class attendance trends and identify students needing attention.
+        </p>
+        <button class="btn btn-outline" style="width: 100%; margin-bottom: 15px;" onclick="analyzeAttendance()"><i class="fas fa-search"></i> Run Analysis on Sheet Data</button>
+        <div id="attendance-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 0.9rem; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Video Summarizer -->
+    <div class="glass-card">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-file-video" style="color: var(--success);"></i> Video/Lecture Notes</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+            Generate revision notes and key points based on a lecture topic to share with students.
+        </p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g., Newton's Laws of Motion">
+        </div>
+        <button class="btn btn-outline" style="width: 100%; margin-bottom: 15px;" onclick="summarizeVideo()"><i class="fas fa-pencil-alt"></i> Generate Notes</button>
+        <div id="video-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 0.9rem; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+</div>
+
+<script>
+    async function runAITask(endpoint, payload, resultId, buttonElem, originalText) {
+        if (!payload) return;
+        buttonElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        buttonElem.disabled = true;
+        const resultContainer = document.getElementById(resultId);
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = '<i>Generating response from AI...</i>';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if(response.ok) {
+                resultContainer.innerHTML = data.result;
+            } else {
+                resultContainer.innerHTML = `<span style="color: red;">Error: ${data.error || 'Failed to generate'}</span>`;
+            }
+        } catch (error) {
+            resultContainer.innerHTML = `<span style="color: red;">Network error.</span>`;
+        } finally {
+            buttonElem.innerHTML = originalText;
+            buttonElem.disabled = false;
+        }
+    }
+
+    function generateQuiz() {
+        const topic = document.getElementById('quiz-topic').value;
+        if (!topic) { alert('Please enter a topic.'); return; }
+        const btn = event.currentTarget;
+        runAITask('/api/teacher/ai_quiz', { topic: topic }, 'quiz-result', btn, '<i class="fas fa-magic"></i> Generate 5 MCQs');
+    }
+
+    function analyzeAttendance() {
+        const btn = event.currentTarget;
+        runAITask('/api/teacher/ai_attendance_analysis', { run: true }, 'attendance-result', btn, '<i class="fas fa-search"></i> Run Analysis on Sheet Data');
+    }
+
+    function summarizeVideo() {
+        const topic = document.getElementById('video-topic').value;
+        if (!topic) { alert('Please enter a topic.'); return; }
+        const btn = event.currentTarget;
+        runAITask('/api/teacher/ai_video_summary', { topic: topic }, 'video-result', btn, '<i class="fas fa-pencil-alt"></i> Generate Notes');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Bot{% endblock %}
+{% block page_title %}Your Personal Tutor{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="padding: 0; overflow: hidden;">
+    <div style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); padding: 20px; color: white; display: flex; align-items: center; gap: 15px;">
+        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.2rem;">AI Study Buddy</h3>
+            <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">Ask me about concepts, exam prep, or study tips!</p>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages" style="background: #f9fafb;">
+            <div class="message ai">
+                Hello {{ session.user_name }}! I'm your AI tutor. How can I help you study today? You can ask me to explain topics, give you revision questions, or suggest study schedules.
+            </div>
+        </div>
+
+        <div class="chat-input-area" style="background: white;">
+            <form id="chat-form" style="display: flex; width: 100%; gap: 10px;">
+                <input type="text" id="chat-input" class="form-control" placeholder="Type your question here..." style="flex-grow: 1;" autocomplete="off">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Send</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 60vh;
+        min-height: 400px;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .message {
+        max-width: 80%;
+        padding: 12px 18px;
+        border-radius: 18px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .message.user {
+        align-self: flex-end;
+        background-color: var(--primary-color);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    .message.ai {
+        align-self: flex-start;
+        background-color: white;
+        color: var(--text-primary);
+        border: 1px solid #e5e7eb;
+        border-bottom-left-radius: 4px;
+        white-space: pre-wrap;
+    }
+    .chat-input-area {
+        padding: 15px 20px;
+        border-top: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}

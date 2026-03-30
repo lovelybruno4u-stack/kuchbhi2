@@ -1,0 +1,36 @@
+{% extends 'student/base.html' %}
+
+{% block title %}My Videos{% endblock %}
+{% block page_title %}Class Recordings{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-play-circle" style="color: var(--primary-color);"></i> Recent Lectures</h3>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+        {% for video in videos %}
+        <div class="glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="background-color: #f3f4f6; height: 160px; display: flex; align-items: center; justify-content: center; position: relative;">
+                <i class="fab fa-youtube" style="font-size: 3rem; color: #ff0000;"></i>
+                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                    {{ video.date }}
+                </div>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1;">
+                <h4 style="margin-bottom: 8px; font-size: 1.1rem; color: var(--text-primary);">{{ video.subject }}</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px; flex-grow: 1;">
+                    Review this lecture to clear your concepts and prepare for tests.
+                </p>
+                <a href="{{ video.drive_link }}" target="_blank" class="btn btn-primary" style="width: 100%;"><i class="fas fa-external-link-alt"></i> Watch Video</a>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not videos %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
+            <i class="fas fa-film" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
+            <p>No class recordings available yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

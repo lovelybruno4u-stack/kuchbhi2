@@ -1,0 +1,103 @@
+{% extends 'student/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Welcome back, {{ session.user_name }}!{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+            <h3>My Attendance</h3>
+            <p>{{ stats.attendance_rate }}%</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="stat-info">
+            <h3>New Videos</h3>
+            <p>{{ stats.new_videos }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <i class="fas fa-bell"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Announcements</h3>
+            <p>{{ stats.new_announcements }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="glass-card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-magic" style="color: var(--primary-color);"></i> AI Doubt Solver</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Stuck on a concept? Ask our AI tutor for a simple explanation.</p>
+        <div class="form-group">
+            <textarea id="doubt-input" class="form-control" rows="3" placeholder="e.g. Explain Newton's Third Law in simple words..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="solveDoubt()" id="solve-btn" style="width: 100%;"><i class="fas fa-paper-plane"></i> Ask AI</button>
+        <div id="doubt-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 15px; white-space: pre-wrap; font-size: 0.95rem;"></div>
+    </div>
+
+    <div class="glass-card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-bullhorn" style="color: var(--warning);"></i> Recent Announcements</h3>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            {% for announcement in recent_announcements[:3] %}
+            <div style="padding: 12px; border-left: 3px solid var(--primary-color); background: #f9fafb; border-radius: 4px;">
+                <small style="color: var(--text-secondary); display: block; margin-bottom: 5px;">{{ announcement.date }}</small>
+                <p style="font-size: 0.95rem; line-height: 1.4;">{{ announcement.message }}</p>
+            </div>
+            {% endfor %}
+            {% if not recent_announcements %}
+            <p style="color: var(--text-secondary); text-align: center; padding: 20px;">No new announcements.</p>
+            {% endif %}
+            <a href="{{ url_for('student_announcements_view') }}" class="btn btn-outline" style="text-align: center; display: block; margin-top: 10px;">View All</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function solveDoubt() {
+        const question = document.getElementById('doubt-input').value.trim();
+        if (!question) {
+            alert('Please enter a question.');
+            return;
+        }
+
+        const btn = document.getElementById('solve-btn');
+        const resultDiv = document.getElementById('doubt-result');
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...';
+        btn.disabled = true;
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<i>Looking for the best answer...</i>';
+
+        try {
+            const response = await fetch('/api/student/doubt_solver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                resultDiv.innerHTML = data.answer;
+            } else {
+                resultDiv.innerHTML = `<span style="color: red;">Error processing doubt.</span>`;
+            }
+        } catch (error) {
+            console.error("Doubt solver error:", error);
+            resultDiv.innerHTML = `<span style="color: red;">Network error. Please try again.</span>`;
+        } finally {
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Ask AI';
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

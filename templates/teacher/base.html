@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes - {% block title %}Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <button class="hamburger-menu" id="hamburger">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Aswathama<br>Classes</h2>
+        </div>
+        <ul class="nav-links">
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link {% if request.path == url_for('teacher_dashboard') %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_students') }}" class="nav-link {% if request.path == url_for('teacher_students') %}active{% endif %}">
+                    <i class="fas fa-users"></i> Students
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_attendance') }}" class="nav-link {% if request.path == url_for('teacher_attendance') %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_videos') }}" class="nav-link {% if request.path == url_for('teacher_videos') %}active{% endif %}">
+                    <i class="fas fa-video"></i> Videos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_subjects') }}" class="nav-link {% if request.path == url_for('teacher_subjects') %}active{% endif %}">
+                    <i class="fas fa-book"></i> Subjects
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_announcements') }}" class="nav-link {% if request.path == url_for('teacher_announcements') %}active{% endif %}">
+                    <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link {% if request.path == url_for('teacher_ai_tools') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Tools
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-navbar">
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="user-profile">
+                <div class="stat-icon" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <span style="font-weight: 600;">{{ session.user_name }}</span>
+                    <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 20px;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="padding: 15px; border-radius: 8px; background-color: {% if category == 'success' %}#d1fae5{% elif category == 'error' %}#fee2e2{% else %}#e0e7ff{% endif %}; color: {% if category == 'success' %}#065f46{% elif category == 'error' %}#991b1b{% else %}#3730a3{% endif %}; font-weight: 500;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="global-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="loader" style="width: 50px; height: 50px; border-width: 5px; display: block;"></div>
+        <p style="margin-top: 15px; font-weight: 600; color: var(--primary-color);">Processing Request...</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

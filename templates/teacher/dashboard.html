@@ -1,0 +1,73 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Overview{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Students</h3>
+            <p>{{ stats.total_students }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Today's Attendance</h3>
+            <p>{{ stats.today_attendance }}%</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Total Videos</h3>
+            <p>{{ stats.total_videos }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+            <i class="fas fa-bullhorn"></i>
+        </div>
+        <div class="stat-info">
+            <h3>Announcements</h3>
+            <p>{{ stats.total_announcements }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+    <div class="glass-card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-history" style="color: var(--primary-color);"></i> Recent Activity</h3>
+        <ul style="list-style: none;">
+            <li style="padding: 15px 0; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 15px;">
+                <div style="background-color: #e0e7ff; color: #4f46e5; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div>
+                    <strong style="color: var(--text-primary);">Attendance Marked</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Today</div>
+                </div>
+            </li>
+            <!-- Add dynamic activity log later -->
+        </ul>
+    </div>
+
+    <div class="glass-card">
+        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-bolt" style="color: var(--warning);"></i> Quick Actions</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-primary" style="justify-content: flex-start;"><i class="fas fa-user-plus"></i> Add Student</a>
+            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-clipboard-check"></i> Mark Attendance</a>
+            <a href="{{ url_for('teacher_videos') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-cloud-upload-alt"></i> Upload Video</a>
+            <a href="{{ url_for('teacher_announcements') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-bullhorn"></i> New Announcement</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
