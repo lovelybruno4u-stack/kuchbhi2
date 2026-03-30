@@ -28,16 +28,9 @@ A complete AI-powered web platform for educational coaching classes. Features ro
 
 ## Setup Guide
 
-### 1. How to Create Google Sheet
-1. Go to Google Sheets and create a new blank spreadsheet.
-2. Create 5 sheets at the bottom named exactly: `students`, `attendance`, `videos`, `subjects`, `announcements`.
-3. Add the header row to each sheet:
-   * **students:** id | name | class | roll | phone | email | parent
-   * **attendance:** date | student_id | status
-   * **videos:** id | date | subject | drive_link
-   * **subjects:** id | subject_name
-   * **announcements:** id | date | message
-4. Copy the Spreadsheet ID from the URL. Example: `https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID_HERE/edit`
+### 1. Automatic Google Sheet Creation
+The application will automatically create a Google Sheet Database for you when it first starts!
+It will create all the required tabs and share it to your email address. You just need to provide your `ADMIN_EMAIL` in the environment variables so you get edit access.
 
 ### 2. How to Enable Sheets API & Get Credentials
 1. Go to [Google Cloud Console](https://console.cloud.google.com/).

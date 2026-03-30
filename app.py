@@ -14,28 +14,130 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
 
+@app.before_request
+def setup_db():
+    global SPREADSHEET_ID
+    if 'db_initialized' not in app.config:
+        gc = get_gspread_client()
+        if gc:
+            if init_google_sheet(gc):
+                app.config['db_initialized'] = True
+                print("Database initialized successfully.")
+            else:
+                print("Database initialization failed.")
+        else:
+            print("Could not initialize DB: no Google Credentials provided.")
+            app.config['db_initialized'] = False
+
+
 # Initialize OpenAI Client
 openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 
 # Google Sheets Setup
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
+GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')  # JSON string from Render env var
 CREDENTIALS_FILE = 'credentials.json'
+
+def get_gspread_client():
+    scopes = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    try:
+        if GOOGLE_CREDENTIALS:
+            creds_info = json.loads(GOOGLE_CREDENTIALS)
+            credentials = Credentials.from_service_account_info(creds_info, scopes=scopes)
+        else:
+            credentials = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=scopes)
+        return gspread.authorize(credentials)
+    except Exception as e:
+        print(f"Error authenticating with Google: {e}")
+        return None
+
+def init_google_sheet(gc, admin_email=None):
+    """Creates or prepares the Google Sheet with required tabs and headers."""
+    global SPREADSHEET_ID
+
+    sheets_schema = {
+        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent'],
+        'attendance': ['date', 'student_id', 'status'],
+        'videos': ['id', 'date', 'subject', 'drive_link'],
+        'subjects': ['id', 'subject_name'],
+        'announcements': ['id', 'date', 'message']
+    }
+
+    sh = None
+    if SPREADSHEET_ID:
+        try:
+            sh = gc.open_by_key(SPREADSHEET_ID)
+            print(f"Connected to existing spreadsheet: {SPREADSHEET_ID}")
+        except gspread.exceptions.APIError:
+            print("Spreadsheet ID provided but could not be accessed. Creating new one.")
+            sh = None
+
+    if not sh:
+        try:
+            print("Creating new Google Spreadsheet: 'Aswathama Classes Database'")
+            sh = gc.create('Aswathama Classes Database')
+            SPREADSHEET_ID = sh.id
+            print(f"Successfully created! New SPREADSHEET_ID: {SPREADSHEET_ID}")
+            # If an admin email is provided via environment, share it with them
+            share_email = os.getenv('ADMIN_EMAIL') or admin_email
+            if share_email:
+                try:
+                    sh.share(share_email, perm_type='user', role='writer')
+                    print(f"Shared spreadsheet with {share_email}")
+                except Exception as e:
+                    print(f"Could not share sheet: {e}")
+            else:
+                print("WARNING: No ADMIN_EMAIL provided in env vars. You will not be able to view this sheet in your Google Drive UI because it is owned by the Service Account. Please add ADMIN_EMAIL to .env or Render and restart.")
+        except Exception as e:
+            print(f"Failed to create new spreadsheet: {e}")
+            return False
+
+    # Ensure all required worksheets exist and have headers
+    existing_worksheets = [ws.title for ws in sh.worksheets()]
+
+    for sheet_name, headers in sheets_schema.items():
+        if sheet_name not in existing_worksheets:
+            print(f"Creating missing worksheet: {sheet_name}")
+            ws = sh.add_worksheet(title=sheet_name, rows=100, cols=20)
+            ws.append_row(headers)
+        else:
+            ws = sh.worksheet(sheet_name)
+            # Basic check if empty (might not have headers)
+            if len(ws.get_all_values()) == 0:
+                ws.append_row(headers)
+
+    # Remove default 'Sheet1' if it exists and we've created our custom ones
+    if 'Sheet1' in existing_worksheets and 'students' in sheets_schema:
+        try:
+            sh.del_worksheet(sh.worksheet('Sheet1'))
+        except Exception:
+            pass
+
+    return True
 
 def get_google_sheet(sheet_name):
     """Helper to get a specific worksheet from Google Sheets."""
+    gc = get_gspread_client()
+    if not gc:
+        return None
+
+    global SPREADSHEET_ID
+    if not SPREADSHEET_ID:
+        success = init_google_sheet(gc)
+        if not success:
+            return None
+
     try:
-        scopes = [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-        ]
-        credentials = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=scopes)
-        gc = gspread.authorize(credentials)
         sh = gc.open_by_key(SPREADSHEET_ID)
         return sh.worksheet(sheet_name)
     except Exception as e:
         print(f"Error accessing Google Sheets ({sheet_name}): {e}")
         return None
+
 
 # MOCK DATA FOR DEVELOPMENT WITHOUT ACTIVE GOOGLE SHEET
 mock_db = {
