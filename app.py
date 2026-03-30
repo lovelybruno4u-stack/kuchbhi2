@@ -436,27 +436,27 @@ def ai_video_summary():
 
 
 # --- Student Routes (Stubs for now) ---
-@app.route('/student/dashboard')
+@app.route('/old_student_dashboard')
 @login_required(role='student')
 def old_student_dashboard():
     return render_template('student/student_dashboard.html')
 
-@app.route('/student/my_videos')
+@app.route('/old_student_my_videos')
 @login_required(role='student')
 def old_student_my_videos():
     return render_template('student/my_videos.html')
 
-@app.route('/student/attendance')
+@app.route('/old_student_attendance')
 @login_required(role='student')
 def old_student_attendance_view():
     return render_template('student/attendance_view.html')
 
-@app.route('/student/chatbot')
+@app.route('/old_student_chatbot')
 @login_required(role='student')
 def old_student_chatbot():
     return render_template('student/chatbot.html')
 
-@app.route('/student/announcements')
+@app.route('/old_student_announcements')
 @login_required(role='student')
 def old_student_announcements_view():
     return render_template('student/announcements_view.html')
