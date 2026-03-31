@@ -435,35 +435,6 @@ def ai_video_summary():
     return jsonify({'result': result})
 
 
-# --- Student Routes (Stubs for now) ---
-@app.route('/old_student_dashboard')
-@login_required(role='student')
-def old_student_dashboard():
-    return render_template('student/student_dashboard.html')
-
-@app.route('/old_student_my_videos')
-@login_required(role='student')
-def old_student_my_videos():
-    return render_template('student/my_videos.html')
-
-@app.route('/old_student_attendance')
-@login_required(role='student')
-def old_student_attendance_view():
-    return render_template('student/attendance_view.html')
-
-@app.route('/old_student_chatbot')
-@login_required(role='student')
-def old_student_chatbot():
-    return render_template('student/chatbot.html')
-
-@app.route('/old_student_announcements')
-@login_required(role='student')
-def old_student_announcements_view():
-    return render_template('student/announcements_view.html')
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
-
 # --- Student Specific Backend Routes ---
 @app.route('/student/dashboard', endpoint='student_dashboard')
 @login_required(role='student')
@@ -541,3 +512,6 @@ def api_chatbot():
     prompt = f"Student says: {message}. Give a helpful, encouraging, and brief response."
     reply = ask_openai("You are a friendly, knowledgeable AI study buddy. You help students prepare for exams, learn concepts, and stay motivated.", prompt)
     return jsonify({'reply': reply})
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
