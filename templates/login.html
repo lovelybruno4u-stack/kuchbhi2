@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aswathama Classes - Login</title>
+    <title>Ashwathama Classes - Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <!-- Load FontAwesome via CDN for icons -->
@@ -11,12 +11,13 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
     <div class="login-container">
         <div class="glass-card login-card">
             <div class="login-header">
-                <h1>Aswathama Classes</h1>
+                <h1>Ashwathama Classes</h1>
                 <p style="color: var(--text-secondary);">Welcome back! Please login to your account.</p>
             </div>
 
@@ -55,10 +56,7 @@
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
             </form>
-            <div style="text-align: center; margin-top: 20px; font-size: 0.85rem; color: var(--text-secondary);">
-                Teacher Demo: admin / admin <br>
-                Student Demo: Roll 101 / password123
-            </div>
+
         </div>
     </div>
 

@@ -1,7 +1,7 @@
 {
-  "name": "Aswathama Classes",
-  "short_name": "Aswathama",
-  "description": "Smart Student Dashboard and Teacher Portal for Aswathama Classes",
+  "name": "Ashwathama Classes",
+  "short_name": "Ashwathama",
+  "description": "Smart Student Dashboard and Teacher Portal for Ashwathama Classes",
   "start_url": "/",
   "id": "/",
   "display": "standalone",

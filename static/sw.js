@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aswathama-cache-v1';
+const CACHE_NAME = 'ashwathama-cache-v1';
 const urlsToCache = [
   '/',
   '/static/style.css',

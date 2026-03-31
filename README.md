@@ -1,4 +1,4 @@
-# Aswathama Classes
+# Ashwathama Classes
 
 A complete AI-powered web platform for educational coaching classes. Features role-based access for Teachers and Students, integrated with Google Sheets as a database, and powered by OpenAI for various educational AI tools.
 
