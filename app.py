@@ -121,6 +121,7 @@ def add_data_to_sheet(sheet_name, row_dict):
             headers = sheet.row_values(1)
             row_to_insert = [str(row_dict.get(h, '')) for h in headers]
             sheet.append_row(row_to_insert)
+            invalidate_cache(sheet_name)
             return True
     except Exception as e:
         print(f"Failed to add data to {sheet_name} sheet: {e}")
@@ -135,22 +136,53 @@ def delete_data_from_sheet(sheet_name, row_id):
                 if str(record.get('id', '')) == str(row_id):
                     # +2 because gspread is 1-indexed, and row 1 is headers
                     sheet.delete_rows(index + 2)
+                    invalidate_cache(sheet_name)
                     return True
     except Exception as e:
         print(f"Failed to delete data from {sheet_name} sheet: {e}")
     return False
 
+
+# --- Global Cache for Performance ---
+# To avoid hitting Google Sheets API (which is very slow) on every page load,
+# we cache the data in memory. The cache is automatically invalidated when data is updated.
+import time
+DATA_CACHE = {}
+CACHE_TTL = 300 # 5 minutes
+
 def get_data(sheet_name):
+    # Check cache first
+    now = time.time()
+    if sheet_name in DATA_CACHE:
+        cache_entry = DATA_CACHE[sheet_name]
+        if now - cache_entry['timestamp'] < CACHE_TTL:
+            return cache_entry['data']
+
+    # If not in cache or expired, fetch from Google Sheets
     sheet = get_google_sheet(sheet_name)
     if sheet:
         try:
-            return sheet.get_all_records()
+            records = sheet.get_all_records()
+            # Store in cache
+            DATA_CACHE[sheet_name] = {
+                'timestamp': now,
+                'data': records
+            }
+            return records
         except Exception as e:
             print(f"Error reading records from {sheet_name}: {e}")
+            # If fetch fails but we have stale cache, return stale cache to prevent crashing
+            if sheet_name in DATA_CACHE:
+                return DATA_CACHE[sheet_name]['data']
             return []
     else:
         print(f"Failed to access Google Sheet '{sheet_name}'. Ensure tab exists and permissions are granted.")
         return []
+
+def invalidate_cache(sheet_name):
+    if sheet_name in DATA_CACHE:
+        del DATA_CACHE[sheet_name]
+
 
 # --- Decorators for Authentication ---
 def login_required(role=None):
@@ -337,6 +369,7 @@ def save_attendance():
         try:
             if rows_to_insert:
                 sheet.append_rows(rows_to_insert)
+                invalidate_cache('attendance')
             return jsonify({'success': True})
         except Exception as e:
             print(f"Failed to save attendance bulk: {e}")
@@ -749,13 +782,15 @@ def student_profile():
         if sheet:
             if not profile:
                 sheet.append_row([student_id, extra_notes, current_date])
+                invalidate_cache('student_profiles')
             else:
                 # Update existing row logic (simplified to just append for activity logs)
                 # If we really want to update, we find the row index.
                 records = sheet.get_all_records()
                 for i, r in enumerate(records):
                     if str(r.get('student_id')) == str(student_id):
-                        sheet.update_cell(i + 2, 3, current_date) # 3rd col is last_active_date
+                        sheet.update_cell(i + 2, 3, current_date)
+                        invalidate_cache('student_profiles')
                         break
     except Exception as e:
         print(f"Failed to update profile activity: {e}")
