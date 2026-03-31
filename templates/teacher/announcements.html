@@ -41,14 +41,7 @@
             <button class="close-btn" data-close-button>&times;</button>
         </div>
 
-        <!-- AI Generator -->
-        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #cbd5e1;">
-            <h4 style="font-size: 0.95rem; margin-bottom: 10px; color: var(--secondary-color);"><i class="fas fa-robot"></i> AI Announcement Generator</h4>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="ai-prompt" class="form-control" placeholder='e.g., "Holiday tomorrow due to rain"'>
-                <button type="button" class="btn btn-outline" id="generate-btn" onclick="generateAnnouncement()"><i class="fas fa-magic"></i> Generate</button>
-            </div>
-        </div>
+
 
         <form action="{{ url_for('add_announcement') }}" method="POST">
             <div class="form-group">
@@ -67,38 +60,5 @@
     </div>
 </div>
 
-<script>
-    async function generateAnnouncement() {
-        const promptInput = document.getElementById('ai-prompt').value;
-        if (!promptInput) {
-            alert("Please enter a topic to generate.");
-            return;
-        }
 
-        const btn = document.getElementById('generate-btn');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-        btn.disabled = true;
-
-        try {
-            const response = await fetch('/api/teacher/generate_announcement', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: promptInput })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('announcement-message').value = data.result;
-            } else {
-                alert("Failed to generate text. Please try again.");
-            }
-        } catch (error) {
-            console.error("AI Generation error:", error);
-            alert("An error occurred.");
-        } finally {
-            btn.innerHTML = '<i class="fas fa-magic"></i> Generate';
-            btn.disabled = false;
-        }
-    }
-</script>
 {% endblock %}

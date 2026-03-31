@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
-from openai import OpenAI
 from datetime import datetime
 
 # Load environment variables
@@ -32,9 +31,6 @@ def setup_db():
             app.config['db_initialized'] = False
 
 
-# Initialize OpenAI Client
-openai_api_key = os.getenv('OPENAI_API_KEY')
-client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 
 # Google Sheets Setup
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '1h_vz2JXdDX4GDqkQQwr3mQArHMqsYdem7Xjv8KVkrY8')
@@ -82,7 +78,11 @@ def get_google_sheet(sheet_name):
             'attendance': ['date', 'student_id', 'status'],
             'videos': ['id', 'date', 'subject', 'drive_link'],
             'subjects': ['id', 'subject_name'],
-            'announcements': ['id', 'date', 'message']
+            'announcements': ['id', 'date', 'message'],
+            'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer'],
+            'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
+            'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
+            'student_profiles': ['student_id', 'extra_notes', 'last_active_date']
         }
 
         if sheet_name in sheets_schema:
@@ -240,13 +240,50 @@ def logout():
 def teacher_dashboard():
     students = get_data('students')
     videos = get_data('videos')
-    announcements = get_data('announcements')
+    attendance = get_data('attendance')
+
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    today_attendance_count = len([a for a in attendance if a.get('date') == current_date and a.get('status') == 'Present'])
+
+    # Calculate lowest/highest attendance
+    student_attendance = {}
+    for s in students:
+        student_attendance[str(s.get('id'))] = {'name': s.get('name'), 'present': 0, 'total': 0}
+
+    for a in attendance:
+        sid = str(a.get('student_id'))
+        if sid in student_attendance:
+            student_attendance[sid]['total'] += 1
+            if a.get('status') == 'Present':
+                student_attendance[sid]['present'] += 1
+
+    lowest_student = "N/A"
+    highest_student = "N/A"
+    lowest_rate = 101
+    highest_rate = -1
+
+    for sid, data in student_attendance.items():
+        if data['total'] > 0:
+            rate = (data['present'] / data['total']) * 100
+            if rate < lowest_rate:
+                lowest_rate = rate
+                lowest_student = f"{data['name']} ({round(rate)}%)"
+            if rate > highest_rate:
+                highest_rate = rate
+                highest_student = f"{data['name']} ({round(rate)}%)"
+
+    if lowest_rate == 101: lowest_student = "No data"
+    if highest_rate == -1: highest_student = "No data"
+
+    # Latest video subject
+    latest_video_subject = videos[-1].get('subject') if videos else "No videos yet"
 
     stats = {
         'total_students': len(students),
-        'today_attendance': 95, # Mock percentage
-        'total_videos': len(videos),
-        'total_announcements': len(announcements)
+        'today_attendance': today_attendance_count,
+        'lowest_attendance': lowest_student,
+        'highest_attendance': highest_student,
+        'latest_video': latest_video_subject
     }
     return render_template('teacher/dashboard.html', stats=stats)
 
@@ -399,61 +436,18 @@ def delete_announcement(id):
     flash('Announcement removed!', 'success')
     return redirect(url_for('teacher_announcements'))
 
-@app.route('/teacher/ai_tools')
-@login_required(role='teacher')
-def teacher_ai_tools():
-    return render_template('teacher/ai_tools.html')
+
 
 # --- API Endpoints for AI Features (Teacher) ---
-def ask_openai(system_prompt, user_prompt):
-    if not client:
-        return "OpenAI API is not configured. Please add OPENAI_API_KEY in .env file."
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"Error connecting to AI: {str(e)}"
 
-@app.route('/api/teacher/generate_announcement', methods=['POST'])
-@login_required(role='teacher')
-def ai_generate_announcement():
-    data = request.json
-    topic = data.get('prompt')
-    prompt = f"Write a professional coaching class announcement about: {topic}. Keep it concise, respectful, and clear."
-    result = ask_openai("You are an administrative assistant for an educational coaching center.", prompt)
-    return jsonify({'result': result})
 
-@app.route('/api/teacher/ai_quiz', methods=['POST'])
-@login_required(role='teacher')
-def ai_quiz():
-    data = request.json
-    topic = data.get('topic')
-    prompt = f"Generate 5 MCQ questions with answers on the topic: {topic}. Format nicely."
-    result = ask_openai("You are an expert teacher creating quizzes.", prompt)
-    return jsonify({'result': result})
 
-@app.route('/api/teacher/ai_attendance_analysis', methods=['POST'])
-@login_required(role='teacher')
-def ai_attendance_analysis():
-    # In a real app, serialize attendance data and send to AI
-    prompt = "Analyze this attendance data (mock): 95% present overall. John is absent for 3 days. Provide insights and suggest action."
-    result = ask_openai("You are an educational data analyst.", prompt)
-    return jsonify({'result': result})
 
-@app.route('/api/teacher/ai_video_summary', methods=['POST'])
-@login_required(role='teacher')
-def ai_video_summary():
-    data = request.json
-    topic = data.get('topic')
-    prompt = f"Generate summary notes and key points for revision on the lecture topic: {topic}"
-    result = ask_openai("You are an expert tutor creating revision notes.", prompt)
-    return jsonify({'result': result})
+
+
+
+
+
 
 
 # --- Student Routes (Stubs for now) ---
@@ -537,26 +531,199 @@ def student_announcements_view():
     announcements = get_data('announcements')
     return render_template('student/announcements_view.html', announcements=announcements[::-1])
 
-@app.route('/student/chatbot', endpoint='student_chatbot')
-@login_required(role='student')
-def student_chatbot():
-    return render_template('student/chatbot.html')
+
 
 # --- API Endpoints for AI Features (Student) ---
-@app.route('/api/student/doubt_solver', methods=['POST'])
-@login_required(role='student')
-def api_doubt_solver():
-    data = request.json
-    question = data.get('question')
-    prompt = f"Explain this concept in very simple words for a school student. If it's a math question, give a step-by-step solution. Question: {question}"
-    answer = ask_openai("You are a friendly, encouraging AI tutor for school students.", prompt)
-    return jsonify({'answer': answer})
 
-@app.route('/api/chatbot', methods=['POST'])
+
+
+
+
+# --- Materials Routes ---
+@app.route('/teacher/materials')
+@login_required(role='teacher')
+def teacher_materials():
+    materials = get_data('materials')
+    subjects = get_data('subjects')
+    return render_template('teacher/materials.html', materials=materials, subjects=subjects)
+
+@app.route('/teacher/add_material', methods=['POST'])
+@login_required(role='teacher')
+def add_material():
+    import uuid
+    new_mat = {
+        'id': str(uuid.uuid4())[:8],
+        'title': request.form.get('title'),
+        'subject': request.form.get('subject'),
+        'description': request.form.get('description'),
+        'drive_link': request.form.get('drive_link')
+    }
+    add_data_to_sheet('materials', new_mat)
+    flash('Study material added!', 'success')
+    return redirect(url_for('teacher_materials'))
+
+@app.route('/teacher/delete_material/<id>', methods=['POST'])
+@login_required(role='teacher')
+def delete_material(id):
+    delete_data_from_sheet('materials', id)
+    flash('Material deleted!', 'success')
+    return redirect(url_for('teacher_materials'))
+
+@app.route('/student/materials')
 @login_required(role='student')
-def api_chatbot():
-    data = request.json
-    message = data.get('message')
-    prompt = f"Student says: {message}. Give a helpful, encouraging, and brief response."
-    reply = ask_openai("You are a friendly, knowledgeable AI study buddy. You help students prepare for exams, learn concepts, and stay motivated.", prompt)
-    return jsonify({'reply': reply})
+def student_materials():
+    materials = get_data('materials')
+    return render_template('student/materials.html', materials=materials)
+
+# --- Schedule Routes ---
+@app.route('/teacher/schedule')
+@login_required(role='teacher')
+def teacher_schedule():
+    schedule = get_data('schedule')
+    subjects = get_data('subjects')
+    # Sort by date
+    try:
+        schedule = sorted(schedule, key=lambda x: x.get('date', ''))
+    except:
+        pass
+    return render_template('teacher/schedule.html', schedule=schedule, subjects=subjects)
+
+@app.route('/teacher/add_schedule', methods=['POST'])
+@login_required(role='teacher')
+def add_schedule():
+    import uuid
+    new_sched = {
+        'id': str(uuid.uuid4())[:8],
+        'date': request.form.get('date'),
+        'subject': request.form.get('subject'),
+        'start_time': request.form.get('start_time'),
+        'end_time': request.form.get('end_time'),
+        'note': request.form.get('note')
+    }
+    add_data_to_sheet('schedule', new_sched)
+    flash('Class scheduled!', 'success')
+    return redirect(url_for('teacher_schedule'))
+
+@app.route('/teacher/delete_schedule/<id>', methods=['POST'])
+@login_required(role='teacher')
+def delete_schedule(id):
+    delete_data_from_sheet('schedule', id)
+    flash('Class removed from schedule!', 'success')
+    return redirect(url_for('teacher_schedule'))
+
+@app.route('/student/schedule')
+@login_required(role='student')
+def student_schedule():
+    schedule = get_data('schedule')
+    try:
+        schedule = sorted(schedule, key=lambda x: x.get('date', ''))
+    except:
+        pass
+    return render_template('student/schedule.html', schedule=schedule)
+
+# --- Quiz Routes ---
+@app.route('/teacher/quiz')
+@login_required(role='teacher')
+def teacher_quiz():
+    quiz_data = get_data('quiz')
+    subjects = get_data('subjects')
+    try:
+        quiz_data = sorted(quiz_data, key=lambda x: x.get('date', ''))
+    except:
+        pass
+    return render_template('teacher/quiz.html', quiz=quiz_data, subjects=subjects)
+
+@app.route('/teacher/add_quiz', methods=['POST'])
+@login_required(role='teacher')
+def add_quiz():
+    import uuid
+    new_q = {
+        'id': str(uuid.uuid4())[:8],
+        'date': request.form.get('date'),
+        'subject': request.form.get('subject'),
+        'question': request.form.get('question'),
+        'option1': request.form.get('option1'),
+        'option2': request.form.get('option2'),
+        'option3': request.form.get('option3'),
+        'option4': request.form.get('option4'),
+        'answer': request.form.get('answer')
+    }
+    add_data_to_sheet('quiz', new_q)
+    flash('Quiz question added!', 'success')
+    return redirect(url_for('teacher_quiz'))
+
+@app.route('/teacher/delete_quiz/<id>', methods=['POST'])
+@login_required(role='teacher')
+def delete_quiz(id):
+    delete_data_from_sheet('quiz', id)
+    flash('Quiz question deleted!', 'success')
+    return redirect(url_for('teacher_quiz'))
+
+@app.route('/student/quiz')
+@login_required(role='student')
+def student_quiz():
+    quiz_data = get_data('quiz')
+    # Group by subject and date for better UI
+    from collections import defaultdict
+    quizzes = defaultdict(list)
+    for q in quiz_data:
+        key = f"{q.get('date', '')} - {q.get('subject', '')}"
+        quizzes[key].append(q)
+    return render_template('student/quiz.html', quizzes=quizzes)
+
+# --- Profile Routes ---
+@app.route('/student/profile', endpoint='student_profile')
+@login_required(role='student')
+def student_profile():
+    student_id = session.get('student_id')
+    students = get_data('students')
+    student_data = next((s for s in students if str(s.get('id')) == str(student_id)), None)
+
+    if not student_data:
+        flash("Profile not found.", "error")
+        return redirect(url_for('student_dashboard'))
+
+    attendance_data = get_data('attendance')
+    attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
+
+    total_classes = len(attendance)
+    present_classes = len([a for a in attendance if a.get('status') == 'Present'])
+    attendance_percentage = round((present_classes / total_classes) * 100) if total_classes > 0 else 0
+
+    subjects = get_data('subjects')
+    videos = get_data('videos')
+
+    # Check/Update last active date
+    from datetime import datetime
+    current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    profiles = get_data('student_profiles')
+    profile = next((p for p in profiles if str(p.get('student_id')) == str(student_id)), None)
+
+    extra_notes = profile.get('extra_notes', '') if profile else 'Welcome to your learning journey!'
+    last_active = profile.get('last_active_date', current_date) if profile else current_date
+
+    try:
+        # Save last active
+        sheet = get_google_sheet('student_profiles')
+        if sheet:
+            if not profile:
+                sheet.append_row([student_id, extra_notes, current_date])
+            else:
+                # Update existing row logic (simplified to just append for activity logs)
+                # If we really want to update, we find the row index.
+                records = sheet.get_all_records()
+                for i, r in enumerate(records):
+                    if str(r.get('student_id')) == str(student_id):
+                        sheet.update_cell(i + 2, 3, current_date) # 3rd col is last_active_date
+                        break
+    except Exception as e:
+        print(f"Failed to update profile activity: {e}")
+
+    return render_template('student/profile.html',
+                           student=student_data,
+                           attendance_percentage=attendance_percentage,
+                           total_subjects=len(subjects),
+                           total_videos=len(videos),
+                           extra_notes=extra_notes,
+                           last_active=last_active)

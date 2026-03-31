@@ -19,7 +19,7 @@
             <h2>Aswathama<br>Classes</h2>
         </div>
         <ul class="nav-links">
-            <li class="nav-item">
+                        <li class="nav-item">
                 <a href="{{ url_for('teacher_dashboard') }}" class="nav-link {% if request.path == url_for('teacher_dashboard') %}active{% endif %}">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
@@ -45,15 +45,26 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ url_for('teacher_materials') }}" class="nav-link {% if request.path == url_for('teacher_materials') %}active{% endif %}">
+                    <i class="fas fa-file-pdf"></i> Materials
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_schedule') }}" class="nav-link {% if request.path == url_for('teacher_schedule') %}active{% endif %}">
+                    <i class="far fa-calendar-alt"></i> Schedule
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_quiz') }}" class="nav-link {% if request.path == url_for('teacher_quiz') %}active{% endif %}">
+                    <i class="fas fa-question-circle"></i> Quiz
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ url_for('teacher_announcements') }}" class="nav-link {% if request.path == url_for('teacher_announcements') %}active{% endif %}">
                     <i class="fas fa-bullhorn"></i> Announcements
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link {% if request.path == url_for('teacher_ai_tools') %}active{% endif %}">
-                    <i class="fas fa-robot"></i> AI Tools
-                </a>
-            </li>
+
         </ul>
         <div class="sidebar-footer">
             <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">

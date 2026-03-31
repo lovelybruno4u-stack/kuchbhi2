@@ -1,0 +1,125 @@
+{% extends 'student/base.html' %}
+
+{% block title %}Mini Quiz{% endblock %}
+{% block page_title %}Daily Quizzes{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-brain" style="color: var(--primary-color);"></i> Available Quizzes</h3>
+
+    <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+        {% for quiz_title, questions in quizzes.items() %}
+        <div class="glass-card quiz-container" style="padding: 20px; border-left: 4px solid var(--secondary-color); margin-bottom: 20px; background: var(--white);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 15px;">
+                <h4 style="color: var(--text-primary); font-size: 1.2rem;">{{ quiz_title }}</h4>
+                <span style="background: #f3f4f6; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">{{ questions|length }} Questions</span>
+            </div>
+
+            <form class="quiz-form">
+                <div class="questions-list">
+                    {% for q in questions %}
+                    <div class="question-item" style="margin-bottom: 25px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <p style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; margin-bottom: 15px;">{{ loop.index }}. {{ q.question }}</p>
+
+                        <div style="display: flex; flex-direction: column; gap: 10px; padding-left: 10px;">
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                                <input type="radio" name="q_{{ q.id }}" value="1" data-correct="{{ q.answer }}"> <span>{{ q.option1 }}</span>
+                            </label>
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                                <input type="radio" name="q_{{ q.id }}" value="2" data-correct="{{ q.answer }}"> <span>{{ q.option2 }}</span>
+                            </label>
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                                <input type="radio" name="q_{{ q.id }}" value="3" data-correct="{{ q.answer }}"> <span>{{ q.option3 }}</span>
+                            </label>
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                                <input type="radio" name="q_{{ q.id }}" value="4" data-correct="{{ q.answer }}"> <span>{{ q.option4 }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="quiz-result" style="display: none; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 600; text-align: center; font-size: 1.2rem;"></div>
+
+                <button type="button" class="btn btn-primary submit-quiz" style="width: 100%;"><i class="fas fa-check"></i> Submit Answers</button>
+            </form>
+        </div>
+        {% endfor %}
+
+        {% if not quizzes %}
+        <div style="text-align: center; color: var(--text-secondary); padding: 40px; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+            <i class="far fa-question-circle" style="font-size: 3rem; margin-bottom: 15px; color: #9ca3af;"></i>
+            <p>No quizzes available right now.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.submit-quiz').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const form = this.closest('.quiz-form');
+            const questions = form.querySelectorAll('.question-item');
+            let score = 0;
+            let total = questions.length;
+
+            questions.forEach(qItem => {
+                const inputs = qItem.querySelectorAll('input[type="radio"]');
+                let answered = false;
+
+                inputs.forEach(input => {
+                    const label = input.closest('label');
+                    const isCorrect = input.value === input.dataset.correct;
+
+                    // Reset styling
+                    label.style.background = 'transparent';
+                    label.style.color = 'inherit';
+                    label.style.fontWeight = 'normal';
+
+                    if (input.checked) {
+                        answered = true;
+                        if (isCorrect) {
+                            score++;
+                            label.style.background = '#d1fae5';
+                            label.style.color = '#065f46';
+                            label.style.fontWeight = '600';
+                        } else {
+                            label.style.background = '#fee2e2';
+                            label.style.color = '#991b1b';
+                            label.style.fontWeight = '600';
+                        }
+                    }
+
+                    // Highlight correct answer if they got it wrong
+                    if (isCorrect && !input.checked && answered) {
+                        label.style.border = '1px solid #10b981';
+                        label.style.color = '#065f46';
+                    }
+
+                    input.disabled = true; // Disable after submit
+                });
+            });
+
+            const resultDiv = form.querySelector('.quiz-result');
+            resultDiv.style.display = 'block';
+
+            const percentage = (score / total) * 100;
+            if (percentage >= 80) {
+                resultDiv.style.background = '#d1fae5';
+                resultDiv.style.color = '#065f46';
+                resultDiv.innerHTML = `🎉 Excellent! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
+            } else if (percentage >= 50) {
+                resultDiv.style.background = '#fef3c7';
+                resultDiv.style.color = '#92400e';
+                resultDiv.innerHTML = `👍 Good job! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
+            } else {
+                resultDiv.style.background = '#fee2e2';
+                resultDiv.style.color = '#991b1b';
+                resultDiv.innerHTML = `📚 Keep practicing! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
+            }
+
+            this.style.display = 'none'; // Hide submit button
+        });
+    });
+</script>
+{% endblock %}

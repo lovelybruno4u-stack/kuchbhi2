@@ -1,6 +1,5 @@
 Flask
 gspread
 google-auth
-openai
 gunicorn
 python-dotenv

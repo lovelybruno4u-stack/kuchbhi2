@@ -19,7 +19,7 @@
             <h2>Aswathama<br>Classes</h2>
         </div>
         <ul class="nav-links">
-            <li class="nav-item">
+                        <li class="nav-item">
                 <a href="{{ url_for('student_dashboard') }}" class="nav-link {% if request.path == url_for('student_dashboard') %}active{% endif %}">
                     <i class="fas fa-home"></i> Home
                 </a>
@@ -35,15 +35,31 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ url_for('student_materials') }}" class="nav-link {% if request.path == url_for('student_materials') %}active{% endif %}">
+                    <i class="fas fa-book-open"></i> Materials
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_schedule') }}" class="nav-link {% if request.path == url_for('student_schedule') %}active{% endif %}">
+                    <i class="far fa-calendar-alt"></i> Schedule
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_quiz') }}" class="nav-link {% if request.path == url_for('student_quiz') %}active{% endif %}">
+                    <i class="fas fa-brain"></i> Quiz
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ url_for('student_announcements_view') }}" class="nav-link {% if request.path == url_for('student_announcements_view') %}active{% endif %}">
                     <i class="fas fa-bell"></i> Announcements
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ url_for('student_chatbot') }}" class="nav-link {% if request.path == url_for('student_chatbot') %}active{% endif %}">
-                    <i class="fas fa-robot"></i> AI Study Bot
+                <a href="{{ url_for('student_profile') }}" class="nav-link {% if request.path == url_for('student_profile') %}active{% endif %}">
+                    <i class="fas fa-user-graduate"></i> Profile
                 </a>
             </li>
+
         </ul>
         <div class="sidebar-footer">
             <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">

@@ -1,0 +1,80 @@
+{% extends 'student/base.html' %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_title %}Student Profile{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
+
+    <!-- Profile ID Card -->
+    <div class="glass-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center;">
+        <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);">
+            <i class="fas fa-user-graduate"></i>
+        </div>
+        <h2 style="color: var(--text-primary); margin-bottom: 5px;">{{ student.name }}</h2>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 20px;">Class: {{ student.class }}</p>
+
+        <div style="background: #f3f4f6; padding: 10px 20px; border-radius: 20px; font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">
+            Roll Number: <span style="color: var(--primary-color);">{{ student.roll }}</span>
+        </div>
+    </div>
+
+    <!-- Stats & Details -->
+    <div class="glass-card">
+        <h3 style="margin-bottom: 25px; color: var(--text-primary); border-bottom: 1px solid #e5e7eb; padding-bottom: 15px;"><i class="fas fa-chart-pie" style="color: var(--primary-color); margin-right: 10px;"></i> Learning Overview</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 50px; height: 50px; border-radius: 12px; background: #d1fae5; color: #065f46; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">Attendance Rate</p>
+                    <p style="color: var(--text-primary); font-size: 1.5rem; font-weight: 700;">{{ attendance_percentage }}%</p>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 50px; height: 50px; border-radius: 12px; background: #e0e7ff; color: #3730a3; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">Subjects Enrolled</p>
+                    <p style="color: var(--text-primary); font-size: 1.5rem; font-weight: 700;">{{ total_subjects }}</p>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 15px;">
+                <div style="width: 50px; height: 50px; border-radius: 12px; background: #fee2e2; color: #991b1b; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">Class Videos</p>
+                    <p style="color: var(--text-primary); font-size: 1.5rem; font-weight: 700;">{{ total_videos }}</p>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 20px; color: var(--text-primary); border-bottom: 1px solid #e5e7eb; padding-bottom: 15px;"><i class="fas fa-address-card" style="color: var(--secondary-color); margin-right: 10px;"></i> Contact Info</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Phone Number</p>
+                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500;">{{ student.phone }}</p>
+            </div>
+            <div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Email Address</p>
+                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500;">{{ student.email }}</p>
+            </div>
+            <div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Parent's Name</p>
+                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500;">{{ student.parent }}</p>
+            </div>
+            <div>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Last Active</p>
+                <p style="color: var(--text-primary); font-size: 1rem; font-weight: 500;">{{ last_active }}</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

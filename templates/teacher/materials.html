@@ -1,0 +1,76 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}Study Materials{% endblock %}
+{% block page_title %}Manage Study Materials{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary);"><i class="fas fa-file-pdf" style="color: var(--primary-color);"></i> Shared Materials</h3>
+        <button class="btn btn-primary" data-modal-target="#add-material-modal">
+            <i class="fas fa-plus"></i> Add Material
+        </button>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+        {% for material in materials %}
+        <div class="glass-card" style="display: flex; flex-direction: column; gap: 15px; border-left: 4px solid var(--secondary-color);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{{ material.subject }}</span>
+                    <h4 style="margin-top: 8px; color: var(--text-primary); font-size: 1.1rem;">{{ material.title }}</h4>
+                </div>
+                <form action="{{ url_for('delete_material', id=material.id) }}" method="POST" onsubmit="return confirm('Delete this material?');">
+                    <button type="submit" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;"><i class="fas fa-times"></i></button>
+                </form>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4;">{{ material.description }}</p>
+            <a href="{{ material.drive_link }}" target="_blank" class="btn btn-outline" style="width: 100%; text-align: center; margin-top: auto;"><i class="fas fa-external-link-alt"></i> Open Resource</a>
+        </div>
+        {% endfor %}
+        {% if not materials %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
+            <i class="far fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
+            <p>No materials shared yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Material Modal -->
+<div class="modal-overlay" id="add-material-modal">
+    <div class="modal-content glass-card">
+        <div class="modal-header">
+            <h3><i class="fas fa-upload" style="color: var(--primary-color);"></i> Add Study Material</h3>
+            <button class="close-btn" data-close-button>&times;</button>
+        </div>
+        <form action="{{ url_for('add_material') }}" method="POST">
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" class="form-control" placeholder="e.g. Chapter 1 Notes" required>
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <select name="subject" class="form-control" required>
+                    <option value="">Select a Subject...</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.subject_name }}">{{ subject.subject_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Brief description of the material..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Resource Link (Drive, PDF, Docs)</label>
+                <input type="url" name="drive_link" class="form-control" placeholder="https://..." required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
+                <button type="submit" class="btn btn-primary" onclick="showLoading()">Save Material</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
