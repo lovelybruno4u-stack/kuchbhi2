@@ -13,22 +13,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
 
-@app.before_request
-def setup_db():
-    global SPREADSHEET_ID
-    if 'db_initialized' not in app.config:
-        gc = get_gspread_client()
-        if gc:
-            try:
-                init_google_sheet(gc)
-                app.config['db_initialized'] = True
-                print("Database initialized successfully.")
-            except Exception as e:
-                print(f"Database initialization failed during auto-setup: {e}")
-                app.config['db_initialized'] = False
-        else:
-            print("Could not initialize DB: no Google Credentials provided.")
-            app.config['db_initialized'] = False
+
+
 
 
 
@@ -486,21 +472,39 @@ def student_dashboard():
     student_id = session.get('student_id')
     videos = get_data('videos')
     announcements = get_data('announcements')
+    subjects = get_data('subjects')
 
-    # Calculate mock attendance stats for this student
+    # Safely fetch attendance and calculate rate
+    attendance_data = get_data('attendance')
+    if attendance_data:
+        attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
+    else:
+        attendance = []
+
     total = len(attendance) if attendance else 1
-    present = len([a for a in attendance if a['status'] == 'Present'])
-    rate = (present / total) * 100 if total > 0 else 0
+    present = len([a for a in attendance if a.get('status') == 'Present'])
+    attendance_percentage = round((present / total) * 100) if len(attendance) > 0 else 0
 
-    stats = {
-        'attendance_rate': round(rate),
-        'new_videos': len(videos[-2:]), # Mock new videos
-        'new_announcements': len(announcements[-2:])
+    from datetime import datetime
+    current_date = datetime.now().strftime('%Y-%m-%d')
+
+    today_video = None
+    if videos:
+        for v in videos[::-1]:
+            if v.get('date') == current_date:
+                today_video = v
+                break
+
+    latest_announcement = announcements[-1] if announcements else None
+
+    data = {
+        'attendance_percentage': attendance_percentage,
+        'today_video': today_video,
+        'latest_announcement': latest_announcement,
+        'subjects': subjects
     }
 
-    recent_announcements = announcements[::-1]
-
-    return render_template('student/student_dashboard.html', stats=stats, recent_announcements=recent_announcements)
+    return render_template('student/student_dashboard.html', data=data)
 
 @app.route('/student/my_videos', endpoint='student_my_videos')
 @login_required(role='student')
