@@ -104,21 +104,44 @@
             resultDiv.style.display = 'block';
 
             const percentage = (score / total) * 100;
-            if (percentage >= 80) {
-                resultDiv.style.background = '#d1fae5';
-                resultDiv.style.color = '#065f46';
-                resultDiv.innerHTML = `🎉 Excellent! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
-            } else if (percentage >= 50) {
-                resultDiv.style.background = '#fef3c7';
-                resultDiv.style.color = '#92400e';
-                resultDiv.innerHTML = `👍 Good job! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
-            } else {
-                resultDiv.style.background = '#fee2e2';
-                resultDiv.style.color = '#991b1b';
-                resultDiv.innerHTML = `📚 Keep practicing! You scored ${score}/${total} (${percentage.toFixed(0)}%)`;
-            }
 
-            this.style.display = 'none'; // Hide submit button
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            this.disabled = true;
+
+            fetch('/api/student/submit_quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ percentage: percentage })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (percentage >= 80) {
+                        resultDiv.style.background = '#d1fae5';
+                        resultDiv.style.color = '#065f46';
+                        resultDiv.innerHTML = `🎉 Excellent! You scored ${score}/${total} (${percentage.toFixed(0)}%)<br><span style="font-size:0.9rem;">+${data.points_earned} Points</span>`;
+                    } else if (percentage >= 50) {
+                        resultDiv.style.background = '#fef3c7';
+                        resultDiv.style.color = '#92400e';
+                        resultDiv.innerHTML = `👍 Good job! You scored ${score}/${total} (${percentage.toFixed(0)}%)<br><span style="font-size:0.9rem;">+${data.points_earned} Points</span>`;
+                    } else {
+                        resultDiv.style.background = '#fee2e2';
+                        resultDiv.style.color = '#991b1b';
+                        resultDiv.innerHTML = `📚 Keep practicing! You scored ${score}/${total} (${percentage.toFixed(0)}%)<br><span style="font-size:0.9rem;">+${data.points_earned} Points</span>`;
+                    }
+                    this.style.display = 'none'; // Hide submit button
+                } else {
+                    alert('Error saving score.');
+                    this.innerHTML = '<i class="fas fa-check"></i> Submit Answers';
+                    this.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Network error.');
+                this.innerHTML = '<i class="fas fa-check"></i> Submit Answers';
+                this.disabled = false;
+            });
         });
     });
 </script>

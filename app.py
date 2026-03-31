@@ -68,7 +68,10 @@ def get_google_sheet(sheet_name):
             'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer'],
             'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
             'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
-            'student_profiles': ['student_id', 'extra_notes', 'last_active_date']
+            'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
+            'video_completion': ['date', 'student_id', 'subject', 'completed'],
+            'gamification': ['student_id', 'points', 'badges'],
+            'leaderboard_cache': ['student_id', 'points', 'rank']
         }
 
         if sheet_name in sheets_schema:
@@ -497,20 +500,53 @@ def student_dashboard():
 
     latest_announcement = announcements[-1] if announcements else None
 
+    # Get Leaderboard Cache
+    leaderboard = get_data('leaderboard_cache')
+    top_students = []
+
+    # Join with students list for names
+    all_students = get_data('students')
+    student_names = {str(s.get('id')): s.get('name') for s in all_students}
+
+    for entry in leaderboard[:5]: # Top 5 only
+        entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
+        top_students.append(entry)
+
     data = {
         'attendance_percentage': attendance_percentage,
         'today_video': today_video,
         'latest_announcement': latest_announcement,
-        'subjects': subjects
+        'subjects': subjects,
+        'leaderboard': top_students
     }
 
     return render_template('student/student_dashboard.html', data=data)
 
+@app.route('/student/leaderboard')
+@login_required(role='student')
+def student_leaderboard():
+    leaderboard = get_data('leaderboard_cache')
+    all_students = get_data('students')
+    student_names = {str(s.get('id')): s.get('name') for s in all_students}
+
+    top_students = []
+    for entry in leaderboard:
+        entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
+        top_students.append(entry)
+
+    return render_template('student/leaderboard.html', leaderboard=top_students)
+
+
 @app.route('/student/my_videos', endpoint='student_my_videos')
 @login_required(role='student')
 def student_my_videos():
+    student_id = session.get('student_id')
     videos = get_data('videos')
-    return render_template('student/my_videos.html', videos=videos)
+    completions = get_data('video_completion')
+
+    completed_video_subjects = [c.get('subject') for c in completions if str(c.get('student_id')) == str(student_id)]
+
+    return render_template('student/my_videos.html', videos=videos, completed_video_subjects=completed_video_subjects)
 
 @app.route('/student/attendance', endpoint='student_attendance_view')
 @login_required(role='student')
@@ -724,10 +760,95 @@ def student_profile():
     except Exception as e:
         print(f"Failed to update profile activity: {e}")
 
+    gamification = get_data('gamification')
+    leaderboard = get_data('leaderboard_cache')
+    video_completion = get_data('video_completion')
+    quiz_data = get_data('quiz')
+
+    student_gami = next((g for g in gamification if str(g.get('student_id')) == str(student_id)), None)
+    student_rank = next((l for l in leaderboard if str(l.get('student_id')) == str(student_id)), None)
+
+    points = student_gami.get('points', 0) if student_gami else 0
+    badges = student_gami.get('badges', '') if student_gami else ""
+    rank = student_rank.get('rank', 'N/A') if student_rank else 'N/A'
+
+    completed_vids = len([v for v in video_completion if str(v.get('student_id')) == str(student_id)])
+
     return render_template('student/profile.html',
                            student=student_data,
                            attendance_percentage=attendance_percentage,
                            total_subjects=len(subjects),
                            total_videos=len(videos),
                            extra_notes=extra_notes,
-                           last_active=last_active)
+                           last_active=last_active,
+                           points=points,
+                           badges=badges,
+                           rank=rank,
+                           completed_vids=completed_vids,
+                           quiz_data=quiz_data)
+
+@app.route('/api/student/submit_quiz', methods=['POST'])
+@login_required(role='student')
+def submit_quiz():
+    student_id = session.get('student_id')
+    data = request.json
+    percentage = data.get('percentage', 0)
+
+    # +10 for participation
+    points_earned = 10
+
+    # Bonus points based on score
+    if percentage >= 90:
+        points_earned += 50
+    elif percentage >= 75:
+        points_earned += 30
+    elif percentage >= 50:
+        points_earned += 15
+    else:
+        points_earned += 5
+
+    award_points(student_id, points_earned, f"Quiz Attempt ({percentage}%)")
+
+    # Check Quiz Champion badge
+    gamification = get_data('gamification')
+    sheet = get_google_sheet('gamification')
+    if sheet:
+        for idx, rec in enumerate(gamification):
+            if str(rec.get('student_id')) == str(student_id):
+                badges = str(rec.get('badges') or "")
+                badges_list = [b.strip() for b in badges.split(",") if b.strip()]
+                if "Quiz Champion" not in badges_list:
+                    badges_list.append("Quiz Champion")
+                    sheet.update_cell(idx + 2, 3, ", ".join(badges_list))
+                break
+
+    return jsonify({'success': True, 'points_earned': points_earned})
+
+@app.route('/api/student/mark_video_complete', methods=['POST'])
+@login_required(role='student')
+def mark_video_complete():
+    student_id = session.get('student_id')
+    data = request.json
+    video_id = data.get('video_id')
+    subject = data.get('subject')
+    video_date = data.get('video_date')
+
+    from datetime import datetime
+    current_date = datetime.now().strftime('%Y-%m-%d')
+
+    new_completion = {
+        'date': current_date,
+        'student_id': student_id,
+        'subject': subject,
+        'completed': 'Yes'
+    }
+
+    add_data_to_sheet('video_completion', new_completion)
+
+    points_earned = 10
+    if video_date == current_date:
+        points_earned += 5 # Same day bonus
+
+    award_points(student_id, points_earned, f"Completed Video: {subject}")
+
+    return jsonify({'success': True, 'points_earned': points_earned})
