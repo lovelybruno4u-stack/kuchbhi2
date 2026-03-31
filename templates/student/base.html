@@ -69,7 +69,10 @@
             </li>
 
         </ul>
-        <div class="sidebar-footer">
+        <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="sidebar-install-btn" class="btn btn-outline" style="width: 100%; display: none; text-align: left; justify-content: flex-start; padding: 10px 15px; border-radius: 8px;">
+                <i class="fas fa-download" style="margin-right: 12px; font-size: 1.1rem;"></i> Install App
+            </button>
             <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
@@ -129,6 +132,19 @@
         // Check if already dismissed today
         const dismissed = localStorage.getItem('pwa_dismissed');
 
+        // Show the install prompt
+        const showInstallPrompt = async () => {
+            if (deferredPrompt) {
+                installBanner.style.display = 'none';
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+                const sbBtn = document.getElementById('sidebar-install-btn');
+                if(sbBtn) sbBtn.style.display = 'none';
+            }
+        };
+
         window.addEventListener('beforeinstallprompt', (e) => {
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
@@ -138,21 +154,15 @@
             if(dismissed !== 'true') {
                 installBanner.style.display = 'flex';
             }
+            // Always show sidebar button if prompt is available
+            const sbBtn = document.getElementById('sidebar-install-btn');
+            if(sbBtn) sbBtn.style.display = 'flex';
         });
 
-        installBtn.addEventListener('click', async () => {
-            // Hide the app provided install promotion
-            installBanner.style.display = 'none';
-            // Show the install prompt
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                // Wait for the user to respond to the prompt
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to the install prompt: ${outcome}`);
-                // We've used the prompt, and can't use it again, throw it away
-                deferredPrompt = null;
-            }
-        });
+        if(installBtn) installBtn.addEventListener('click', showInstallPrompt);
+        const sbInstallBtn = document.getElementById('sidebar-install-btn');
+        if(sbInstallBtn) sbInstallBtn.addEventListener('click', showInstallPrompt);
+
 
         closeBtn.addEventListener('click', () => {
             installBanner.style.display = 'none';

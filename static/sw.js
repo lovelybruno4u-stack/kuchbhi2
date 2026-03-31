@@ -24,28 +24,33 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Return cached version if found
-        if (response) {
-          return response;
+        // Return real network response and cache it
+        if(response && response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseToCache);
+            });
         }
-
-        // Otherwise fetch from network
-        return fetch(event.request).then(
-          response => {
-            // Check if valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Don't cache API calls or dynamic routes aggressively, just static assets
-            if (event.request.url.includes('/static/') || event.request.url.includes('fonts.')) {
-                var responseToCache = response.clone();
-                caches.open(CACHE_NAME)
-                  .then(cache => {
-                    cache.put(event.request, responseToCache);
-                  });
+        return response;
+      })
+      .catch(() => {
+        // If network fails (offline), return cached version
+        return caches.match(event.request).then(response => {
+           if (response) {
+             return response;
+           }
+           // Offline fallback logic here if needed
+           return new Response('You are offline.', {
+               status: 503,
+               statusText: 'Service Unavailable',
+               headers: new Headers({ 'Content-Type': 'text/plain' })
+           });
+        });
+      })
+  );
+});
             }
 
             return response;

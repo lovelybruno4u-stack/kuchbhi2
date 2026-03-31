@@ -20,8 +20,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
 
     if (hamburger && sidebar) {
-        hamburger.addEventListener('click', () => {
+        hamburger.addEventListener('click', (e) => {
+            e.stopPropagation();
             sidebar.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
+        });
+
+        // Close sidebar if clicking outside on mobile overlay
+        document.body.addEventListener('click', (e) => {
+            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
+                sidebar.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+            }
         });
     }
 
@@ -56,11 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function openModal(modal) {
         if (modal == null) return;
         modal.classList.add('active');
+        document.body.classList.add('modal-open');
     }
 
     function closeModal(modal) {
         if (modal == null) return;
         modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
     }
 
     // Chatbot Logic
