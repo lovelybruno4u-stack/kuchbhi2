@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% block extra_head %}{% endblock %}
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
 </head>
 <body>
     <button class="hamburger-menu" id="hamburger">
@@ -92,5 +95,71 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     {% block scripts %}{% endblock %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
+                    .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
+                    .catch(err => console.error('ServiceWorker registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--white); box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 12px; padding: 15px 20px; z-index: 9999; align-items: center; gap: 15px; border: 1px solid #e5e7eb; width: 90%; max-width: 400px;">
+        <div style="flex-grow: 1;">
+            <p style="margin: 0; font-weight: 600; color: var(--text-primary);">Install Aswathama App</p>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Add to your home screen for quick access.</p>
+        </div>
+        <button id="pwa-install-btn" class="btn btn-primary" style="padding: 8px 15px; font-size: 0.9rem;">Install</button>
+        <button id="pwa-close-btn" style="background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer;"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const closeBtn = document.getElementById('pwa-close-btn');
+
+        // Check if already dismissed today
+        const dismissed = localStorage.getItem('pwa_dismissed');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Update UI notify the user they can install the PWA
+            if(dismissed !== 'true') {
+                installBanner.style.display = 'flex';
+            }
+        });
+
+        installBtn.addEventListener('click', async () => {
+            // Hide the app provided install promotion
+            installBanner.style.display = 'none';
+            // Show the install prompt
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                // We've used the prompt, and can't use it again, throw it away
+                deferredPrompt = null;
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+            localStorage.setItem('pwa_dismissed', 'true');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            // Log install to analytics
+            console.log('INSTALL: Success');
+            installBanner.style.display = 'none';
+        });
+    </script>
+
 </body>
 </html>
