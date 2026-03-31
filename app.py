@@ -37,7 +37,7 @@ openai_api_key = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=openai_api_key) if openai_api_key else None
 
 # Google Sheets Setup
-SPREADSHEET_ID = os.getenv('SPREADSHEET_ID')
+SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '1h_vz2JXdDX4GDqkQQwr3mQArHMqsYdem7Xjv8KVkrY8')
 GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')  # JSON string from Render env var
 CREDENTIALS_FILE = 'credentials.json'
 
@@ -62,7 +62,7 @@ def init_google_sheet(gc, admin_email=None):
     global SPREADSHEET_ID
 
     sheets_schema = {
-        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent'],
+        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
         'attendance': ['date', 'student_id', 'status'],
         'videos': ['id', 'date', 'subject', 'drive_link'],
         'subjects': ['id', 'subject_name'],
@@ -141,12 +141,40 @@ def get_google_sheet(sheet_name):
 
 # MOCK DATA FOR DEVELOPMENT WITHOUT ACTIVE GOOGLE SHEET
 mock_db = {
-    'students': [{'id': '1', 'name': 'John Doe', 'class': '10th', 'roll': '101', 'phone': '1234567890', 'email': 'john@example.com', 'parent': 'Jane Doe'}],
+    'students': [{'id': '1', 'name': 'John Doe', 'class': '10th', 'roll': '101', 'phone': '1234567890', 'email': 'john@example.com', 'parent': 'Jane Doe', 'password': 'password123'}],
     'attendance': [{'date': '2023-10-01', 'student_id': '1', 'status': 'Present'}],
     'videos': [{'id': '1', 'date': '2023-10-01', 'subject': 'Physics - Motion', 'drive_link': 'https://drive.google.com/mock'}],
     'subjects': [{'id': '1', 'subject_name': 'Physics'}, {'id': '2', 'subject_name': 'Mathematics'}],
     'announcements': [{'id': '1', 'date': '2023-10-01', 'message': 'Welcome to Aswathama Classes!'}]
 }
+
+
+def add_data_to_sheet(sheet_name, row_dict):
+    try:
+        sheet = get_google_sheet(sheet_name)
+        if sheet:
+            # We must map the dictionary to a list of values based on the sheet headers
+            headers = sheet.row_values(1)
+            row_to_insert = [str(row_dict.get(h, '')) for h in headers]
+            sheet.append_row(row_to_insert)
+            return True
+    except Exception as e:
+        print(f"Failed to add data to {sheet_name} sheet: {e}")
+    return False
+
+def delete_data_from_sheet(sheet_name, row_id):
+    try:
+        sheet = get_google_sheet(sheet_name)
+        if sheet:
+            records = sheet.get_all_records()
+            for index, record in enumerate(records):
+                if str(record.get('id', '')) == str(row_id):
+                    # +2 because gspread is 1-indexed, and row 1 is headers
+                    sheet.delete_rows(index + 2)
+                    return True
+    except Exception as e:
+        print(f"Failed to delete data from {sheet_name} sheet: {e}")
+    return False
 
 def get_data(sheet_name):
     # Try getting from Google Sheets first, fallback to mock data
@@ -212,17 +240,33 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        if role == 'teacher' and username == 'admin' and password == 'admin':
-            session['user_role'] = 'teacher'
-            session['user_name'] = 'Teacher'
-            return redirect(url_for('teacher_dashboard'))
-        elif role == 'student' and username == 'student' and password == 'student':
-            session['user_role'] = 'student'
-            session['user_name'] = 'John Doe'
-            session['student_id'] = '1'
-            return redirect(url_for('student_dashboard'))
-        else:
-            flash('Invalid credentials. Please try again.', 'error')
+        if role == 'teacher':
+            # Hardcoded single admin teacher as requested
+            if username == 'admin' and password == 'admin':
+                session['user_role'] = 'teacher'
+                session['user_name'] = 'Teacher'
+                return redirect(url_for('teacher_dashboard'))
+            else:
+                flash('Invalid teacher credentials. Please try again.', 'error')
+
+        elif role == 'student':
+            # Fetch students from Google Sheets / DB
+            students = get_data('students')
+
+            # Find student by roll number (username field) and match password
+            student_found = None
+            for student in students:
+                if str(student.get('roll')) == str(username) and str(student.get('password')) == str(password):
+                    student_found = student
+                    break
+
+            if student_found:
+                session['user_role'] = 'student'
+                session['user_name'] = student_found.get('name')
+                session['student_id'] = student_found.get('id')
+                return redirect(url_for('student_dashboard'))
+            else:
+                flash('Invalid student credentials. Please check your Roll Number and Password.', 'error')
 
     return render_template('login.html')
 
@@ -257,17 +301,19 @@ def teacher_students():
 @app.route('/teacher/add_student', methods=['POST'])
 @login_required(role='teacher')
 def add_student():
-    # In a real app, append to Google Sheet
+    import uuid
     new_student = {
-        'id': str(len(mock_db['students']) + 1),
+        'id': str(uuid.uuid4())[:8],
         'name': request.form.get('name'),
         'class': request.form.get('student_class'),
         'roll': request.form.get('roll'),
         'phone': request.form.get('phone'),
         'email': request.form.get('email'),
-        'parent': request.form.get('parent')
+        'parent': request.form.get('parent'),
+        'password': request.form.get('password')
     }
     mock_db['students'].append(new_student)
+    add_data_to_sheet('students', new_student)
     flash('Student added successfully!', 'success')
     return redirect(url_for('teacher_students'))
 
@@ -275,6 +321,7 @@ def add_student():
 @login_required(role='teacher')
 def delete_student(id):
     mock_db['students'] = [s for s in mock_db['students'] if s.get('id') != id]
+    delete_data_from_sheet('students', id)
     flash('Student deleted successfully!', 'success')
     return redirect(url_for('teacher_students'))
 
@@ -292,13 +339,36 @@ def save_attendance():
     date = data.get('date')
     records = data.get('records', [])
 
-    for record in records:
-        mock_db['attendance'].append({
-            'date': date,
-            'student_id': record['student_id'],
-            'status': record['status']
-        })
-    return jsonify({'success': True})
+    sheet = get_google_sheet('attendance')
+    if sheet:
+        rows_to_insert = []
+        for record in records:
+            # Update local mock db for immediate testing context
+            new_record = {
+                'date': date,
+                'student_id': record['student_id'],
+                'status': record['status']
+            }
+            mock_db['attendance'].append(new_record)
+            # Add to bulk insert list
+            rows_to_insert.append([date, record['student_id'], record['status']])
+
+        try:
+            if rows_to_insert:
+                sheet.append_rows(rows_to_insert)
+            return jsonify({'success': True})
+        except Exception as e:
+            print(f"Failed to save attendance bulk: {e}")
+            return jsonify({'success': False, 'error': str(e)})
+    else:
+        # Fallback to just mock db if sheets is down
+        for record in records:
+            mock_db['attendance'].append({
+                'date': date,
+                'student_id': record['student_id'],
+                'status': record['status']
+            })
+        return jsonify({'success': True})
 
 @app.route('/teacher/videos')
 @login_required(role='teacher')
@@ -310,13 +380,15 @@ def teacher_videos():
 @app.route('/teacher/add_video', methods=['POST'])
 @login_required(role='teacher')
 def add_video():
+    import uuid
     new_video = {
-        'id': str(len(mock_db['videos']) + 1),
+        'id': str(uuid.uuid4())[:8],
         'date': request.form.get('date'),
         'subject': request.form.get('subject'),
         'drive_link': request.form.get('drive_link')
     }
     mock_db['videos'].append(new_video)
+    add_data_to_sheet('videos', new_video)
     flash('Video added successfully!', 'success')
     return redirect(url_for('teacher_videos'))
 
@@ -324,6 +396,7 @@ def add_video():
 @login_required(role='teacher')
 def delete_video(id):
     mock_db['videos'] = [v for v in mock_db['videos'] if v.get('id') != id]
+    delete_data_from_sheet('videos', id)
     flash('Video deleted!', 'success')
     return redirect(url_for('teacher_videos'))
 
@@ -336,11 +409,13 @@ def teacher_subjects():
 @app.route('/teacher/add_subject', methods=['POST'])
 @login_required(role='teacher')
 def add_subject():
+    import uuid
     new_sub = {
-        'id': str(len(mock_db['subjects']) + 1),
+        'id': str(uuid.uuid4())[:8],
         'subject_name': request.form.get('subject_name')
     }
     mock_db['subjects'].append(new_sub)
+    add_data_to_sheet('subjects', new_sub)
     flash('Subject added!', 'success')
     return redirect(url_for('teacher_subjects'))
 
@@ -348,6 +423,7 @@ def add_subject():
 @login_required(role='teacher')
 def delete_subject(id):
     mock_db['subjects'] = [s for s in mock_db['subjects'] if s.get('id') != id]
+    delete_data_from_sheet('subjects', id)
     flash('Subject deleted!', 'success')
     return redirect(url_for('teacher_subjects'))
 
@@ -362,12 +438,14 @@ def teacher_announcements():
 @app.route('/teacher/add_announcement', methods=['POST'])
 @login_required(role='teacher')
 def add_announcement():
+    import uuid
     new_ann = {
-        'id': str(len(mock_db['announcements']) + 1),
+        'id': str(uuid.uuid4())[:8],
         'date': request.form.get('date'),
         'message': request.form.get('message')
     }
     mock_db['announcements'].append(new_ann)
+    add_data_to_sheet('announcements', new_ann)
     flash('Announcement posted!', 'success')
     return redirect(url_for('teacher_announcements'))
 
@@ -375,6 +453,7 @@ def add_announcement():
 @login_required(role='teacher')
 def delete_announcement(id):
     mock_db['announcements'] = [a for a in mock_db['announcements'] if a.get('id') != id]
+    delete_data_from_sheet('announcements', id)
     flash('Announcement removed!', 'success')
     return redirect(url_for('teacher_announcements'))
 
