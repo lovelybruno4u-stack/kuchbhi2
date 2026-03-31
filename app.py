@@ -43,8 +43,7 @@ CREDENTIALS_FILE = 'credentials.json'
 
 def get_gspread_client():
     scopes = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
+        'https://www.googleapis.com/auth/spreadsheets'
     ]
     try:
         if GOOGLE_CREDENTIALS:
@@ -57,79 +56,64 @@ def get_gspread_client():
         print(f"Error authenticating with Google: {e}")
         return None
 
-def init_google_sheet(gc, admin_email=None):
-    """Creates or prepares the Google Sheet with required tabs and headers."""
-    global SPREADSHEET_ID
-
-    sheets_schema = {
-        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
-        'attendance': ['date', 'student_id', 'status'],
-        'videos': ['id', 'date', 'subject', 'drive_link'],
-        'subjects': ['id', 'subject_name'],
-        'announcements': ['id', 'date', 'message']
-    }
-
-    sh = None
-    if SPREADSHEET_ID:
-        try:
-            sh = gc.open_by_key(SPREADSHEET_ID)
-            print(f"Connected to existing spreadsheet: {SPREADSHEET_ID}")
-        except Exception as e:
-            print(f"Spreadsheet ID ({SPREADSHEET_ID}) provided but could not be accessed. Creating new one. Error: {e}")
-            sh = None
-
-    if not sh:
-        try:
-            print("Creating new Google Spreadsheet: 'Aswathama Classes Database'")
-            sh = gc.create('Aswathama Classes Database')
-            SPREADSHEET_ID = sh.id
-            print(f"Successfully created! New SPREADSHEET_ID: {SPREADSHEET_ID}")
-            # If an admin email is provided via environment, share it with them
-            share_email = os.getenv('ADMIN_EMAIL') or admin_email
-            if share_email:
-                try:
-                    sh.share(share_email, perm_type='user', role='writer')
-                    print(f"Shared spreadsheet with {share_email}")
-                except Exception as e:
-                    raise Exception(f"Created sheet successfully, but failed to share with {share_email}. Reason: {str(e)}")
-            else:
-                print("WARNING: No ADMIN_EMAIL provided. You will not be able to view this sheet.")
-        except Exception as e:
-            print(f"Failed to create new spreadsheet: {str(e)}")
-            raise e
-
-    # Ensure all required worksheets exist and have headers
-    existing_worksheets = [ws.title for ws in sh.worksheets()]
-
-    for sheet_name, headers in sheets_schema.items():
-        if sheet_name not in existing_worksheets:
-            print(f"Creating missing worksheet: {sheet_name}")
-            ws = sh.add_worksheet(title=sheet_name, rows=100, cols=20)
-            ws.append_row(headers)
-        else:
-            ws = sh.worksheet(sheet_name)
-            if len(ws.get_all_values()) == 0:
-                ws.append_row(headers)
-
-    if 'Sheet1' in existing_worksheets and 'students' in sheets_schema:
-        try:
-            sh.del_worksheet(sh.worksheet('Sheet1'))
-        except Exception:
-            pass
-
-    return True
-
 def get_google_sheet(sheet_name):
-    """Helper to get a specific worksheet from Google Sheets."""
+    """Helper to get a specific worksheet from Google Sheets.
+       Automatically creates the worksheet with headers if it doesn't exist.
+    """
     gc = get_gspread_client()
     if not gc:
+        print("Cannot get gspread client. Check JSON credentials.")
         return None
 
-    global SPREADSHEET_ID
-    if not SPREADSHEET_ID:
-        success = init_google_sheet(gc)
-        if not success:
+    try:
+        sh = gc.open_by_key(SPREADSHEET_ID)
+    except Exception as e:
+        print(f"CRITICAL: Cannot access spreadsheet {SPREADSHEET_ID}. Make sure the Service Account email is an EDITOR on the Google Sheet. Error: {e}")
+        return None
+
+    try:
+        ws = sh.worksheet(sheet_name)
+    except Exception as e:
+        # Worksheet does not exist, so create it!
+        print(f"Worksheet '{sheet_name}' not found. Creating it now...")
+
+        sheets_schema = {
+            'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
+            'attendance': ['date', 'student_id', 'status'],
+            'videos': ['id', 'date', 'subject', 'drive_link'],
+            'subjects': ['id', 'subject_name'],
+            'announcements': ['id', 'date', 'message']
+        }
+
+        if sheet_name in sheets_schema:
+            try:
+                ws = sh.add_worksheet(title=sheet_name, rows=100, cols=20)
+                ws.append_row(sheets_schema[sheet_name])
+                print(f"Created '{sheet_name}' and populated headers.")
+            except Exception as creation_error:
+                print(f"Failed to create worksheet '{sheet_name}': {creation_error}")
+                return None
+        else:
+            print(f"Unknown sheet schema requested: {sheet_name}")
             return None
+
+    # Check if empty (missing headers even if it existed)
+    try:
+        if len(ws.get_all_values()) == 0:
+            sheets_schema = {
+                'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
+                'attendance': ['date', 'student_id', 'status'],
+                'videos': ['id', 'date', 'subject', 'drive_link'],
+                'subjects': ['id', 'subject_name'],
+                'announcements': ['id', 'date', 'message']
+            }
+            if sheet_name in sheets_schema:
+                ws.append_row(sheets_schema[sheet_name])
+                print(f"Populated missing headers on '{sheet_name}'")
+    except Exception as e:
+        pass
+
+    return ws
 
     try:
         sh = gc.open_by_key(SPREADSHEET_ID)
@@ -138,15 +122,6 @@ def get_google_sheet(sheet_name):
         print(f"Error accessing Google Sheets ({sheet_name}): {e}")
         return None
 
-
-# MOCK DATA FOR DEVELOPMENT WITHOUT ACTIVE GOOGLE SHEET
-mock_db = {
-    'students': [{'id': '1', 'name': 'John Doe', 'class': '10th', 'roll': '101', 'phone': '1234567890', 'email': 'john@example.com', 'parent': 'Jane Doe', 'password': 'password123'}],
-    'attendance': [{'date': '2023-10-01', 'student_id': '1', 'status': 'Present'}],
-    'videos': [{'id': '1', 'date': '2023-10-01', 'subject': 'Physics - Motion', 'drive_link': 'https://drive.google.com/mock'}],
-    'subjects': [{'id': '1', 'subject_name': 'Physics'}, {'id': '2', 'subject_name': 'Mathematics'}],
-    'announcements': [{'id': '1', 'date': '2023-10-01', 'message': 'Welcome to Aswathama Classes!'}]
-}
 
 
 def add_data_to_sheet(sheet_name, row_dict):
@@ -177,13 +152,16 @@ def delete_data_from_sheet(sheet_name, row_id):
     return False
 
 def get_data(sheet_name):
-    # Try getting from Google Sheets first, fallback to mock data
     sheet = get_google_sheet(sheet_name)
     if sheet:
-        return sheet.get_all_records()
+        try:
+            return sheet.get_all_records()
+        except Exception as e:
+            print(f"Error reading records from {sheet_name}: {e}")
+            return []
     else:
-        print(f"Using mock data for {sheet_name}")
-        return mock_db.get(sheet_name, [])
+        print(f"Failed to access Google Sheet '{sheet_name}'. Ensure tab exists and permissions are granted.")
+        return []
 
 # --- Decorators for Authentication ---
 def login_required(role=None):
@@ -201,28 +179,8 @@ def login_required(role=None):
 # --- Common Routes ---
 
 
-@app.route('/setup', methods=['GET', 'POST'])
-def setup():
-    if request.method == 'POST':
-        admin_email = request.form.get('admin_email')
-        gc = get_gspread_client()
-        if not gc:
-            flash("Failed to authenticate with Google. Check your credentials.json or GOOGLE_CREDENTIALS environment variable.", "error")
-            return render_template('setup.html')
 
-        try:
-            success = init_google_sheet(gc, admin_email=admin_email)
-            if success:
-                global SPREADSHEET_ID
-                sheet_url = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit"
-                flash(f"Successfully created and configured Google Sheet!<br><br>Shared with: {admin_email}<br><br><a href='{sheet_url}' target='_blank' style='color: #065f46; text-decoration: underline;'>Click Here to Open Your Google Sheet</a>", "success")
-                app.config['db_initialized'] = True
-            else:
-                flash("Failed to create spreadsheet. Check server logs.", "error")
-        except Exception as e:
-            flash(f"An error occurred: {str(e)}", "error")
 
-    return render_template('setup.html')
 
 @app.route('/')
 def index():
@@ -312,7 +270,6 @@ def add_student():
         'parent': request.form.get('parent'),
         'password': request.form.get('password')
     }
-    mock_db['students'].append(new_student)
     add_data_to_sheet('students', new_student)
     flash('Student added successfully!', 'success')
     return redirect(url_for('teacher_students'))
@@ -320,7 +277,6 @@ def add_student():
 @app.route('/teacher/delete_student/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_student(id):
-    mock_db['students'] = [s for s in mock_db['students'] if s.get('id') != id]
     delete_data_from_sheet('students', id)
     flash('Student deleted successfully!', 'success')
     return redirect(url_for('teacher_students'))
@@ -349,7 +305,6 @@ def save_attendance():
                 'student_id': record['student_id'],
                 'status': record['status']
             }
-            mock_db['attendance'].append(new_record)
             # Add to bulk insert list
             rows_to_insert.append([date, record['student_id'], record['status']])
 
@@ -361,14 +316,7 @@ def save_attendance():
             print(f"Failed to save attendance bulk: {e}")
             return jsonify({'success': False, 'error': str(e)})
     else:
-        # Fallback to just mock db if sheets is down
-        for record in records:
-            mock_db['attendance'].append({
-                'date': date,
-                'student_id': record['student_id'],
-                'status': record['status']
-            })
-        return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Cannot save: Sheet not found'})
 
 @app.route('/teacher/videos')
 @login_required(role='teacher')
@@ -387,7 +335,6 @@ def add_video():
         'subject': request.form.get('subject'),
         'drive_link': request.form.get('drive_link')
     }
-    mock_db['videos'].append(new_video)
     add_data_to_sheet('videos', new_video)
     flash('Video added successfully!', 'success')
     return redirect(url_for('teacher_videos'))
@@ -395,7 +342,6 @@ def add_video():
 @app.route('/teacher/delete_video/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_video(id):
-    mock_db['videos'] = [v for v in mock_db['videos'] if v.get('id') != id]
     delete_data_from_sheet('videos', id)
     flash('Video deleted!', 'success')
     return redirect(url_for('teacher_videos'))
@@ -414,7 +360,6 @@ def add_subject():
         'id': str(uuid.uuid4())[:8],
         'subject_name': request.form.get('subject_name')
     }
-    mock_db['subjects'].append(new_sub)
     add_data_to_sheet('subjects', new_sub)
     flash('Subject added!', 'success')
     return redirect(url_for('teacher_subjects'))
@@ -422,7 +367,6 @@ def add_subject():
 @app.route('/teacher/delete_subject/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_subject(id):
-    mock_db['subjects'] = [s for s in mock_db['subjects'] if s.get('id') != id]
     delete_data_from_sheet('subjects', id)
     flash('Subject deleted!', 'success')
     return redirect(url_for('teacher_subjects'))
@@ -444,7 +388,6 @@ def add_announcement():
         'date': request.form.get('date'),
         'message': request.form.get('message')
     }
-    mock_db['announcements'].append(new_ann)
     add_data_to_sheet('announcements', new_ann)
     flash('Announcement posted!', 'success')
     return redirect(url_for('teacher_announcements'))
@@ -452,7 +395,6 @@ def add_announcement():
 @app.route('/teacher/delete_announcement/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_announcement(id):
-    mock_db['announcements'] = [a for a in mock_db['announcements'] if a.get('id') != id]
     delete_data_from_sheet('announcements', id)
     flash('Announcement removed!', 'success')
     return redirect(url_for('teacher_announcements'))
@@ -552,7 +494,6 @@ def student_dashboard():
     announcements = get_data('announcements')
 
     # Calculate mock attendance stats for this student
-    attendance = [a for a in mock_db['attendance'] if a['student_id'] == student_id]
     total = len(attendance) if attendance else 1
     present = len([a for a in attendance if a['status'] == 'Present'])
     rate = (present / total) * 100 if total > 0 else 0
@@ -577,7 +518,6 @@ def student_my_videos():
 @login_required(role='student')
 def student_attendance_view():
     student_id = session.get('student_id')
-    attendance_records = [a for a in mock_db['attendance'] if a['student_id'] == student_id]
 
     total = len(attendance_records)
     present = len([a for a in attendance_records if a['status'] == 'Present'])
