@@ -906,3 +906,73 @@ def mark_video_complete():
     award_points(student_id, points_earned, f"Completed Video: {subject}")
 
     return jsonify({'success': True, 'points_earned': points_earned})
+
+@app.route('/teacher/dpp_status/<dpp_id>')
+@login_required(role='teacher')
+def teacher_dpp_status(dpp_id):
+    dpps = get_data('DPP')
+    dpp = next((d for d in dpps if str(d.get('id')) == str(dpp_id)), None)
+    if not dpp:
+        flash("DPP not found.", "error")
+        return redirect(url_for('teacher_dpp'))
+
+    students = get_data('students')
+    dpp_status_data = get_data('DPP_Status')
+
+    # Filter students by class if DPP has a class assigned
+    target_class = str(dpp.get('class', ''))
+    if target_class:
+        filtered_students = [s for s in students if str(s.get('class')).lower() == target_class.lower()]
+    else:
+        filtered_students = students
+
+    # Get current status
+    status_map = {str(d.get('student_id')): str(d.get('status')) for d in dpp_status_data if str(d.get('dpp_id')) == str(dpp_id)}
+
+    for s in filtered_students:
+        sid = str(s.get('id'))
+        s['completed'] = 1 if status_map.get(sid) == '1' else 0
+
+    return render_template('teacher/dpp_status.html', dpp=dpp, students=filtered_students)
+
+@app.route('/api/teacher/dpp_status', methods=['POST'])
+@login_required(role='teacher')
+def save_dpp_status():
+    data = request.json
+    dpp_id = data.get('dpp_id')
+    records = data.get('records', [])
+
+    sheet = get_google_sheet('DPP_Status')
+    if not sheet:
+        return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
+
+    try:
+        all_records = sheet.get_all_records()
+        record_map = {}
+        for index, r in enumerate(all_records):
+            key = f"{r.get('dpp_id')}_{r.get('student_id')}"
+            record_map[key] = index + 2
+
+        rows_to_insert = []
+        for record in records:
+            s_id = str(record['student_id'])
+            status = '1' if record['status'] == 'Completed' else '0'
+            key = f"{dpp_id}_{s_id}"
+
+            if key in record_map:
+                row_idx = record_map[key]
+                sheet.delete_rows(row_idx)
+                for k in record_map:
+                    if record_map[k] > row_idx:
+                        record_map[k] -= 1
+
+            rows_to_insert.append([dpp_id, s_id, status])
+
+        if rows_to_insert:
+            sheet.append_rows(rows_to_insert)
+            invalidate_cache('DPP_Status')
+
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Failed to save DPP_Status: {e}")
+        return jsonify({'success': False, 'error': str(e)})

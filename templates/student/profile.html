@@ -151,19 +151,38 @@
                         const challenge = new Uint8Array([1,2,3,4,5,6,7,8]);
                         const userId = new Uint8Array([{{ session.student_id|default('0') }}]);
 
+                        // Get secure random challenge buffer
+                        const challenge = new Uint8Array(32);
+                        window.crypto.getRandomValues(challenge);
+                        const userId = new Uint8Array(16);
+                        window.crypto.getRandomValues(userId);
+
+                        // Most devices require the user ID to be a Uint8Array
+                        const userIdArray = new Uint8Array(16);
+                        window.crypto.getRandomValues(userIdArray);
+
+                        // Most devices require challenge to be Uint8Array
+                        const challengeArray = new Uint8Array(32);
+                        window.crypto.getRandomValues(challengeArray);
+
                         const credential = await navigator.credentials.create({
                             publicKey: {
-                                challenge: challenge,
-                                rp: { name: "Ashwathama Classes" },
+                                challenge: challengeArray,
+                                rp: {
+                                    name: "Ashwathama Classes",
+                                    id: window.location.hostname
+                                },
                                 user: {
-                                    id: userId,
-                                    name: "{{ student.name }}",
+                                    id: userIdArray,
+                                    name: "{{ student.roll }}",
                                     displayName: "{{ student.name }}"
                                 },
-                                pubKeyCredParams: [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                                pubKeyCredParams: [
+                                    {type: "public-key", alg: -7},
+                                    {type: "public-key", alg: -257}
+                                ],
                                 authenticatorSelection: {
-                                    authenticatorAttachment: "platform", // Forces built-in authenticator (FaceID/TouchID/Screen Lock)
-                                    userVerification: "required"
+                                    userVerification: "preferred" // Changed from "required" and removed "platform"
                                 },
                                 timeout: 60000,
                                 attestation: "none"
@@ -199,7 +218,7 @@
 
                     } catch (e) {
                         console.error("Biometric registration failed:", e);
-                        alert("Could not register passkey. Ensure your device has screen lock or biometrics enabled.");
+                        alert("Passkey registration failed: " + e.message + "\n\nMake sure you have Windows Hello, TouchID, or a Screen Lock enabled.");
                     }
                 });
             } else if (regBtn) {

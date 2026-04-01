@@ -122,14 +122,18 @@
                     const credId = new Uint8Array(JSON.parse(credIdStr)).buffer;
 
                     // Request biometric assertion
+                    const challengeArray = new Uint8Array(32);
+                    window.crypto.getRandomValues(challengeArray);
+
                     const assertion = await navigator.credentials.get({
                         publicKey: {
-                            challenge: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), // Dummy challenge for local verification
+                            challenge: challengeArray,
+                            rpId: window.location.hostname,
                             allowCredentials: [{
                                 id: credId,
                                 type: 'public-key'
                             }],
-                            userVerification: "required", // Forces FaceID/Fingerprint/Screenlock
+                            userVerification: "preferred", // Must match creation
                             timeout: 60000
                         }
                     });
