@@ -93,6 +93,97 @@
 
 </div>
 
+<!-- Today's Tasks Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-check-square" style="color: var(--success);"></i> Today's Tasks</h3>
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+        {% for task in data.tasks %}
+        <div style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; background: var(--white); border: 1px solid #e5e7eb; border-radius: 12px; {% if task.id|string in data.completed_tasks %}opacity: 0.6;{% endif %}">
+            <div>
+                {% if task.id|string in data.completed_tasks %}
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                {% else %}
+                <button class="task-complete-btn" data-task-id="{{ task.id }}" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cbd5e1; background: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='#cbd5e1'"></button>
+                {% endif %}
+            </div>
+            <div style="flex-grow: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-weight: 600; color: var(--text-primary); {% if task.id|string in data.completed_tasks %}text-decoration: line-through;{% endif %}">{{ task.title }}</span>
+                    <span style="font-size: 0.8rem; color: var(--danger); font-weight: 600;"><i class="far fa-clock"></i> Due: {{ task.due_date }}</span>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">{{ task.description }}</p>
+                <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{{ task.subject }}</span>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not data.tasks %}
+        <div style="text-align: center; color: var(--text-secondary); padding: 30px; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+            <i class="fas fa-glass-cheers" style="font-size: 2.5rem; margin-bottom: 10px; color: #d1d5db;"></i>
+            <p>No tasks assigned for today. Relax!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Daily Practice Problems (DPP) -->
+<div class="glass-card" style="margin-top: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-file-alt" style="color: var(--primary-color);"></i> Daily Practice Problems (DPP)</h3>
+    </div>
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+        {% for dpp in data.dpps %}
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 15px; background: var(--white); border: 1px solid #e5e7eb; border-radius: 12px; border-left: 4px solid var(--primary-color);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h4 style="color: var(--text-primary); font-size: 1.05rem;">{{ dpp.title }}</h4>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ dpp.date_uploaded }}</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">{{ dpp.description }}</p>
+            <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; width: fit-content; margin-bottom: 10px;">{{ dpp.subject }}</span>
+            <a href="{{ dpp.file_url }}" target="_blank" class="btn btn-outline" style="width: 100%; font-size: 0.9rem; padding: 8px;"><i class="fas fa-download"></i> Download / View</a>
+        </div>
+        {% endfor %}
+        {% if not data.dpps %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 30px; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+            <p>No DPPs uploaded yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.task-complete-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const taskId = this.dataset.taskId;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary-color);"></i>';
+        this.disabled = true;
+        this.style.border = 'none';
+
+        try {
+            const response = await fetch('/api/student/complete_task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId })
+            });
+            const data = await response.json();
+            if(data.success) {
+                this.outerHTML = '<i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>';
+                // Find parent title and strike it
+                const container = this.closest('div').nextElementSibling;
+                const title = container.querySelector('span');
+                title.style.textDecoration = 'line-through';
+                alert('Task completed! +5 Points!');
+            }
+        } catch (e) {
+            console.error(e);
+            this.innerHTML = '';
+            this.disabled = false;
+            this.style.border = '2px solid #cbd5e1';
+            alert('Network error.');
+        }
+    });
+});
+</script>
+
 <!-- Subjects Section -->
 <div class="glass-card" style="margin-top: 24px;">
     <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-book" style="color: var(--secondary-color);"></i> My Subjects</h3>

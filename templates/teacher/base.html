@@ -61,9 +61,19 @@
                     <i class="fas fa-book"></i> Subjects
                 </a>
             </li>
-            <li class="nav-item">
+                        <li class="nav-item">
                 <a href="{{ url_for('teacher_materials') }}" class="nav-link {% if request.path == url_for('teacher_materials') %}active{% endif %}">
                     <i class="fas fa-file-pdf"></i> Materials
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_dpp') }}" class="nav-link {% if request.path == url_for('teacher_dpp') %}active{% endif %}">
+                    <i class="fas fa-file-alt"></i> DPP
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_tasks') }}" class="nav-link {% if request.path == url_for('teacher_tasks') %}active{% endif %}">
+                    <i class="fas fa-tasks"></i> Daily Tasks
                 </a>
             </li>
             <li class="nav-item">

@@ -53,49 +53,46 @@ def get_google_sheet(sheet_name):
         print(f"CRITICAL: Cannot access spreadsheet {SPREADSHEET_ID}. Make sure the Service Account email is an EDITOR on the Google Sheet. Error: {e}")
         return None
 
+    sheets_schema = {
+        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
+        'attendance': ['date', 'student_id', 'status'],
+        'videos': ['id', 'date', 'subject', 'drive_link'],
+        'subjects': ['id', 'subject_name'],
+        'announcements': ['id', 'date', 'message', 'important'],
+        'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer'],
+        'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
+        'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
+        'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
+        'video_completion': ['date', 'student_id', 'subject', 'completed'],
+        'gamification': ['student_id', 'points', 'badges'],
+        'leaderboard_cache': ['student_id', 'points', 'rank'],
+        'Attendance_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
+        'DPP': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
+        'DPP_Status': ['dpp_id', 'student_id', 'status'],
+        'Daily_Tasks': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
+        'Task_Status': ['task_id', 'student_id', 'status']
+    }
+
     try:
         ws = sh.worksheet(sheet_name)
     except Exception as e:
-        # Worksheet does not exist, so create it!
+        print(f"==========================================")
         print(f"Worksheet '{sheet_name}' not found. Creating it now...")
-
-        sheets_schema = {
-            'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
-            'attendance': ['date', 'student_id', 'status'],
-            'videos': ['id', 'date', 'subject', 'drive_link'],
-            'subjects': ['id', 'subject_name'],
-            'announcements': ['id', 'date', 'message'],
-            'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer'],
-            'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
-            'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
-            'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
-            'video_completion': ['date', 'student_id', 'subject', 'completed'],
-            'gamification': ['student_id', 'points', 'badges'],
-            'leaderboard_cache': ['student_id', 'points', 'rank']
-        }
-
+        print(f"==========================================")
         if sheet_name in sheets_schema:
             try:
                 ws = sh.add_worksheet(title=sheet_name, rows=100, cols=20)
                 ws.append_row(sheets_schema[sheet_name])
-                print(f"Created '{sheet_name}' and populated headers.")
+                print(f"SUCCESS: Created '{sheet_name}' and populated headers.")
             except Exception as creation_error:
-                print(f"Failed to create worksheet '{sheet_name}': {creation_error}")
+                print(f"FATAL: Failed to create worksheet '{sheet_name}': {creation_error}")
                 return None
         else:
-            print(f"Unknown sheet schema requested: {sheet_name}")
+            print(f"ERROR: Unknown sheet schema requested: {sheet_name}")
             return None
 
-    # Check if empty (missing headers even if it existed)
     try:
         if len(ws.get_all_values()) == 0:
-            sheets_schema = {
-                'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
-                'attendance': ['date', 'student_id', 'status'],
-                'videos': ['id', 'date', 'subject', 'drive_link'],
-                'subjects': ['id', 'subject_name'],
-                'announcements': ['id', 'date', 'message']
-            }
             if sheet_name in sheets_schema:
                 ws.append_row(sheets_schema[sheet_name])
                 print(f"Populated missing headers on '{sheet_name}'")
@@ -563,6 +560,90 @@ def old_student_chatbot():
 @login_required(role='student')
 def old_student_announcements_view():
     return render_template('student/announcements_view.html')
+
+
+# --- DPP Routes ---
+@app.route('/teacher/dpp')
+@login_required(role='teacher')
+def teacher_dpp():
+    dpp = get_data('DPP')
+    subjects = get_data('subjects')
+    return render_template('teacher/dpp.html', dpp=dpp, subjects=subjects)
+
+@app.route('/teacher/add_dpp', methods=['POST'])
+@login_required(role='teacher')
+def add_dpp():
+    import uuid
+    from datetime import datetime
+    new_dpp = {
+        'id': str(uuid.uuid4())[:8],
+        'title': request.form.get('title'),
+        'subject': request.form.get('subject'),
+        'class': request.form.get('student_class'),
+        'description': request.form.get('description'),
+        'file_url': request.form.get('file_url'),
+        'date_uploaded': datetime.now().strftime('%Y-%m-%d')
+    }
+    add_data_to_sheet('DPP', new_dpp)
+    flash('DPP uploaded!', 'success')
+    return redirect(url_for('teacher_dpp'))
+
+@app.route('/teacher/delete_dpp/<id>', methods=['POST'])
+@login_required(role='teacher')
+def delete_dpp(id):
+    delete_data_from_sheet('DPP', id)
+    flash('DPP deleted!', 'success')
+    return redirect(url_for('teacher_dpp'))
+
+# --- Daily Tasks Routes ---
+@app.route('/teacher/tasks')
+@login_required(role='teacher')
+def teacher_tasks():
+    tasks = get_data('Daily_Tasks')
+    subjects = get_data('subjects')
+    return render_template('teacher/tasks.html', tasks=tasks, subjects=subjects)
+
+@app.route('/teacher/add_task', methods=['POST'])
+@login_required(role='teacher')
+def add_task():
+    import uuid
+    from datetime import datetime
+    new_task = {
+        'id': str(uuid.uuid4())[:8],
+        'title': request.form.get('title'),
+        'description': request.form.get('description'),
+        'subject': request.form.get('subject'),
+        'class': request.form.get('student_class'),
+        'due_date': request.form.get('due_date'),
+        'created_date': datetime.now().strftime('%Y-%m-%d')
+    }
+    add_data_to_sheet('Daily_Tasks', new_task)
+    flash('Task assigned!', 'success')
+    return redirect(url_for('teacher_tasks'))
+
+@app.route('/teacher/delete_task/<id>', methods=['POST'])
+@login_required(role='teacher')
+def delete_task(id):
+    delete_data_from_sheet('Daily_Tasks', id)
+    flash('Task deleted!', 'success')
+    return redirect(url_for('teacher_tasks'))
+
+@app.route('/api/student/complete_task', methods=['POST'])
+@login_required(role='student')
+def complete_task():
+    student_id = session.get('student_id')
+    data = request.json
+    task_id = data.get('task_id')
+
+    new_status = {
+        'task_id': task_id,
+        'student_id': student_id,
+        'status': 'Completed'
+    }
+    add_data_to_sheet('Task_Status', new_status)
+    award_points(student_id, 5, "Completed Daily Task")
+
+    return jsonify({'success': True, 'points_earned': 5})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
