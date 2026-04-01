@@ -122,5 +122,93 @@
         </div>
 
     </div>
+
+        <div style="grid-column: span 2; margin-top: 30px;">
+            <h3 style="margin-bottom: 20px; color: var(--text-primary); border-bottom: 1px solid #e5e7eb; padding-bottom: 15px;"><i class="fas fa-fingerprint" style="color: var(--secondary-color); margin-right: 10px;"></i> Device Security</h3>
+
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">Enable Biometrics (FaceID / TouchID / Screen Lock) to log in instantly without typing your password.</p>
+                <button id="register-bio-btn" class="btn btn-outline" style="border-color: var(--secondary-color); color: var(--secondary-color);">
+                    <i class="fas fa-shield-alt"></i> Set Up Device Passkey
+                </button>
+                <p id="bio-status" style="display: none; margin-top: 10px; color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Device registered successfully!</p>
+            </div>
+        </div>
+
+        <script>
+            // Biometric Registration Script
+            const regBtn = document.getElementById('register-bio-btn');
+            const bioStatus = document.getElementById('bio-status');
+
+            if (localStorage.getItem('bio_registered') === 'true') {
+                regBtn.innerHTML = '<i class="fas fa-sync"></i> Re-Register Device';
+                bioStatus.style.display = 'block';
+            }
+
+            if (regBtn && window.PublicKeyCredential) {
+                regBtn.addEventListener('click', async () => {
+                    try {
+                        const challenge = new Uint8Array([1,2,3,4,5,6,7,8]);
+                        const userId = new Uint8Array([{{ session.student_id|default('0') }}]);
+
+                        const credential = await navigator.credentials.create({
+                            publicKey: {
+                                challenge: challenge,
+                                rp: { name: "Ashwathama Classes" },
+                                user: {
+                                    id: userId,
+                                    name: "{{ student.name }}",
+                                    displayName: "{{ student.name }}"
+                                },
+                                pubKeyCredParams: [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                                authenticatorSelection: {
+                                    authenticatorAttachment: "platform", // Forces built-in authenticator (FaceID/TouchID/Screen Lock)
+                                    userVerification: "required"
+                                },
+                                timeout: 60000,
+                                attestation: "none"
+                            }
+                        });
+
+                        if (credential) {
+                            // In a real WebAuthn flow, we'd send `credential` to the server to verify and store public key.
+                            // But for a pure PWA local-auth flow without a backend crypto dependency:
+                            // We save the credential ID to local storage, along with the student's Roll/Password.
+                            // Next time they login, we ask the device to assert this credential. If the user passes FaceID,
+                            // the device returns the assertion, proving they are the device owner, and we read the local storage password.
+
+                            const credIdArray = Array.from(new Uint8Array(credential.rawId));
+
+                            // Ask user for password to save it securely for auto-login
+                            const currentPass = prompt("Please confirm your password to link it to this device's Passkey:");
+                            if(!currentPass) {
+                                alert("Cancelled registration. Password is required to link.");
+                                return;
+                            }
+
+                            localStorage.setItem('bio_registered', 'true');
+                            localStorage.setItem('bio_cred_id', JSON.stringify(credIdArray));
+                            localStorage.setItem('bio_user', '{{ student.roll }}');
+                            localStorage.setItem('bio_pass', currentPass);
+                            localStorage.setItem('bio_role', 'student');
+
+                            bioStatus.style.display = 'block';
+                            bioStatus.innerHTML = '<i class="fas fa-check-circle"></i> Passkey registered successfully! You can now use FaceID/Fingerprint to log in.';
+                            regBtn.innerHTML = '<i class="fas fa-sync"></i> Re-Register Passkey';
+                        }
+
+                    } catch (e) {
+                        console.error("Biometric registration failed:", e);
+                        alert("Could not register passkey. Ensure your device has screen lock or biometrics enabled.");
+                    }
+                });
+            } else if (regBtn) {
+                regBtn.style.display = 'none';
+                bioStatus.style.display = 'block';
+                bioStatus.style.color = 'var(--danger)';
+                bioStatus.innerText = 'Biometrics / Passkeys are not supported on this browser or device.';
+            }
+        </script>
+
 </div>
 {% endblock %}

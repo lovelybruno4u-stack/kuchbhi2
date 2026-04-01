@@ -65,6 +65,11 @@
                     <input type="password" id="password" name="password" class="form-control" required placeholder="Enter password">
                 </div>
 
+                <div class="form-group" style="margin-top: 15px;">
+                    <button type="button" id="biometric-login-btn" class="btn btn-outline" style="width: 100%; display: none; padding: 12px; border-color: var(--secondary-color); color: var(--secondary-color);">
+                        <i class="fas fa-fingerprint"></i> Use Device Biometrics / Screen Lock
+                    </button>
+                </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px;">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
@@ -97,6 +102,65 @@
                     .catch(err => console.error('ServiceWorker registration failed:', err));
             });
         }
-    </script>
+
+        // Biometric Login Logic
+        const bioBtn = document.getElementById('biometric-login-btn');
+        const roleInputBio = document.getElementById('role-input');
+
+        // Check if device supports biometrics and if user has registered
+        if (window.PublicKeyCredential && localStorage.getItem('bio_registered') === 'true') {
+            bioBtn.style.display = 'inline-flex';
+        }
+
+        if (bioBtn) {
+            bioBtn.addEventListener('click', async () => {
+                try {
+                    // Fetch the stored credential ID
+                    const credIdStr = localStorage.getItem('bio_cred_id');
+                    if (!credIdStr) throw new Error("No credential found.");
+
+                    const credId = new Uint8Array(JSON.parse(credIdStr)).buffer;
+
+                    // Request biometric assertion
+                    const assertion = await navigator.credentials.get({
+                        publicKey: {
+                            challenge: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]), // Dummy challenge for local verification
+                            allowCredentials: [{
+                                id: credId,
+                                type: 'public-key'
+                            }],
+                            userVerification: "required", // Forces FaceID/Fingerprint/Screenlock
+                            timeout: 60000
+                        }
+                    });
+
+                    if (assertion) {
+                        // Biometric successful, retrieve stored credentials
+                        const storedUser = localStorage.getItem('bio_user');
+                        const storedPass = localStorage.getItem('bio_pass');
+                        const storedRole = localStorage.getItem('bio_role') || 'student';
+
+                        if(storedUser && storedPass) {
+                            document.getElementById('username').value = storedUser;
+                            document.getElementById('password').value = storedPass;
+                            roleInputBio.value = storedRole;
+
+                            // Auto submit form
+                            bioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+                            document.querySelector('form').submit();
+                        } else {
+                            alert("Stored credentials missing. Please login manually and re-register your device.");
+                        }
+                    }
+                } catch (e) {
+                    console.error("Biometric login failed:", e);
+                    if(e.name !== 'NotAllowedError') {
+                        alert("Biometric verification failed or was cancelled.");
+                    }
+                }
+            });
+        }
+
+</script>
 </body>
 </html>
