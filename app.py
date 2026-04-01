@@ -343,8 +343,27 @@ def delete_student(id):
 @login_required(role='teacher')
 def teacher_attendance():
     students = get_data('students')
+    attendance = get_data('attendance')
     current_date = datetime.now().strftime('%Y-%m-%d')
-    return render_template('teacher/attendance.html', students=students, current_date=current_date)
+
+    # Calculate today's absentees
+    absent_students = []
+    for a in attendance:
+        if a.get('date') == current_date and a.get('status') == 'Absent':
+            s_name = next((s.get('name') for s in students if str(s.get('id')) == str(a.get('student_id'))), 'Unknown')
+            absent_students.append(s_name)
+
+    import urllib.parse
+    wa_text = "Ashwathama Classes:\n\nToday's Absentees (" + current_date + "):\n"
+    if absent_students:
+        for idx, name in enumerate(absent_students, 1):
+            wa_text += f"{idx}. {name}\n"
+    else:
+        wa_text += "No absentees today! (Or attendance not marked yet)\n"
+
+    wa_link = "https://wa.me/?text=" + urllib.parse.quote(wa_text)
+
+    return render_template('teacher/attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
 
 @app.route('/api/teacher/attendance', methods=['POST'])
 @login_required(role='teacher')

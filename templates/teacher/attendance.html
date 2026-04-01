@@ -9,9 +9,14 @@
         <div>
             <input type="date" id="attendance-date" class="form-control" style="width: 200px;" value="{{ current_date }}">
         </div>
-        <button class="btn btn-primary" onclick="saveAttendance()">
-            <i class="fas fa-save"></i> Save Attendance
-        </button>
+        <div style="display: flex; gap: 10px;">
+            <a href="{{ wa_link }}" target="_blank" class="btn" style="background-color: #25D366; color: white;">
+                <i class="fab fa-whatsapp"></i> Share Absentees
+            </a>
+            <button class="btn btn-primary" onclick="saveAttendance()">
+                <i class="fas fa-save"></i> Save Attendance
+            </button>
+        </div>
     </div>
 
     <div class="table-container">
