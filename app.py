@@ -372,27 +372,74 @@ def save_attendance():
     date = data.get('date')
     records = data.get('records', [])
 
-    sheet = get_google_sheet('attendance')
-    if sheet:
-        rows_to_insert = []
-        for record in records:
-            # Update local mock db for immediate testing context
-            new_record = {
-                'date': date,
-                'student_id': record['student_id'],
-                'status': record['status']
-            }
-            # Add to bulk insert list
-            rows_to_insert.append([date, record['student_id'], record['status']])
+    sheet = get_google_sheet('Attendance_V2')
+    if not sheet:
+        return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
 
-        try:
-            if rows_to_insert:
-                sheet.append_rows(rows_to_insert)
-                invalidate_cache('attendance')
-            return jsonify({'success': True})
-        except Exception as e:
-            print(f"Failed to save attendance bulk: {e}")
-            return jsonify({'success': False, 'error': str(e)})
+    try:
+        from datetime import datetime
+        last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Read entire sheet
+        all_records = sheet.get_all_records()
+        headers = sheet.row_values(1)
+        if not headers:
+            headers = ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated']
+
+        students_info = {str(s.get('id')): s for s in get_data('students')}
+
+        # Convert existing records to a dictionary mapped by "student_id_date"
+        record_map = {}
+        for r in all_records:
+            key = f"{r.get('student_id')}_{r.get('date')}"
+            record_map[key] = r
+
+        # Update or Insert incoming records
+        for record in records:
+            s_id = str(record['student_id'])
+            status = '1' if record['status'] == 'Present' else '0'
+            s_name = students_info.get(s_id, {}).get('name', 'Unknown')
+            s_class = students_info.get(s_id, {}).get('class', '')
+
+            key = f"{s_id}_{date}"
+
+            if key in record_map:
+                # Update existing
+                record_map[key]['status'] = status
+                record_map[key]['last_updated'] = last_updated
+                record_map[key]['student_name'] = s_name
+                record_map[key]['class'] = s_class
+            else:
+                # Create new
+                record_map[key] = {
+                    'student_id': s_id,
+                    'student_name': s_name,
+                    'class': s_class,
+                    'date': date,
+                    'status': status,
+                    'last_updated': last_updated
+                }
+
+            # Give points if present
+            if status == '1':
+                award_points(s_id, 5, "Attendance")
+
+        # Reconstruct sheet data
+        new_sheet_data = [headers]
+        for key, rec in record_map.items():
+            row = [str(rec.get(h, '')) for h in headers]
+            new_sheet_data.append(row)
+
+        # Bulk replace to ensure ZERO duplicates and perfect sync
+        sheet.clear()
+        sheet.update(new_sheet_data)
+
+        invalidate_cache('Attendance_V2')
+
+        return jsonify({'success': True, 'message': 'Attendance saved successfully'})
+    except Exception as e:
+        print(f"Failed to save Attendance_V2: {e}")
+        return jsonify({'success': False, 'error': str(e)})
     else:
         return jsonify({'success': False, 'error': 'Cannot save: Sheet not found'})
 
@@ -605,13 +652,30 @@ def student_my_videos():
 def student_attendance_view():
     student_id = session.get('student_id')
 
+    # Use Attendance_V2
+    attendance_data = get_data('Attendance_V2')
+
+    if attendance_data:
+        attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
+    else:
+        attendance_records = []
+
     total = len(attendance_records)
-    present = len([a for a in attendance_records if a['status'] == 'Present'])
+    # The new Attendance_V2 stores status as binary '1' or '0'
+    present = len([a for a in attendance_records if str(a.get('status')) == '1'])
     absent = total - present
     percentage = (present / total) * 100 if total > 0 else 0
 
+    # Map the binary status back to "Present"/"Absent" string for the UI template so we don't have to rewrite the HTML logic
+    formatted_records = []
+    for rec in attendance_records[::-1]: # reverse chronological
+        formatted_records.append({
+            'date': rec.get('date'),
+            'status': 'Present' if str(rec.get('status')) == '1' else 'Absent'
+        })
+
     return render_template('student/attendance_view.html',
-                           attendance_records=attendance_records[::-1],
+                           attendance_records=formatted_records,
                            total_classes=total,
                            present_count=present,
                            absent_count=absent,
