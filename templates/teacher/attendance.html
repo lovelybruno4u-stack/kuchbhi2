@@ -10,9 +10,9 @@
             <input type="date" id="attendance-date" class="form-control" style="width: 200px;" value="{{ current_date }}">
         </div>
         <div style="display: flex; gap: 10px;">
-            <a href="{{ wa_link }}" target="_blank" class="btn" style="background-color: #25D366; color: white;">
+            <button type="button" onclick="shareAbsentees()" class="btn" style="background-color: #25D366; color: white; border: none;">
                 <i class="fab fa-whatsapp"></i> Share Absentees
-            </a>
+            </button>
             <button class="btn btn-primary" onclick="saveAttendance()">
                 <i class="fas fa-save"></i> Save Attendance
             </button>
@@ -70,6 +70,34 @@
             }
         });
     });
+
+    function shareAbsentees() {
+        const date = document.getElementById('attendance-date').value;
+        const absentees = [];
+
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            if(row.cells.length > 1) { // Skip empty state row
+                const name = row.cells[1].textContent.trim();
+                const checkbox = row.querySelector('.attendance-checkbox');
+                if (checkbox && !checkbox.checked) {
+                    absentees.push(name);
+                }
+            }
+        });
+
+        let text = "Ashwathama Classes:\n\nToday's Absentees (" + date + "):\n";
+        if (absentees.length > 0) {
+            absentees.forEach((name, idx) => {
+                text += (idx + 1) + ". " + name + "\n";
+            });
+        } else {
+            text += "No absentees today!\n";
+        }
+
+        const url = "https://wa.me/?text=" + encodeURIComponent(text);
+        window.open(url, '_blank');
+    }
 
     async function saveAttendance() {
         showLoading();
