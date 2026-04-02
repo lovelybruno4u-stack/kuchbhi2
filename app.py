@@ -10,8 +10,12 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+
+from datetime import timedelta
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
+app.permanent_session_lifetime = timedelta(days=365)
+
 
 
 
@@ -84,8 +88,14 @@ def get_google_sheet(sheet_name):
                 ws.append_row(sheets_schema[sheet_name])
                 print(f"SUCCESS: Created '{sheet_name}' and populated headers.")
             except Exception as creation_error:
-                print(f"FATAL: Failed to create worksheet '{sheet_name}': {creation_error}")
-                return None
+                if "already exists" in str(creation_error):
+                    try:
+                        ws = sh.worksheet(sheet_name)
+                    except:
+                        return None
+                else:
+                    print(f"FATAL: Failed to create worksheet '{sheet_name}': {creation_error}")
+                    return None
         else:
             print(f"ERROR: Unknown sheet schema requested: {sheet_name}")
             return None
@@ -234,68 +244,80 @@ def class_matches(student_c, target_c):
 
 
 # --- Gamification Helpers ---
-def award_points(student_id, points_to_add, reason=""):
+def bulk_award_points(student_points_dict, reason=""):
+    # Accepts a dict of {student_id: points_to_add}
+    if not student_points_dict: return
+
     try:
         gamification = get_data('gamification')
         sheet = get_google_sheet('gamification')
         if not sheet: return
 
-        student_record = None
-        row_idx = -1
+        # Build map
+        record_map = {str(rec.get('student_id')): rec for rec in gamification if rec.get('student_id')}
 
-        for idx, rec in enumerate(gamification):
-            if str(rec.get('student_id')) == str(student_id):
-                student_record = rec
-                row_idx = idx + 2 # 1-based index + 1 for headers
-                break
+        for s_id, pts in student_points_dict.items():
+            s_id = str(s_id)
+            if s_id in record_map:
+                record_map[s_id]['points'] = int(record_map[s_id].get('points') or 0) + pts
+            else:
+                record_map[s_id] = {'student_id': s_id, 'points': pts, 'badges': ""}
 
-        if student_record:
-            current_points = int(student_record.get('points') or 0)
-            new_points = current_points + points_to_add
-            sheet.update_cell(row_idx, 2, new_points)
-        else:
-            sheet.append_row([student_id, points_to_add, ""])
+        # Write back gamification
+        headers = ['student_id', 'points', 'badges']
+        new_data = [headers]
+        for key, rec in record_map.items():
+            new_data.append([str(rec.get(h, '')) for h in headers])
 
-        print(f"Awarded {points_to_add} points to {student_id} for {reason}")
-        check_award_badges(student_id)
-        update_leaderboard_cache()
+        sheet.clear()
+        sheet.update(new_data)
         invalidate_cache('gamification')
-    except Exception as e:
-        print(f"Failed to award points: {e}")
 
-def check_award_badges(student_id):
+        # Now bulk check badges
+        bulk_check_badges(list(student_points_dict.keys()))
+        update_leaderboard_cache()
+
+    except Exception as e:
+        print(f"Failed to bulk award points: {e}")
+
+def bulk_check_badges(student_ids):
     try:
         videos = get_data('video_completion')
-
-        completed_videos = [v for v in videos if str(v.get('student_id')) == str(student_id)]
-
         gamification = get_data('gamification')
         sheet = get_google_sheet('gamification')
+        if not sheet: return
 
-        row_idx = -1
-        current_badges = ""
-        for idx, rec in enumerate(gamification):
-            if str(rec.get('student_id')) == str(student_id):
-                row_idx = idx + 2
-                current_badges = str(rec.get('badges') or "")
-                break
+        record_map = {str(rec.get('student_id')): rec for rec in gamification if rec.get('student_id')}
+        changed = False
 
-        if row_idx == -1: return
+        for s_id in student_ids:
+            s_id = str(s_id)
+            if s_id not in record_map: continue
 
-        badges_list = current_badges.split(",") if current_badges else []
-        badges_list = [b.strip() for b in badges_list if b.strip()]
+            completed_videos = len([v for v in videos if str(v.get('student_id')) == s_id])
 
-        new_badges = False
+            badges = str(record_map[s_id].get('badges') or "")
+            badges_list = [b.strip() for b in badges.split(",") if b.strip()]
 
-        if "Video Master" not in badges_list and len(completed_videos) >= 10:
-            badges_list.append("Video Master")
-            new_badges = True
+            if "Video Master" not in badges_list and completed_videos >= 10:
+                badges_list.append("Video Master")
+                record_map[s_id]['badges'] = ", ".join(badges_list)
+                changed = True
 
-        if new_badges:
-            sheet.update_cell(row_idx, 3, ", ".join(badges_list))
+        if changed:
+            headers = ['student_id', 'points', 'badges']
+            new_data = [headers]
+            for key, rec in record_map.items():
+                new_data.append([str(rec.get(h, '')) for h in headers])
+            sheet.clear()
+            sheet.update(new_data)
             invalidate_cache('gamification')
     except Exception as e:
-        print(f"Failed to check badges: {e}")
+        print(f"Failed bulk check badges: {e}")
+
+def award_points(student_id, points_to_add, reason=""):
+    # Legacy wrapper for single user calls (like quiz or video complete)
+    bulk_award_points({str(student_id): points_to_add}, reason)
 
 def update_leaderboard_cache():
     try:
@@ -306,15 +328,13 @@ def update_leaderboard_cache():
         sorted_students = sorted(gamification, key=lambda x: int(x.get('points', 0)), reverse=True)
 
         sheet.clear()
-        sheet.append_row(['student_id', 'points', 'rank'])
 
-        rows = []
+        rows = [['student_id', 'points', 'rank']]
         for rank, student in enumerate(sorted_students, 1):
             rows.append([student.get('student_id'), student.get('points'), rank])
 
-        if rows:
-            sheet.append_rows(rows)
-            invalidate_cache('leaderboard_cache')
+        sheet.update(rows)
+        invalidate_cache('leaderboard_cache')
 
     except Exception as e:
         print(f"Failed to update leaderboard cache: {e}")
@@ -345,6 +365,7 @@ def login():
         if role == 'teacher':
             # Hardcoded single admin teacher as requested
             if username == 'admin' and password == 'admin':
+                session.permanent = True
                 session['user_role'] = 'teacher'
                 session['user_name'] = 'Teacher'
                 return redirect(url_for('teacher_dashboard'))
@@ -363,6 +384,7 @@ def login():
                     break
 
             if student_found:
+                session.permanent = True
                 session['user_role'] = 'student'
                 session['user_name'] = student_found.get('name')
                 session['student_id'] = student_found.get('id')
@@ -522,6 +544,7 @@ def save_attendance():
             key = f"{r.get('student_id')}_{r.get('date')}"
             record_map[key] = r
 
+        points_to_award = {}
         for record in records:
             s_id = str(record['student_id'])
             status = '1' if record['status'] == 'Present' else '0'
@@ -546,7 +569,8 @@ def save_attendance():
                 }
 
             if status == '1':
-                award_points(s_id, 5, "Attendance")
+                # We will collect this and do it in bulk later
+                points_to_award[s_id] = 5
 
         new_sheet_data = [headers]
         for key, rec in record_map.items():
@@ -555,6 +579,9 @@ def save_attendance():
 
         sheet.clear()
         sheet.update(new_sheet_data)
+
+        if points_to_award:
+            bulk_award_points(points_to_award, "Attendance")
 
         invalidate_cache('ATTENDANCE_V2')
         refresh_local_cache()
@@ -1262,6 +1289,7 @@ def save_dpp_status():
             record_map[key] = index + 2
 
         rows_to_insert = []
+        points_to_award = {}
         for record in records:
             s_id = str(record['student_id'])
             status = '1' if record['status'] == 'Completed' else '0'
