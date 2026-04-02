@@ -14,9 +14,23 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
 
 
+# OpenAI Setup
+from openai import OpenAI
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
-
-
+def get_ai_response(prompt):
+    if not openai_client:
+        return "AI Error: OpenAI API Key not configured."
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"OpenAI API Error: {e}")
+        return f"AI Error: {e}"
 
 # Google Sheets Setup
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '1h_vz2JXdDX4GDqkQQwr3mQArHMqsYdem7Xjv8KVkrY8')
@@ -525,15 +539,83 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
 
+@app.route('/api/ai/attendance_analysis', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance_analysis():
+    attendance_data = get_data('attendance')
+    student_data = get_data('students')
 
+    if not attendance_data or not student_data:
+        return jsonify({'success': False, 'error': 'No attendance or student data available to analyze.'})
 
+    # Prepare summary data for the prompt to save tokens and context limit
+    student_names = {str(s.get('id')): s.get('name') for s in student_data}
 
+    # Calculate attendance % per student
+    stats = {}
+    for a in attendance_data:
+        sid = str(a.get('student_id'))
+        if sid not in stats:
+            stats[sid] = {'total': 0, 'present': 0}
+        stats[sid]['total'] += 1
+        if a.get('status') == 'Present':
+            stats[sid]['present'] += 1
 
+    summary_list = []
+    for sid, data in stats.items():
+        name = student_names.get(sid, f"Student {sid}")
+        percent = round((data['present'] / data['total']) * 100) if data['total'] > 0 else 0
+        summary_list.append(f"{name}: {percent}% ({data['present']}/{data['total']})")
 
+    prompt_data = "\\n".join(summary_list)
+    prompt = f"Analyze attendance data and provide insights. Here is the student attendance percentage data:\\n{prompt_data}\\n\\nPlease summarize which students are irregular, their attendance percentages, and suggest actions."
 
+    analysis = get_ai_response(prompt)
+    return jsonify({'success': True, 'analysis': analysis})
 
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def ai_video_summary():
+    data = request.json
+    topic = data.get('topic')
+    if not topic:
+         return jsonify({'success': False, 'error': 'Topic is required.'})
 
+    prompt = f"Generate summary notes for revision for the topic: {topic}. Include a summary and key points."
+    summary = get_ai_response(prompt)
+    return jsonify({'success': True, 'summary': summary})
+
+@app.route('/api/ai/quiz_generator', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz_generator():
+    data = request.json
+    topic = data.get('topic')
+    subject = data.get('subject')
+
+    if not topic or not subject:
+         return jsonify({'success': False, 'error': 'Subject and topic are required.'})
+
+    prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' and topic '{topic}'. Format as a numbered list with options A, B, C, D and explicitly state the Correct Answer for each."
+    quiz = get_ai_response(prompt)
+    return jsonify({'success': True, 'quiz': quiz})
+
+@app.route('/api/ai/generate_announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_generate_announcement():
+    data = request.json
+    topic = data.get('topic')
+
+    if not topic:
+         return jsonify({'success': False, 'error': 'Topic/Context is required.'})
+
+    prompt = f"Write a professional coaching class announcement. Context: {topic}"
+    announcement = get_ai_response(prompt)
+    return jsonify({'success': True, 'announcement': announcement})
 
 # --- Student Routes (Stubs for now) ---
 @app.route('/old_student_dashboard')
@@ -772,9 +854,34 @@ def student_announcements_view():
 
 # --- API Endpoints for AI Features (Student) ---
 
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
 
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def ai_doubt_solver():
+    data = request.json
+    question = data.get('question')
+    if not question:
+        return jsonify({'success': False, 'error': 'Question is required.'})
 
+    prompt = f"Explain this concept in very simple words for a school student: {question}\\nIf this is a math question, give a step-by-step solution."
+    solution = get_ai_response(prompt)
+    return jsonify({'success': True, 'solution': solution})
 
+@app.route('/api/chatbot', methods=['POST'])
+@login_required(role='student')
+def ai_study_chatbot():
+    data = request.json
+    message = data.get('message')
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required.'})
+
+    prompt = f"You are a friendly and helpful tutor for a school student. Answer their questions about concept doubts, exam preparation, or study tips. Keep your response conversational and encouraging. The student says: {message}"
+    reply = get_ai_response(prompt)
+    return jsonify({'success': True, 'reply': reply})
 
 # --- Materials Routes ---
 @app.route('/teacher/materials')
