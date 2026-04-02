@@ -232,6 +232,94 @@ def class_matches(student_c, target_c):
 
     return False
 
+
+# --- Gamification Helpers ---
+def award_points(student_id, points_to_add, reason=""):
+    try:
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('gamification')
+        if not sheet: return
+
+        student_record = None
+        row_idx = -1
+
+        for idx, rec in enumerate(gamification):
+            if str(rec.get('student_id')) == str(student_id):
+                student_record = rec
+                row_idx = idx + 2 # 1-based index + 1 for headers
+                break
+
+        if student_record:
+            current_points = int(student_record.get('points') or 0)
+            new_points = current_points + points_to_add
+            sheet.update_cell(row_idx, 2, new_points)
+        else:
+            sheet.append_row([student_id, points_to_add, ""])
+
+        print(f"Awarded {points_to_add} points to {student_id} for {reason}")
+        check_award_badges(student_id)
+        update_leaderboard_cache()
+        invalidate_cache('gamification')
+    except Exception as e:
+        print(f"Failed to award points: {e}")
+
+def check_award_badges(student_id):
+    try:
+        videos = get_data('video_completion')
+
+        completed_videos = [v for v in videos if str(v.get('student_id')) == str(student_id)]
+
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('gamification')
+
+        row_idx = -1
+        current_badges = ""
+        for idx, rec in enumerate(gamification):
+            if str(rec.get('student_id')) == str(student_id):
+                row_idx = idx + 2
+                current_badges = str(rec.get('badges') or "")
+                break
+
+        if row_idx == -1: return
+
+        badges_list = current_badges.split(",") if current_badges else []
+        badges_list = [b.strip() for b in badges_list if b.strip()]
+
+        new_badges = False
+
+        if "Video Master" not in badges_list and len(completed_videos) >= 10:
+            badges_list.append("Video Master")
+            new_badges = True
+
+        if new_badges:
+            sheet.update_cell(row_idx, 3, ", ".join(badges_list))
+            invalidate_cache('gamification')
+    except Exception as e:
+        print(f"Failed to check badges: {e}")
+
+def update_leaderboard_cache():
+    try:
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('leaderboard_cache')
+        if not sheet: return
+
+        sorted_students = sorted(gamification, key=lambda x: int(x.get('points', 0)), reverse=True)
+
+        sheet.clear()
+        sheet.append_row(['student_id', 'points', 'rank'])
+
+        rows = []
+        for rank, student in enumerate(sorted_students, 1):
+            rows.append([student.get('student_id'), student.get('points'), rank])
+
+        if rows:
+            sheet.append_rows(rows)
+            invalidate_cache('leaderboard_cache')
+
+    except Exception as e:
+        print(f"Failed to update leaderboard cache: {e}")
+
+
 # --- Common Routes ---
 
 
@@ -407,9 +495,17 @@ def teacher_attendance():
 
 import threading
 
-def async_save_attendance_thread(date, records, students_info):
+@app.route('/api/teacher/attendance', methods=['POST'])
+@login_required(role='teacher')
+def save_attendance():
+    data = request.json
+    date = data.get('date')
+    records = data.get('records', [])
+
     sheet = get_google_sheet('ATTENDANCE_V2')
-    if not sheet: return
+    if not sheet:
+        return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
+
     try:
         from datetime import datetime
         last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -418,6 +514,8 @@ def async_save_attendance_thread(date, records, students_info):
         headers = sheet.row_values(1)
         if not headers:
             headers = ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated']
+
+        students_info = {str(s.get('id')): s for s in get_data('students')}
 
         record_map = {}
         for r in all_records:
@@ -447,6 +545,9 @@ def async_save_attendance_thread(date, records, students_info):
                     'last_updated': last_updated
                 }
 
+            if status == '1':
+                award_points(s_id, 5, "Attendance")
+
         new_sheet_data = [headers]
         for key, rec in record_map.items():
             row = [str(rec.get(h, '')) for h in headers]
@@ -456,59 +557,11 @@ def async_save_attendance_thread(date, records, students_info):
         sheet.update(new_sheet_data)
 
         invalidate_cache('ATTENDANCE_V2')
-    except Exception as e:
-        print(f"Background thread failed to save Attendance_V2: {e}")
-
-@app.route('/api/teacher/attendance', methods=['POST'])
-@login_required(role='teacher')
-def save_attendance():
-    data = request.json
-    date = data.get('date')
-    records = data.get('records', [])
-
-    try:
-        students_info = {str(s.get('id')): s for s in get_data('students')}
-
-        # Optimistic cache update so it feels instant
-        if 'ATTENDANCE_V2' in DATA_CACHE:
-            from datetime import datetime
-            last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-            for record in records:
-                s_id = str(record['student_id'])
-                status = '1' if record['status'] == 'Present' else '0'
-
-                # Check if exists in cache
-                found = False
-                for c_rec in DATA_CACHE['ATTENDANCE_V2']['data']:
-                    if str(c_rec.get('student_id')) == s_id and str(c_rec.get('date')) == date:
-                        c_rec['status'] = status
-                        c_rec['last_updated'] = last_updated
-                        found = True
-                        break
-
-                if not found:
-                    s_name = students_info.get(s_id, {}).get('name', 'Unknown')
-                    s_class = students_info.get(s_id, {}).get('class', '')
-                    DATA_CACHE['ATTENDANCE_V2']['data'].append({
-                        'student_id': s_id,
-                        'student_name': s_name,
-                        'class': s_class,
-                        'date': date,
-                        'status': status,
-                        'last_updated': last_updated
-                    })
-
-                if status == '1':
-                    award_points(s_id, 5, "Attendance")
-
-        # Fire background sync to Google Sheets
-        threading.Thread(target=async_save_attendance_thread, args=(date, records, students_info)).start()
-
         refresh_local_cache()
+
         return jsonify({'success': True, 'message': 'Attendance saved successfully'})
     except Exception as e:
-        print(f"Failed to queue Attendance_V2 save: {e}")
+        print(f"Failed to save Attendance_V2: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
     else:
@@ -738,17 +791,21 @@ def student_dashboard():
     videos = get_data('videos')
     announcements = get_data('announcements')
     subjects = get_data('subjects')
+    students_data = get_data('students')
+
+    student_class = next((s.get('class') for s in students_data if str(s.get('id')) == str(student_id)), '')
 
     # Safely fetch attendance and calculate rate
     attendance_data = get_data('ATTENDANCE_V2')
     if attendance_data:
-        attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
+        unique_dates = set([a.get('date') for a in attendance_data if a.get('date')])
+        total = len(unique_dates) if len(unique_dates) > 0 else 1
+        present = len([a for a in attendance_data if str(a.get('student_id')) == str(student_id) and str(a.get('status')) in ['1', 'Present']])
     else:
-        attendance = []
+        total = 1
+        present = 0
 
-    total = len(attendance) if attendance else 1
-    present = len([a for a in attendance if a.get('status') == 'Present'])
-    attendance_percentage = round((present / total) * 100) if len(attendance) > 0 else 0
+    attendance_percentage = round((present / total) * 100) if present > 0 else 0
 
     from datetime import datetime
     current_date = datetime.now().strftime('%Y-%m-%d')
@@ -765,21 +822,43 @@ def student_dashboard():
     # Get Leaderboard Cache
     leaderboard = get_data('leaderboard_cache')
     top_students = []
-
-    # Join with students list for names
-    all_students = get_data('students')
-    student_names = {str(s.get('id')): s.get('name') for s in all_students}
+    student_names = {str(s.get('id')): s.get('name') for s in students_data}
 
     for entry in leaderboard[:5]: # Top 5 only
         entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
         top_students.append(entry)
+
+    # Fetch DPPs and Tasks
+    try:
+        dpp_data = get_data('DPP_V2')
+        my_dpps = []
+        for d in dpp_data[::-1]:
+            if class_matches(student_class, d.get('class', '')):
+                my_dpps.append(d)
+
+        tasks_data = get_data('TASKS_V2')
+        my_tasks = []
+        for t in tasks_data[::-1]:
+            if class_matches(student_class, t.get('class', '')):
+                my_tasks.append(t)
+
+        task_status_data = get_data('Task_Status')
+        completed_task_ids = [str(t.get('task_id')) for t in task_status_data if str(t.get('student_id')) == str(student_id)]
+    except Exception as e:
+        print(f"Error fetching dashboard tasks/dpps: {e}")
+        my_dpps = []
+        my_tasks = []
+        completed_task_ids = []
 
     data = {
         'attendance_percentage': attendance_percentage,
         'today_video': today_video,
         'latest_announcement': latest_announcement,
         'subjects': subjects,
-        'leaderboard': top_students
+        'leaderboard': top_students,
+        'dpps': my_dpps[:5], # Show recent 5
+        'tasks': my_tasks,
+        'completed_tasks': completed_task_ids
     }
 
     return render_template('student/student_dashboard.html', data=data)
