@@ -48,6 +48,15 @@
 
 
 
+        <!-- AI Helper Section -->
+        <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;"><b>AI Assistant:</b> Generate a professional announcement.</p>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="ai-topic-input" class="form-control" placeholder="Context (e.g., Holiday tomorrow)" style="flex-grow: 1;">
+                <button type="button" id="ai-generate-btn" class="btn btn-primary"><i class="fas fa-magic"></i> Generate</button>
+            </div>
+        </div>
+
         <form action="{{ url_for('add_announcement') }}" method="POST">
             <div class="form-group">
                 <label>Date</label>
@@ -66,4 +75,39 @@
 </div>
 
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const btnAI = document.getElementById('ai-generate-btn');
+        const inputTopic = document.getElementById('ai-topic-input');
+        const txtMessage = document.getElementById('announcement-message');
+
+        btnAI.addEventListener('click', async () => {
+            const topic = inputTopic.value.trim();
+            if(!topic) return alert('Please enter a topic for the AI to generate.');
+
+            showLoading();
+            btnAI.disabled = true;
+            try {
+                const response = await fetch('/api/ai/generate_announcement', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({topic: topic})
+                });
+                const data = await response.json();
+                if (data.success) {
+                    txtMessage.value = data.announcement;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Request failed.');
+            }
+            btnAI.disabled = false;
+            hideLoading();
+        });
+    });
+</script>
 {% endblock %}

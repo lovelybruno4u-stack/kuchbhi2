@@ -77,6 +77,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ url_for('student_chatbot') }}" class="nav-link {% if request.path == url_for('student_chatbot') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Chatbot
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ url_for('student_profile') }}" class="nav-link {% if request.path == url_for('student_profile') %}active{% endif %}">
                     <i class="fas fa-user-graduate"></i> Profile
                 </a>
