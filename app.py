@@ -66,10 +66,10 @@ def get_google_sheet(sheet_name):
         'video_completion': ['date', 'student_id', 'subject', 'completed'],
         'gamification': ['student_id', 'points', 'badges'],
         'leaderboard_cache': ['student_id', 'points', 'rank'],
-        'Attendance_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
-        'DPP': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
+        'ATTENDANCE_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
+        'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
         'DPP_Status': ['dpp_id', 'student_id', 'status'],
-        'Daily_Tasks': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
+        'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
         'Task_Status': ['task_id', 'student_id', 'status']
     }
 
@@ -176,6 +176,29 @@ def get_data(sheet_name):
         print(f"Failed to access Google Sheet '{sheet_name}'. Ensure tab exists and permissions are granted.")
         return []
 
+
+import threading
+
+def background_refresh():
+    try:
+        # Silently fetch latest data to update cache behind the scenes
+        print("Starting silent background refresh for all V2 sheets...")
+        sheets_to_refresh = ['ATTENDANCE_V2', 'DPP_V2', 'TASKS_V2']
+        for s in sheets_to_refresh:
+            sheet = get_google_sheet(s)
+            if sheet:
+                records = sheet.get_all_records()
+                DATA_CACHE[s] = {
+                    'timestamp': time.time(),
+                    'data': records
+                }
+                print(f"Refreshed cache for {s}")
+    except Exception as e:
+        print(f"Background refresh failed: {e}")
+
+def refresh_local_cache():
+    threading.Thread(target=background_refresh).start()
+
 def invalidate_cache(sheet_name):
     if sheet_name in DATA_CACHE:
         del DATA_CACHE[sheet_name]
@@ -193,6 +216,22 @@ def login_required(role=None):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def normalize_class(value):
+    if not value: return "all"
+    return str(value).strip().lower().replace("class", "").replace("th", "").strip()
+
+def class_matches(student_c, target_c):
+    norm_s = normalize_class(student_c)
+    norm_t = normalize_class(target_c)
+
+    # 10th specific fallback logic
+    allowed_10th = ["10", "all", ""]
+    if norm_t in allowed_10th: return True
+    if norm_s == norm_t: return True
+
+    return False
 
 # --- Common Routes ---
 
@@ -327,6 +366,8 @@ def add_student():
     }
     add_data_to_sheet('students', new_student)
     flash('Student added successfully!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_students'))
 
 @app.route('/teacher/delete_student/<id>', methods=['POST'])
@@ -334,6 +375,8 @@ def add_student():
 def delete_student(id):
     delete_data_from_sheet('students', id)
     flash('Student deleted successfully!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_students'))
 
 @app.route('/teacher/attendance')
@@ -366,7 +409,7 @@ def teacher_attendance():
 import threading
 
 def async_save_attendance_thread(date, records, students_info):
-    sheet = get_google_sheet('Attendance_V2')
+    sheet = get_google_sheet('ATTENDANCE_V2')
     if not sheet: return
     try:
         from datetime import datetime
@@ -413,7 +456,7 @@ def async_save_attendance_thread(date, records, students_info):
         sheet.clear()
         sheet.update(new_sheet_data)
 
-        invalidate_cache('Attendance_V2')
+        invalidate_cache('ATTENDANCE_V2')
     except Exception as e:
         print(f"Background thread failed to save Attendance_V2: {e}")
 
@@ -428,7 +471,7 @@ def save_attendance():
         students_info = {str(s.get('id')): s for s in get_data('students')}
 
         # Optimistic cache update so it feels instant
-        if 'Attendance_V2' in DATA_CACHE:
+        if 'ATTENDANCE_V2' in DATA_CACHE:
             from datetime import datetime
             last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -438,7 +481,7 @@ def save_attendance():
 
                 # Check if exists in cache
                 found = False
-                for c_rec in DATA_CACHE['Attendance_V2']['data']:
+                for c_rec in DATA_CACHE['ATTENDANCE_V2']['data']:
                     if str(c_rec.get('student_id')) == s_id and str(c_rec.get('date')) == date:
                         c_rec['status'] = status
                         c_rec['last_updated'] = last_updated
@@ -448,7 +491,7 @@ def save_attendance():
                 if not found:
                     s_name = students_info.get(s_id, {}).get('name', 'Unknown')
                     s_class = students_info.get(s_id, {}).get('class', '')
-                    DATA_CACHE['Attendance_V2']['data'].append({
+                    DATA_CACHE['ATTENDANCE_V2']['data'].append({
                         'student_id': s_id,
                         'student_name': s_name,
                         'class': s_class,
@@ -463,6 +506,7 @@ def save_attendance():
         # Fire background sync to Google Sheets
         threading.Thread(target=async_save_attendance_thread, args=(date, records, students_info)).start()
 
+        refresh_local_cache()
         return jsonify({'success': True, 'message': 'Attendance saved successfully'})
     except Exception as e:
         print(f"Failed to queue Attendance_V2 save: {e}")
@@ -597,7 +641,7 @@ def old_student_announcements_view():
 @app.route('/teacher/dpp')
 @login_required(role='teacher')
 def teacher_dpp():
-    dpp = get_data('DPP')
+    dpp = get_data('DPP_V2')
     subjects = get_data('subjects')
     return render_template('teacher/dpp.html', dpp=dpp, subjects=subjects)
 
@@ -615,22 +659,26 @@ def add_dpp():
         'file_url': request.form.get('file_url'),
         'date_uploaded': datetime.now().strftime('%Y-%m-%d')
     }
-    add_data_to_sheet('DPP', new_dpp)
+    add_data_to_sheet('DPP_V2', new_dpp)
     flash('DPP uploaded!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_dpp'))
 
 @app.route('/teacher/delete_dpp/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_dpp(id):
-    delete_data_from_sheet('DPP', id)
+    delete_data_from_sheet('DPP_V2', id)
     flash('DPP deleted!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_dpp'))
 
 # --- Daily Tasks Routes ---
 @app.route('/teacher/tasks')
 @login_required(role='teacher')
 def teacher_tasks():
-    tasks = get_data('Daily_Tasks')
+    tasks = get_data('TASKS_V2')
     subjects = get_data('subjects')
     return render_template('teacher/tasks.html', tasks=tasks, subjects=subjects)
 
@@ -648,15 +696,19 @@ def add_task():
         'due_date': request.form.get('due_date'),
         'created_date': datetime.now().strftime('%Y-%m-%d')
     }
-    add_data_to_sheet('Daily_Tasks', new_task)
+    add_data_to_sheet('TASKS_V2', new_task)
     flash('Task assigned!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_tasks'))
 
 @app.route('/teacher/delete_task/<id>', methods=['POST'])
 @login_required(role='teacher')
 def delete_task(id):
-    delete_data_from_sheet('Daily_Tasks', id)
+    delete_data_from_sheet('TASKS_V2', id)
     flash('Task deleted!', 'success')
+    refresh_local_cache()
+    refresh_local_cache()
     return redirect(url_for('teacher_tasks'))
 
 @app.route('/api/student/complete_task', methods=['POST'])
@@ -765,7 +817,7 @@ def student_attendance_view():
     student_id = session.get('student_id')
 
     # Use Attendance_V2
-    attendance_data = get_data('Attendance_V2')
+    attendance_data = get_data('ATTENDANCE_V2')
 
     if attendance_data:
         attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
@@ -1086,11 +1138,13 @@ def mark_video_complete():
 @app.route('/teacher/dpp_status/<dpp_id>')
 @login_required(role='teacher')
 def teacher_dpp_status(dpp_id):
-    dpps = get_data('DPP')
+    dpps = get_data('DPP_V2')
     dpp = next((d for d in dpps if str(d.get('id')) == str(dpp_id)), None)
     if not dpp:
         flash("DPP not found.", "error")
-        return redirect(url_for('teacher_dpp'))
+        refresh_local_cache()
+    refresh_local_cache()
+    return redirect(url_for('teacher_dpp'))
 
     students = get_data('students')
     dpp_status_data = get_data('DPP_Status')
