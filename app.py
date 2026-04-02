@@ -55,7 +55,6 @@ def get_google_sheet(sheet_name):
 
     sheets_schema = {
         'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
-        'attendance': ['date', 'student_id', 'status'],
         'videos': ['id', 'date', 'subject', 'drive_link'],
         'subjects': ['id', 'subject_name'],
         'announcements': ['id', 'date', 'message', 'important'],
@@ -297,7 +296,7 @@ def logout():
 def teacher_dashboard():
     students = get_data('students')
     videos = get_data('videos')
-    attendance = get_data('attendance')
+    attendance = get_data('ATTENDANCE_V2')
 
     current_date = datetime.now().strftime('%Y-%m-%d')
     today_attendance_count = len([a for a in attendance if a.get('date') == current_date and a.get('status') == 'Present'])
@@ -383,7 +382,7 @@ def delete_student(id):
 @login_required(role='teacher')
 def teacher_attendance():
     students = get_data('students')
-    attendance = get_data('attendance')
+    attendance = get_data('ATTENDANCE_V2')
     current_date = datetime.now().strftime('%Y-%m-%d')
 
     # Calculate today's absentees
@@ -741,7 +740,7 @@ def student_dashboard():
     subjects = get_data('subjects')
 
     # Safely fetch attendance and calculate rate
-    attendance_data = get_data('attendance')
+    attendance_data = get_data('ATTENDANCE_V2')
     if attendance_data:
         attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
     else:
@@ -1003,7 +1002,7 @@ def student_profile():
         flash("Profile not found.", "error")
         return redirect(url_for('student_dashboard'))
 
-    attendance_data = get_data('attendance')
+    attendance_data = get_data('ATTENDANCE_V2')
     attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
 
     total_classes = len(attendance)
