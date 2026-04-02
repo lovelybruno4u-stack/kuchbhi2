@@ -362,36 +362,26 @@ def teacher_attendance():
 
     return render_template('teacher/attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
 
-@app.route('/api/teacher/attendance', methods=['POST'])
-@login_required(role='teacher')
-def save_attendance():
-    data = request.json
-    date = data.get('date')
-    records = data.get('records', [])
 
+import threading
+
+def async_save_attendance_thread(date, records, students_info):
     sheet = get_google_sheet('Attendance_V2')
-    if not sheet:
-        return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
-
+    if not sheet: return
     try:
         from datetime import datetime
         last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Read entire sheet
         all_records = sheet.get_all_records()
         headers = sheet.row_values(1)
         if not headers:
             headers = ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated']
 
-        students_info = {str(s.get('id')): s for s in get_data('students')}
-
-        # Convert existing records to a dictionary mapped by "student_id_date"
         record_map = {}
         for r in all_records:
             key = f"{r.get('student_id')}_{r.get('date')}"
             record_map[key] = r
 
-        # Update or Insert incoming records
         for record in records:
             s_id = str(record['student_id'])
             status = '1' if record['status'] == 'Present' else '0'
@@ -401,13 +391,11 @@ def save_attendance():
             key = f"{s_id}_{date}"
 
             if key in record_map:
-                # Update existing
                 record_map[key]['status'] = status
                 record_map[key]['last_updated'] = last_updated
                 record_map[key]['student_name'] = s_name
                 record_map[key]['class'] = s_class
             else:
-                # Create new
                 record_map[key] = {
                     'student_id': s_id,
                     'student_name': s_name,
@@ -417,26 +405,69 @@ def save_attendance():
                     'last_updated': last_updated
                 }
 
-            # Give points if present
-            if status == '1':
-                award_points(s_id, 5, "Attendance")
-
-        # Reconstruct sheet data
         new_sheet_data = [headers]
         for key, rec in record_map.items():
             row = [str(rec.get(h, '')) for h in headers]
             new_sheet_data.append(row)
 
-        # Bulk replace to ensure ZERO duplicates and perfect sync
         sheet.clear()
         sheet.update(new_sheet_data)
 
         invalidate_cache('Attendance_V2')
+    except Exception as e:
+        print(f"Background thread failed to save Attendance_V2: {e}")
+
+@app.route('/api/teacher/attendance', methods=['POST'])
+@login_required(role='teacher')
+def save_attendance():
+    data = request.json
+    date = data.get('date')
+    records = data.get('records', [])
+
+    try:
+        students_info = {str(s.get('id')): s for s in get_data('students')}
+
+        # Optimistic cache update so it feels instant
+        if 'Attendance_V2' in DATA_CACHE:
+            from datetime import datetime
+            last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            for record in records:
+                s_id = str(record['student_id'])
+                status = '1' if record['status'] == 'Present' else '0'
+
+                # Check if exists in cache
+                found = False
+                for c_rec in DATA_CACHE['Attendance_V2']['data']:
+                    if str(c_rec.get('student_id')) == s_id and str(c_rec.get('date')) == date:
+                        c_rec['status'] = status
+                        c_rec['last_updated'] = last_updated
+                        found = True
+                        break
+
+                if not found:
+                    s_name = students_info.get(s_id, {}).get('name', 'Unknown')
+                    s_class = students_info.get(s_id, {}).get('class', '')
+                    DATA_CACHE['Attendance_V2']['data'].append({
+                        'student_id': s_id,
+                        'student_name': s_name,
+                        'class': s_class,
+                        'date': date,
+                        'status': status,
+                        'last_updated': last_updated
+                    })
+
+                if status == '1':
+                    award_points(s_id, 5, "Attendance")
+
+        # Fire background sync to Google Sheets
+        threading.Thread(target=async_save_attendance_thread, args=(date, records, students_info)).start()
 
         return jsonify({'success': True, 'message': 'Attendance saved successfully'})
     except Exception as e:
-        print(f"Failed to save Attendance_V2: {e}")
+        print(f"Failed to queue Attendance_V2 save: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
     else:
         return jsonify({'success': False, 'error': 'Cannot save: Sheet not found'})
 
