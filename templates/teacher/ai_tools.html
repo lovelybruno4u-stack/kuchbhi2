@@ -1,0 +1,133 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- Video Summary -->
+    <div class="glass-card" style="padding: 24px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">
+            <i class="fas fa-video" style="color: var(--primary-color);"></i> AI Video Summary
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+            Generate quick summary and revision notes for any video topic.
+        </p>
+        <form id="video-summary-form">
+            <div class="form-group">
+                <input type="text" id="video-topic" class="form-control" placeholder="Enter Video Topic (e.g. Photosynthesis)" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-magic"></i> Generate Summary
+            </button>
+        </form>
+        <div id="video-summary-result" style="margin-top: 20px; display: none; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid var(--border-color);"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="padding: 24px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">
+            <i class="fas fa-question-circle" style="color: var(--primary-color);"></i> AI Quiz Generator
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+            Generate 5 multiple choice questions for any topic.
+        </p>
+        <form id="quiz-gen-form">
+            <div class="form-group">
+                <input type="text" id="quiz-topic" class="form-control" placeholder="Enter Subject and Topic" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-magic"></i> Generate Quiz
+            </button>
+        </form>
+        <div id="quiz-gen-result" style="margin-top: 20px; display: none; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid var(--border-color);"></div>
+    </div>
+
+    <!-- Attendance Analysis -->
+    <div class="glass-card" style="padding: 24px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">
+            <i class="fas fa-chart-line" style="color: var(--primary-color);"></i> AI Attendance Analysis
+        </h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">
+            Get AI insights on student attendance patterns.
+        </p>
+        <button id="analyze-attendance-btn" class="btn btn-primary" style="width: 100%;">
+            <i class="fas fa-chart-pie"></i> Analyze Attendance Data
+        </button>
+        <div id="attendance-analysis-result" style="margin-top: 20px; display: none; background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid var(--border-color);"></div>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('video-summary-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const topic = document.getElementById('video-topic').value;
+        const resultDiv = document.getElementById('video-summary-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating summary...';
+
+        try {
+            const res = await fetch('/api/ai/video_summary', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if (data.success) {
+                resultDiv.innerHTML = data.summary;
+            } else {
+                resultDiv.innerHTML = '<span style="color: red;">Error: ' + data.error + '</span>';
+            }
+        } catch (err) {
+            resultDiv.innerHTML = '<span style="color: red;">Failed to generate summary.</span>';
+        }
+    });
+
+    document.getElementById('quiz-gen-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const topic = document.getElementById('quiz-topic').value;
+        const resultDiv = document.getElementById('quiz-gen-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating quiz...';
+
+        try {
+            const res = await fetch('/api/ai/quiz_generator', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if (data.success) {
+                resultDiv.innerHTML = data.quiz;
+            } else {
+                resultDiv.innerHTML = '<span style="color: red;">Error: ' + data.error + '</span>';
+            }
+        } catch (err) {
+            resultDiv.innerHTML = '<span style="color: red;">Failed to generate quiz.</span>';
+        }
+    });
+
+    document.getElementById('analyze-attendance-btn').addEventListener('click', async () => {
+        const resultDiv = document.getElementById('attendance-analysis-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing data...';
+
+        try {
+            const res = await fetch('/api/ai/attendance_analysis', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            if (data.success) {
+                resultDiv.innerHTML = data.analysis;
+            } else {
+                resultDiv.innerHTML = '<span style="color: red;">Error: ' + data.error + '</span>';
+            }
+        } catch (err) {
+            resultDiv.innerHTML = '<span style="color: red;">Failed to analyze data.</span>';
+        }
+    });
+</script>
+{% endblock %}
