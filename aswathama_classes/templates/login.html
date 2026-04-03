@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ASWATHAMA CLASSES</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .login-container h1 {
+            color: var(--primary);
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid transparent;
+            background: rgba(255,255,255,0.5);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+        .role-btn.active {
+            border-color: var(--primary);
+            background: white;
+            color: var(--primary);
+        }
+        .login-form {
+            display: none;
+        }
+        .login-form.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 0.875rem;
+            font-size: 1rem;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container glass">
+        <h1>ASWATHAMA CLASSES</h1>
+
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="role-selector">
+            <button class="role-btn active" onclick="switchRole('student')">Student</button>
+            <button class="role-btn" onclick="switchRole('teacher')">Teacher</button>
+        </div>
+
+        <!-- Student Login Form -->
+        <form id="student-form" class="login-form active" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="role" value="student">
+            <div class="form-group">
+                <label>Student ID (e.g., first 8 chars of UUID)</label>
+                <input type="text" name="student_id" placeholder="Enter your Student ID" required>
+            </div>
+            <button type="submit" class="btn btn-primary submit-btn">Login as Student</button>
+        </form>
+
+        <!-- Teacher Login Form -->
+        <form id="teacher-form" class="login-form" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="role" value="teacher">
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter Admin Password" required>
+            </div>
+            <button type="submit" class="btn btn-primary submit-btn">Login as Teacher</button>
+        </form>
+    </div>
+
+    <script>
+        function switchRole(role) {
+            // Update buttons
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update forms
+            document.querySelectorAll('.login-form').forEach(form => form.classList.remove('active'));
+            document.getElementById(role + '-form').classList.add('active');
+        }
+    </script>
+</body>
+</html>

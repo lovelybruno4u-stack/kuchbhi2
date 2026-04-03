@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="card glass" style="margin-bottom: 2rem;">
+    <form method="GET" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0;">
+        <label style="font-weight: 500;">Select Date:</label>
+        <input type="date" name="date" value="{{ date }}" style="width: auto; margin-bottom: 0;" onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="card glass table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Roll No</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.roll }}</td>
+                <td style="font-weight: 500;">{{ student.name }}</td>
+                <td>{{ student.class }}</td>
+                <td id="status-{{ student.id }}">
+                    {% set status = att_map.get(student.id|string, 'Not Marked') %}
+                    <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;
+                        {% if status == 'Present' %}background: #d1fae5; color: #065f46;
+                        {% elif status == 'Absent' %}background: #fee2e2; color: #991b1b;
+                        {% else %}background: #f3f4f6; color: #374151;{% endif %}">
+                        {{ status }}
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn" style="background: #10b981; color: white; padding: 0.25rem 0.75rem;"
+                                onclick="markAttendance('{{ student.id }}', 'Present')">Present</button>
+                        <button class="btn" style="background: #ef4444; color: white; padding: 0.25rem 0.75rem;"
+                                onclick="markAttendance('{{ student.id }}', 'Absent')">Absent</button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No students available to mark attendance.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- AI Attendance Insight Tool -->
+<div class="card glass" style="margin-top: 2rem; border-top: 4px solid var(--primary);">
+    <h3><i class="fa-solid fa-robot"></i> AI Attendance Insights</h3>
+    <p style="color: var(--text-muted); margin-bottom: 1rem;">Generate an AI summary of overall attendance trends based on current data.</p>
+    <button class="btn btn-primary" onclick="generateInsight()">Analyze Attendance</button>
+
+    <div id="loadingInsight" style="display: none; margin-top: 1rem;">
+        <div class="loader"></div> <span style="margin-left: 10px; color: var(--text-muted);">AI is analyzing...</span>
+    </div>
+
+    <div id="insightResult" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: rgba(255,255,255,0.8); border-radius: 8px; border-left: 4px solid var(--primary); line-height: 1.6;">
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function markAttendance(studentId, status) {
+    const date = document.querySelector('input[name="date"]').value;
+
+    try {
+        const formData = new FormData();
+        formData.append('date', date);
+        formData.append('student_id', studentId);
+        formData.append('status', status);
+
+        const response = await fetch('{{ url_for("teacher_attendance") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            // Update UI instantly
+            const statusCell = document.getElementById(`status-${studentId}`);
+            if(status === 'Present') {
+                statusCell.innerHTML = `<span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; background: #d1fae5; color: #065f46;">Present</span>`;
+            } else {
+                statusCell.innerHTML = `<span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; background: #fee2e2; color: #991b1b;">Absent</span>`;
+            }
+        } else {
+            alert('Failed to mark attendance.');
+        }
+    } catch (e) {
+        alert('Error saving attendance.');
+        console.error(e);
+    }
+}
+
+function generateInsight() {
+    callAIApi('{{ url_for("api_ai_attendance_insight") }}', {}, 'insightResult', 'loadingInsight');
+}
+</script>
+{% endblock %}

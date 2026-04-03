@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}Teacher AI Suite{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    <!-- AI Quiz Generator -->
+    <div class="card glass" style="grid-column: span 2; border-top: 4px solid var(--primary);">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="font-size: 2rem; color: var(--primary);">
+                <i class="fa-solid fa-list-check"></i>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="margin-bottom: 0.5rem;">AI Quiz Generator</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Instantly generate 5 Multiple Choice Questions (MCQs) for any subject and topic to test student knowledge.</p>
+
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label>Subject / Topic</label>
+                        <input type="text" id="quizTopic" placeholder="e.g., Photosynthesis in Biology">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; padding-bottom: 1rem;">
+                        <button class="btn btn-primary" onclick="generateQuiz()">Generate MCQs</button>
+                    </div>
+                </div>
+
+                <div id="loadingQuiz" style="display: none; margin-top: 1rem;">
+                    <div class="loader"></div> <span style="margin-left: 10px; color: var(--text-muted);">Crafting questions...</span>
+                </div>
+
+                <div id="quizResult" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: rgba(255,255,255,0.9); border-radius: 8px; border: 1px solid var(--border-color); line-height: 1.6;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links to other AI tools -->
+    <div class="card glass">
+        <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Video Summarizer</h3>
+        <p style="color: var(--text-muted); margin: 1rem 0; font-size: 0.875rem;">Generate revision notes from your daily class topics automatically.</p>
+        <a href="{{ url_for('teacher_videos') }}" class="btn" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">Go to Video Tools</a>
+    </div>
+
+    <div class="card glass">
+        <h3><i class="fa-solid fa-bullhorn"></i> Announcement Writer</h3>
+        <p style="color: var(--text-muted); margin: 1rem 0; font-size: 0.875rem;">Draft professional notices and announcements in seconds.</p>
+        <a href="{{ url_for('teacher_announcements') }}" class="btn" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">Go to Announcements</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function generateQuiz() {
+        const topic = document.getElementById('quizTopic').value;
+        if (!topic) {
+            alert('Please enter a topic to generate a quiz.');
+            return;
+        }
+        callAIApi('{{ url_for("api_ai_quiz_generator") }}', { topic: topic }, 'quizResult', 'loadingQuiz');
+    }
+</script>
+{% endblock %}

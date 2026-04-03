@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects{% endblock %}
+{% block page_title %}Subjects{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    <!-- List of Subjects -->
+    <div class="card glass">
+        <h3 style="margin-bottom: 1.5rem;">Current Subjects</h3>
+        {% if subjects %}
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                {% for sub in subjects %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: white; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span style="font-weight: 500;">{{ sub.subject_name }}</span>
+                        <form method="POST" onsubmit="return confirm('Delete this subject?');" style="margin: 0;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="subject_name" value="{{ sub.subject_name }}">
+                            <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem;"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted);">No subjects added yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Add Subject Form -->
+    <div class="card glass">
+        <h3 style="margin-bottom: 1.5rem;">Add New Subject</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="form-group">
+                <label>Subject Name</label>
+                <input type="text" name="subject_name" placeholder="e.g., Mathematics" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-plus"></i> Add Subject
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

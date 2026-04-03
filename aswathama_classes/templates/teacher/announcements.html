@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    <!-- Manual Post -->
+    <div class="card glass">
+        <h3><i class="fa-solid fa-pen"></i> Post Announcement</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.875rem;">Write an announcement that all students will see.</p>
+
+        <form method="POST" id="announcementForm">
+            <div class="form-group">
+                <label>Message</label>
+                <textarea name="message" id="messageInput" rows="5" placeholder="Enter announcement text here..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Post Announcement</button>
+        </form>
+    </div>
+
+    <!-- AI Generator -->
+    <div class="card glass" style="background: linear-gradient(to bottom right, rgba(255,255,255,0.7), rgba(79, 70, 229, 0.05)); border: 1px solid rgba(79, 70, 229, 0.2);">
+        <h3><i class="fa-solid fa-robot"></i> AI Announcement Writer</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.875rem;">Need help drafting? Let AI write a professional announcement for you.</p>
+
+        <div class="form-group">
+            <label>Topic (e.g., Holiday Tomorrow due to Rain)</label>
+            <input type="text" id="aiTopic" placeholder="What is the announcement about?">
+        </div>
+        <button type="button" class="btn" style="background: white; color: var(--primary); border: 1px solid var(--primary); width: 100%; justify-content: center;" onclick="generateAnnouncement()">Generate Draft</button>
+
+        <div id="loadingAi" style="display: none; margin-top: 1rem; text-align: center;">
+            <div class="loader"></div> <span style="margin-left: 10px; color: var(--text-muted);">Drafting...</span>
+        </div>
+
+        <div id="aiResult" style="display: none; margin-top: 1.5rem; padding: 1rem; background: white; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.875rem; line-height: 1.5; position: relative;">
+            <div id="aiText"></div>
+            <button type="button" class="btn btn-primary" style="margin-top: 1rem; padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="useAiText()">Use This Text</button>
+        </div>
+    </div>
+</div>
+
+<h3 style="margin: 2rem 0 1rem;">Past Announcements</h3>
+<div class="grid grid-3">
+    {% for ann in announcements|reverse %}
+    <div class="card glass" style="position: relative;">
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+            <i class="fa-regular fa-clock"></i> {{ ann.date }}
+        </div>
+        <p style="font-size: 0.95rem; line-height: 1.5;">{{ ann.message }}</p>
+    </div>
+    {% else %}
+    <div style="grid-column: span 3; text-align: center; color: var(--text-muted); padding: 2rem;">
+        No announcements posted yet.
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function generateAnnouncement() {
+        const topic = document.getElementById('aiTopic').value;
+        if (!topic) {
+            alert('Please enter a topic.');
+            return;
+        }
+
+        // We override the base callAIApi slightly to retain raw text for copying
+        const resultEl = document.getElementById('aiResult');
+        const textEl = document.getElementById('aiText');
+        const loadingEl = document.getElementById('loadingAi');
+
+        resultEl.style.display = 'none';
+        loadingEl.style.display = 'block';
+
+        try {
+            const response = await fetch('{{ url_for("api_ai_announcement") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic })
+            });
+            const data = await response.json();
+            loadingEl.style.display = 'none';
+            if (response.ok) {
+                // Store raw text in a data attribute
+                resultEl.dataset.raw = data.result;
+                textEl.innerHTML = data.result.replace(/\n/g, '<br>');
+                resultEl.style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            loadingEl.style.display = 'none';
+            alert('Failed to connect to AI');
+        }
+    }
+
+    function useAiText() {
+        const resultEl = document.getElementById('aiResult');
+        const rawText = resultEl.dataset.raw;
+        document.getElementById('messageInput').value = rawText;
+        // Optionally auto-submit or just let user edit
+    }
+</script>
+{% endblock %}

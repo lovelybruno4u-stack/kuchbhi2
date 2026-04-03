@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance{% endblock %}
+{% block page_title %}Attendance Record{% endblock %}
+
+{% block content %}
+<div class="grid grid-3" style="margin-bottom: 2rem;">
+    {% set total = attendance|length %}
+    {% set present = attendance|selectattr("status", "equalto", "Present")|list|length %}
+    {% set percentage = (present / total * 100)|round(1) if total > 0 else 0 %}
+
+    <div class="card glass">
+        <div class="card-title">Total Classes</div>
+        <div class="card-value">{{ total }}</div>
+    </div>
+
+    <div class="card glass">
+        <div class="card-title">Classes Attended</div>
+        <div class="card-value" style="color: #10b981;">{{ present }}</div>
+    </div>
+
+    <div class="card glass">
+        <div class="card-title">Attendance Percentage</div>
+        <div class="card-value" style="color: {% if percentage >= 75 %}var(--primary){% else %}#ef4444{% endif %};">
+            {{ percentage }}%
+        </div>
+    </div>
+</div>
+
+<div class="card glass table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in attendance|sort(attribute='date', reverse=True) %}
+            <tr>
+                <td style="font-weight: 500;">{{ record.date }}</td>
+                <td>
+                    {% if record.status == 'Present' %}
+                        <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; background: #d1fae5; color: #065f46;">
+                            <i class="fa-solid fa-check-circle"></i> Present
+                        </span>
+                    {% else %}
+                        <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; background: #fee2e2; color: #991b1b;">
+                            <i class="fa-solid fa-times-circle"></i> Absent
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                    No attendance records found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
