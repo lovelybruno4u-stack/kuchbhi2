@@ -1,0 +1,134 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Chatbot{% endblock %}
+{% block page_title %}AI Study Tutor{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="color: var(--text-primary); margin-bottom: 20px;"><i class="fas fa-robot" style="color: var(--primary-color);"></i> AI Study Tutor</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 30px;">Ask concept doubts, get exam preparation tips, or learn a new topic step-by-step.</p>
+
+    <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+        <!-- Doubt Solver -->
+        <div class="glass-card" style="border-left: 4px solid var(--primary-color);">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-lightbulb" style="color: #fbbf24;"></i> Concept Doubt Solver</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Get simple explanations for school students.</p>
+            <form id="doubt-form">
+                <div class="form-group">
+                    <label>Your Doubt or Question</label>
+                    <textarea id="doubt-question" class="form-control" rows="3" placeholder="e.g. How does photosynthesis work? or Solve 2x + 4 = 10" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Solve Doubt</button>
+            </form>
+            <div id="doubt-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
+        </div>
+
+        <!-- Chatbot Interface -->
+        <div class="glass-card" style="border-left: 4px solid var(--secondary-color); display: flex; flex-direction: column;">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-comments" style="color: var(--secondary-color);"></i> Interactive Chat Tutor</h4>
+
+            <div id="chat-window" style="flex-grow: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 300px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <div style="align-self: flex-start; background: #e0e7ff; color: #3730a3; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 80%;">
+                    Hello! I'm your AI Study Tutor. How can I help you today?
+                </div>
+            </div>
+
+            <form id="chat-form" style="display: flex; gap: 10px;">
+                <input type="text" id="chat-input" class="form-control" placeholder="Type your message..." required style="flex-grow: 1; margin-bottom: 0;">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Doubt Solver
+    document.getElementById('doubt-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const question = document.getElementById('doubt-question').value;
+        const resultDiv = document.getElementById('doubt-result');
+        const btn = e.target.querySelector('button');
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Solving...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/student/ai_doubt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = `<strong>Explanation:</strong>\n\n${data.answer}`;
+            } else {
+                resultDiv.innerHTML = `<span style="color: var(--danger);">Error: ${data.error}</span>`;
+            }
+        } catch (err) {
+            resultDiv.innerHTML = `<span style="color: var(--danger);">Network error.</span>`;
+        }
+
+        resultDiv.style.display = 'block';
+        btn.innerHTML = 'Solve Doubt';
+        btn.disabled = false;
+    });
+
+    // Chatbot Interface
+    document.getElementById('chat-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const inputField = document.getElementById('chat-input');
+        const message = inputField.value;
+        const chatWindow = document.getElementById('chat-window');
+        const btn = e.target.querySelector('button');
+
+        // Add user message
+        const userMsg = document.createElement('div');
+        userMsg.style.cssText = 'align-self: flex-end; background: var(--primary-color); color: white; padding: 10px 15px; border-radius: 12px; border-bottom-right-radius: 0; max-width: 80%;';
+        userMsg.textContent = message;
+        chatWindow.appendChild(userMsg);
+
+        inputField.value = '';
+        btn.disabled = true;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        // Add loading indicator
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'align-self: flex-start; background: #e0e7ff; color: #3730a3; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 80%; font-style: italic;';
+        loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Typing...';
+        chatWindow.appendChild(loadingMsg);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
+        try {
+            const res = await fetch('/api/student/ai_chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            const data = await res.json();
+
+            chatWindow.removeChild(loadingMsg);
+
+            const aiMsg = document.createElement('div');
+            aiMsg.style.cssText = 'align-self: flex-start; background: #e0e7ff; color: #3730a3; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 80%; white-space: pre-wrap;';
+
+            if (data.success) {
+                aiMsg.textContent = data.reply;
+            } else {
+                aiMsg.innerHTML = `<span style="color: var(--danger);">Error: ${data.error}</span>`;
+            }
+            chatWindow.appendChild(aiMsg);
+        } catch (err) {
+            chatWindow.removeChild(loadingMsg);
+            const errMsg = document.createElement('div');
+            errMsg.style.cssText = 'align-self: flex-start; background: #fee2e2; color: #991b1b; padding: 10px 15px; border-radius: 12px; border-bottom-left-radius: 0; max-width: 80%;';
+            errMsg.textContent = 'Network error. Please try again.';
+            chatWindow.appendChild(errMsg);
+        }
+
+        btn.disabled = false;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+</script>
+{% endblock %}

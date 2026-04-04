@@ -1,0 +1,165 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="color: var(--text-primary); margin-bottom: 20px;"><i class="fas fa-robot" style="color: var(--primary-color);"></i> Teacher AI Assistant</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 30px;">Use our AI tools to help you manage your coaching class more efficiently.</p>
+
+    <div class="dashboard-grid">
+        <!-- Quiz Generator -->
+        <div class="glass-card" style="border-left: 4px solid var(--primary-color);">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-question-circle" style="color: var(--primary-color);"></i> Quiz Generator</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Generate 5 multiple choice questions automatically.</p>
+            <form id="quiz-form">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="quiz-subject" class="form-control" placeholder="e.g. Science" required>
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Gravity" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Generate Quiz</button>
+            </form>
+            <div id="quiz-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 250px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Video Summary -->
+        <div class="glass-card" style="border-left: 4px solid var(--secondary-color);">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-video" style="color: var(--secondary-color);"></i> Video Summary</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Generate revision notes based on a video topic.</p>
+            <form id="video-form">
+                <div class="form-group">
+                    <label>Video Topic</label>
+                    <input type="text" id="video-topic" class="form-control" placeholder="e.g. Introduction to Calculus" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--secondary-color);">Generate Summary</button>
+            </form>
+            <div id="video-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 250px; overflow-y: auto; white-space: pre-wrap;"></div>
+        </div>
+
+        <!-- Attendance Insights -->
+        <div class="glass-card" style="border-left: 4px solid var(--success);">
+            <h4 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-chart-pie" style="color: var(--success);"></i> Attendance Insights</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Analyze attendance data and get AI suggestions.</p>
+            <button id="attendance-btn" class="btn btn-primary" style="width: 100%; background: var(--success);">Analyze Attendance</button>
+            <div id="attendance-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; max-height: 250px; overflow-y: auto; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Quiz Generation
+    document.getElementById('quiz-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        const resultDiv = document.getElementById('quiz-result');
+        const btn = e.target.querySelector('button');
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/teacher/ai_quiz_generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, topic })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                let html = '<h5>Generated Questions:</h5><ul style="padding-left: 20px; font-size: 0.9rem;">';
+                data.questions.forEach(q => {
+                    html += `<li style="margin-bottom: 10px;">
+                        <strong>${q.question}</strong><br>
+                        A) ${q.option1} <br>
+                        B) ${q.option2} <br>
+                        C) ${q.option3} <br>
+                        D) ${q.option4} <br>
+                        <em>Answer: ${q.answer}</em>
+                    </li>`;
+                });
+                html += '</ul>';
+                resultDiv.innerHTML = html;
+            } else {
+                resultDiv.innerHTML = `<p style="color: var(--danger);">Error: ${data.error}</p>`;
+            }
+        } catch (err) {
+            resultDiv.innerHTML = `<p style="color: var(--danger);">Network error.</p>`;
+        }
+
+        resultDiv.style.display = 'block';
+        btn.innerHTML = 'Generate Quiz';
+        btn.disabled = false;
+    });
+
+    // Video Summary
+    document.getElementById('video-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const topic = document.getElementById('video-topic').value;
+        const resultDiv = document.getElementById('video-result');
+        const btn = e.target.querySelector('button');
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/teacher/ai_video_summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = `<h5>Notes:</h5><p style="font-size: 0.9rem;">${data.summary}</p>`;
+            } else {
+                resultDiv.innerHTML = `<p style="color: var(--danger);">Error: ${data.error}</p>`;
+            }
+        } catch (err) {
+            resultDiv.innerHTML = `<p style="color: var(--danger);">Network error.</p>`;
+        }
+
+        resultDiv.style.display = 'block';
+        btn.innerHTML = 'Generate Summary';
+        btn.disabled = false;
+    });
+
+    // Attendance Insights
+    document.getElementById('attendance-btn').addEventListener('click', async (e) => {
+        const resultDiv = document.getElementById('attendance-result');
+        const btn = e.target;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/teacher/ai_attendance_analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = `<h5>AI Insights:</h5><p style="font-size: 0.9rem;">${data.insights}</p>`;
+            } else {
+                resultDiv.innerHTML = `<p style="color: var(--danger);">Error: ${data.error}</p>`;
+            }
+        } catch (err) {
+            resultDiv.innerHTML = `<p style="color: var(--danger);">Network error.</p>`;
+        }
+
+        resultDiv.style.display = 'block';
+        btn.innerHTML = 'Analyze Attendance';
+        btn.disabled = false;
+    });
+</script>
+{% endblock %}

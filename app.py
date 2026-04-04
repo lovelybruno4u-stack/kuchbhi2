@@ -6,9 +6,13 @@ from dotenv import load_dotenv
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
+
+# OpenAI Setup
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 
 from datetime import timedelta
@@ -679,15 +683,107 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
 
+@app.route('/api/teacher/ai_quiz_generate', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz_generate():
+    data = request.json
+    subject = data.get('subject', '')
+    topic = data.get('topic', '')
 
+    prompt = f"Generate 5 MCQ questions with answers for subject {subject} and topic {topic}. Return the result in JSON format as a list of objects with keys: 'question', 'option1', 'option2', 'option3', 'option4', 'answer' (the exact string of the correct option)."
 
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        # Handle case where the model wraps the array in an object
+        result = json.loads(response.choices[0].message.content)
+        if isinstance(result, dict) and 'questions' in result:
+             questions = result['questions']
+        elif isinstance(result, dict):
+             # Try to find a list value
+             questions = []
+             for v in result.values():
+                 if isinstance(v, list):
+                     questions = v
+                     break
+        else:
+             questions = result
 
+        return jsonify({'success': True, 'questions': questions})
+    except Exception as e:
+        print(f"Error generating quiz: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/ai_video_summary', methods=['POST'])
+@login_required(role='teacher')
+def ai_video_summary():
+    data = request.json
+    topic = data.get('topic', '')
 
+    prompt = f"Generate summary notes for revision for the topic: {topic}. Provide key points and a brief summary."
 
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        summary = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/ai_attendance_analysis', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance_analysis():
+    # fetch attendance
+    attendance = get_data('ATTENDANCE_V2')
+    students = get_data('students')
 
+    # summarize
+    prompt_data = "Attendance Data:\n"
+    for a in attendance[-100:]: # last 100 to save tokens
+         student_name = a.get('student_name', 'Unknown')
+         date = a.get('date', 'Unknown')
+         status = 'Present' if str(a.get('status')) in ['1', 'Present'] else 'Absent'
+         prompt_data += f"{date} - {student_name} - {status}\n"
+
+    prompt = f"Analyze attendance data and provide insights. Which students are irregular? What are some suggested actions? Here is the data:\n{prompt_data}"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        insights = response.choices[0].message.content
+        return jsonify({'success': True, 'insights': insights})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/teacher/ai_announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    data = request.json
+    topic = data.get('topic', '')
+
+    prompt = f"Write a professional coaching class announcement about: {topic}"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        announcement = response.choices[0].message.content
+        return jsonify({'success': True, 'announcement': announcement})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # --- Student Routes (Stubs for now) ---
 @app.route('/old_student_dashboard')
@@ -960,81 +1056,57 @@ def student_announcements_view():
 
 # --- API Endpoints for AI Features (Student) ---
 
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
+
+@app.route('/api/student/ai_doubt', methods=['POST'])
+@login_required(role='student')
+def ai_doubt():
+    data = request.json
+    question = data.get('question', '')
+
+    prompt = f"Explain this concept in very simple words for a school student: {question}. If this is a math question, give a step-by-step solution."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/student/ai_chat', methods=['POST'])
+@login_required(role='student')
+def ai_chat():
+    data = request.json
+    message = data.get('message', '')
+
+    system_prompt = "You are a friendly, encouraging study tutor for a school student. Help them with concept doubts, exam preparation, and study tips. Answer directly and concisely."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ]
+        )
+        reply = response.choices[0].message.content
+        return jsonify({'success': True, 'reply': reply})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
-
-
-# --- Materials Routes ---
-@app.route('/teacher/materials')
-@login_required(role='teacher')
-def teacher_materials():
-    materials = get_data('materials')
-    subjects = get_data('subjects')
-    return render_template('teacher/materials.html', materials=materials, subjects=subjects)
-
-@app.route('/teacher/add_material', methods=['POST'])
-@login_required(role='teacher')
-def add_material():
-    import uuid
-    new_mat = {
-        'id': str(uuid.uuid4())[:8],
-        'title': request.form.get('title'),
-        'subject': request.form.get('subject'),
-        'description': request.form.get('description'),
-        'drive_link': request.form.get('drive_link')
-    }
-    add_data_to_sheet('materials', new_mat)
-    flash('Study material added!', 'success')
-    return redirect(url_for('teacher_materials'))
-
-@app.route('/teacher/delete_material/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_material(id):
-    delete_data_from_sheet('materials', id)
-    flash('Material deleted!', 'success')
-    return redirect(url_for('teacher_materials'))
 
 @app.route('/student/materials')
 @login_required(role='student')
 def student_materials():
     materials = get_data('materials')
     return render_template('student/materials.html', materials=materials)
-
-# --- Schedule Routes ---
-@app.route('/teacher/schedule')
-@login_required(role='teacher')
-def teacher_schedule():
-    schedule = get_data('schedule')
-    subjects = get_data('subjects')
-    # Sort by date
-    try:
-        schedule = sorted(schedule, key=lambda x: x.get('date', ''))
-    except:
-        pass
-    return render_template('teacher/schedule.html', schedule=schedule, subjects=subjects)
-
-@app.route('/teacher/add_schedule', methods=['POST'])
-@login_required(role='teacher')
-def add_schedule():
-    import uuid
-    new_sched = {
-        'id': str(uuid.uuid4())[:8],
-        'date': request.form.get('date'),
-        'subject': request.form.get('subject'),
-        'start_time': request.form.get('start_time'),
-        'end_time': request.form.get('end_time'),
-        'note': request.form.get('note')
-    }
-    add_data_to_sheet('schedule', new_sched)
-    flash('Class scheduled!', 'success')
-    return redirect(url_for('teacher_schedule'))
-
-@app.route('/teacher/delete_schedule/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_schedule(id):
-    delete_data_from_sheet('schedule', id)
-    flash('Class removed from schedule!', 'success')
-    return redirect(url_for('teacher_schedule'))
 
 @app.route('/student/schedule')
 @login_required(role='student')
@@ -1045,44 +1117,6 @@ def student_schedule():
     except:
         pass
     return render_template('student/schedule.html', schedule=schedule)
-
-# --- Quiz Routes ---
-@app.route('/teacher/quiz')
-@login_required(role='teacher')
-def teacher_quiz():
-    quiz_data = get_data('quiz')
-    subjects = get_data('subjects')
-    try:
-        quiz_data = sorted(quiz_data, key=lambda x: x.get('date', ''))
-    except:
-        pass
-    return render_template('teacher/quiz.html', quiz=quiz_data, subjects=subjects)
-
-@app.route('/teacher/add_quiz', methods=['POST'])
-@login_required(role='teacher')
-def add_quiz():
-    import uuid
-    new_q = {
-        'id': str(uuid.uuid4())[:8],
-        'date': request.form.get('date'),
-        'subject': request.form.get('subject'),
-        'question': request.form.get('question'),
-        'option1': request.form.get('option1'),
-        'option2': request.form.get('option2'),
-        'option3': request.form.get('option3'),
-        'option4': request.form.get('option4'),
-        'answer': request.form.get('answer')
-    }
-    add_data_to_sheet('quiz', new_q)
-    flash('Quiz question added!', 'success')
-    return redirect(url_for('teacher_quiz'))
-
-@app.route('/teacher/delete_quiz/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_quiz(id):
-    delete_data_from_sheet('quiz', id)
-    flash('Quiz question deleted!', 'success')
-    return redirect(url_for('teacher_quiz'))
 
 @app.route('/student/quiz')
 @login_required(role='student')
