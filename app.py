@@ -62,7 +62,8 @@ def get_google_sheet(sheet_name):
         'videos': ['id', 'date', 'subject', 'drive_link'],
         'subjects': ['id', 'subject_name'],
         'announcements': ['id', 'date', 'message', 'important'],
-        'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer'],
+        'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer', 'start_time', 'end_time'],
+        'quiz_scores': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
         'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
         'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
         'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
@@ -1062,20 +1063,39 @@ def teacher_quiz():
 @login_required(role='teacher')
 def add_quiz():
     import uuid
-    new_q = {
-        'id': str(uuid.uuid4())[:8],
-        'date': request.form.get('date'),
-        'subject': request.form.get('subject'),
-        'question': request.form.get('question'),
-        'option1': request.form.get('option1'),
-        'option2': request.form.get('option2'),
-        'option3': request.form.get('option3'),
-        'option4': request.form.get('option4'),
-        'answer': request.form.get('answer')
-    }
-    add_data_to_sheet('quiz', new_q)
-    flash('Quiz question added!', 'success')
-    return redirect(url_for('teacher_quiz'))
+    data = request.json
+    if not data or 'questions' not in data:
+        return jsonify({'success': False, 'error': 'No questions provided'}), 400
+
+    date = data.get('date')
+    subject = data.get('subject')
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+
+    # We will generate a unique "batch ID" or just use random IDs for questions
+    # But tying them together visually is usually done by date + subject
+    # A single shared Quiz ID for this session might be good, let's use the first 8 chars of a uuid
+    quiz_group_id = str(uuid.uuid4())[:8]
+
+    new_questions = []
+    for q in data['questions']:
+        new_q = {
+            'id': quiz_group_id, # Shared ID for grouping the quiz
+            'date': date,
+            'subject': subject,
+            'question': q.get('question'),
+            'option1': q.get('option1'),
+            'option2': q.get('option2'),
+            'option3': q.get('option3'),
+            'option4': q.get('option4'),
+            'answer': q.get('answer'),
+            'start_time': start_time,
+            'end_time': end_time
+        }
+        new_questions.append(new_q)
+        add_data_to_sheet('quiz', new_q) # Using the existing helper, though bulk add would be better
+
+    return jsonify({'success': True, 'message': f'{len(new_questions)} questions added successfully.'})
 
 @app.route('/teacher/delete_quiz/<id>', methods=['POST'])
 @login_required(role='teacher')
@@ -1178,8 +1198,27 @@ def student_profile():
 @login_required(role='student')
 def submit_quiz():
     student_id = session.get('student_id')
+    student_name = session.get('name', 'Student')
     data = request.json
     percentage = data.get('percentage', 0)
+    score = data.get('score', 0)
+    quiz_id = data.get('quiz_id', 'unknown')
+
+    # Store score in quiz_scores
+    from datetime import datetime
+    import pytz
+    tz = pytz.timezone('Asia/Kolkata')
+    now = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
+
+    score_record = {
+        'quiz_id': quiz_id,
+        'student_id': student_id,
+        'student_name': student_name,
+        'score': score,
+        'percentage': percentage,
+        'timestamp': now
+    }
+    add_data_to_sheet('quiz_scores', score_record)
 
     # +10 for participation
     points_earned = 10
@@ -1312,3 +1351,30 @@ def save_dpp_status():
     except Exception as e:
         print(f"Failed to save DPP_Status: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/student/leaderboard_live')
+@login_required(role='student')
+def leaderboard_live():
+    # Provide the current gamification leaderboard for live updates
+    gamification = get_data('gamification')
+    students = get_data('students')
+    student_map = {str(s.get('id')): s.get('name', 'Unknown') for s in students}
+
+    leaderboard = []
+    for g in gamification:
+        sid = str(g.get('student_id'))
+        name = student_map.get(sid, 'Unknown')
+        pts = int(g.get('points', 0))
+        leaderboard.append({'name': name, 'points': pts})
+
+    leaderboard = sorted(leaderboard, key=lambda x: x['points'], reverse=True)[:10]
+    return jsonify({'success': True, 'leaderboard': leaderboard})
+
+
+@app.route('/teacher/quiz_scores')
+@login_required(role='teacher')
+def teacher_quiz_scores():
+    scores = get_data('quiz_scores')
+    # Sort by timestamp descending
+    scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
+    return render_template('teacher/quiz_scores.html', scores=scores)
