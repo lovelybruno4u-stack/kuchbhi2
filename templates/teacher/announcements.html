@@ -53,8 +53,14 @@
                 <label>Date</label>
                 <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
             </div>
-            <div class="form-group">
-                <label>Message Content</label>
+            <div class="form-group" style="position: relative;">
+                <label style="display: flex; justify-content: space-between; align-items: center;">
+                    Message Content
+                    <button type="button" class="btn btn-sm btn-outline" onclick="generateAIAnnouncement()" id="ai-announcement-btn" style="font-size: 0.8rem; padding: 4px 8px;">
+                        <i class="fas fa-magic" style="color: var(--primary-color);"></i> Generate with AI
+                    </button>
+                </label>
+                <input type="text" id="ai-topic-input" class="form-control" placeholder="What is the announcement about? (for AI)" style="display: none; margin-bottom: 10px; font-size: 0.9rem;">
                 <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
@@ -64,6 +70,53 @@
         </form>
     </div>
 </div>
+
+<script>
+    async function generateAIAnnouncement() {
+        const topicInput = document.getElementById('ai-topic-input');
+        const messageArea = document.getElementById('announcement-message');
+        const btn = document.getElementById('ai-announcement-btn');
+
+        if (topicInput.style.display === 'none') {
+            // Show topic input
+            topicInput.style.display = 'block';
+            topicInput.focus();
+            btn.innerHTML = '<i class="fas fa-magic" style="color: var(--primary-color);"></i> Generate Now';
+            return;
+        }
+
+        const topic = topicInput.value;
+        if (!topic) {
+            alert('Please enter a topic for the AI to write about.');
+            return;
+        }
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary-color);"></i> Generating...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/teacher/ai_announcement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                messageArea.value = data.announcement;
+                topicInput.style.display = 'none';
+                topicInput.value = '';
+            } else {
+                alert('Error generating announcement: ' + data.error);
+            }
+        } catch (err) {
+            alert('Network error while generating announcement.');
+        }
+
+        btn.innerHTML = '<i class="fas fa-magic" style="color: var(--primary-color);"></i> Generate with AI';
+        btn.disabled = false;
+    }
+</script>
 
 
 {% endblock %}

@@ -61,11 +61,6 @@
                     <i class="fas fa-book"></i> Subjects
                 </a>
             </li>
-                        <li class="nav-item">
-                <a href="{{ url_for('teacher_materials') }}" class="nav-link {% if request.path == url_for('teacher_materials') %}active{% endif %}">
-                    <i class="fas fa-file-pdf"></i> Materials
-                </a>
-            </li>
             <li class="nav-item">
                 <a href="{{ url_for('teacher_dpp') }}" class="nav-link {% if request.path == url_for('teacher_dpp') %}active{% endif %}">
                     <i class="fas fa-file-alt"></i> DPP
@@ -77,18 +72,13 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ url_for('teacher_schedule') }}" class="nav-link {% if request.path == url_for('teacher_schedule') %}active{% endif %}">
-                    <i class="far fa-calendar-alt"></i> Schedule
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('teacher_quiz') }}" class="nav-link {% if request.path == url_for('teacher_quiz') %}active{% endif %}">
-                    <i class="fas fa-question-circle"></i> Quiz
-                </a>
-            </li>
-            <li class="nav-item">
                 <a href="{{ url_for('teacher_announcements') }}" class="nav-link {% if request.path == url_for('teacher_announcements') %}active{% endif %}">
                     <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link {% if request.path == url_for('teacher_ai_tools') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Tools
                 </a>
             </li>
 
