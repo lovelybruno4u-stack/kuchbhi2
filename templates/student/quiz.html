@@ -72,6 +72,15 @@
     <div>
         <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-satellite-dish" style="color: var(--danger);"></i> Live Leaderboard</h3>
         <div class="glass-card" style="padding: 15px; background: var(--white);">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.85rem; color: var(--text-secondary);">Select Quiz Leaderboard</label>
+                <select id="leaderboard-quiz-select" class="form-control" onchange="fetchLiveLeaderboard()">
+                    <option value="">Global Gamification Ranking</option>
+                    {% for quiz_title, questions in quizzes.items() %}
+                    <option value="{{ questions[0].id }}">Live: {{ quiz_title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div id="live-leaderboard">
                 <p style="text-align: center; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Fetching live ranks...</p>
             </div>
@@ -82,10 +91,19 @@
 <script>
     // Live Leaderboard Polling
     function fetchLiveLeaderboard() {
-        fetch('/api/student/leaderboard_live')
+        const quizId = document.getElementById('leaderboard-quiz-select')?.value || '';
+        fetch('/api/student/leaderboard_live?quiz_id=' + quizId)
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
+                    if (data.type === 'expired') {
+                        document.getElementById('live-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;"><i class="fas fa-hourglass-end" style="font-size: 2rem; margin-bottom: 10px;"></i><p>This leaderboard has expired and is no longer available.</p></div>';
+                        return;
+                    }
+                    if (data.leaderboard.length === 0) {
+                        document.getElementById('live-leaderboard').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No scores yet.</p>';
+                        return;
+                    }
                     let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
                     data.leaderboard.forEach((user, idx) => {
                         let rankStyle = '';
@@ -100,7 +118,7 @@
                                     <span style="font-weight: bold; width: 20px;">#${idx+1}</span>
                                     <span style="font-weight: 500;">${user.name}</span>
                                 </div>
-                                <span style="font-weight: 600;">${user.points} pts</span>
+                                <span style="font-weight: 600;">${user.points} ${data.type === 'global' ? 'pts' : 'score'}</span>
                             </div>
                         `;
                     });
