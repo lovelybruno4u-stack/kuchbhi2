@@ -98,14 +98,14 @@
 
             const data = await response.json();
             if (data.success) {
-                alert('DPP completion status saved successfully!');
+                showToast('DPP completion status saved successfully!');
                 location.reload();
             } else {
-                alert('Failed to save status: ' + data.error);
+                showToast('Failed to save status: ' + data.error);
             }
         } catch (error) {
             console.error('Error saving status:', error);
-            alert('Network error occurred.');
+            showToast('Network error occurred.');
         } finally {
             hideLoading();
         }

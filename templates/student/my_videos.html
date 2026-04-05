@@ -63,16 +63,16 @@ document.querySelectorAll('.complete-btn').forEach(btn => {
             const data = await response.json();
 
             if (data.success) {
-                alert(`Video marked completed! You earned +${data.points_earned} points!`);
+                showToast(`Video marked completed! You earned +${data.points_earned} points!`);
                 location.reload();
             } else {
-                alert('Error saving completion.');
+                showToast('Error saving completion.');
                 this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
                 this.disabled = false;
             }
         } catch (e) {
             console.error(e);
-            alert('Network error.');
+            showToast('Network error.');
             this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
             this.disabled = false;
         }

@@ -209,7 +209,7 @@
     function generateQuestionBlocks() {
         const count = parseInt(document.getElementById('bulk-q-count').value);
         if(isNaN(count) || count < 1 || count > 100) {
-            alert('Please enter a valid number between 1 and 100.');
+            showToast('Please enter a valid number between 1 and 100.');
             return;
         }
 
@@ -262,7 +262,7 @@
         });
 
         if (payload.questions.length === 0) {
-            alert('Please add at least one question.');
+            showToast('Please add at least one question.');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> Save Complete Quiz';
             return;
@@ -278,10 +278,10 @@
             if(data.success) {
                 window.location.reload();
             } else {
-                alert('Error saving quiz: ' + data.error);
+                showToast('Error saving quiz: ' + data.error);
             }
         } catch(err) {
-            alert('Error connecting to server.');
+            showToast('Error connecting to server.');
         }
 
         btn.disabled = false;

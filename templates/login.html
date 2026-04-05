@@ -153,13 +153,13 @@
                             bioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
                             document.querySelector('form').submit();
                         } else {
-                            alert("Stored credentials missing. Please login manually and re-register your device.");
+                            showToast("Stored credentials missing. Please login manually and re-register your device.");
                         }
                     }
                 } catch (e) {
                     console.error("Biometric login failed:", e);
                     if(e.name !== 'NotAllowedError') {
-                        alert("Biometric verification failed or was cancelled.");
+                        showToast("Biometric verification failed or was cancelled.");
                     }
                 }
             });

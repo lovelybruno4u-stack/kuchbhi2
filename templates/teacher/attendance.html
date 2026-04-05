@@ -123,13 +123,13 @@
             });
 
             if (response.ok) {
-                alert('Attendance saved successfully!');
+                showToast('Attendance saved successfully!');
             } else {
-                alert('Failed to save attendance. Please try again.');
+                showToast('Failed to save attendance. Please try again.');
             }
         } catch (error) {
             console.error('Error saving attendance:', error);
-            alert('An error occurred.');
+            showToast('An error occurred.');
         } finally {
             hideLoading();
         }

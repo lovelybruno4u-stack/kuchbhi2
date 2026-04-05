@@ -201,7 +201,7 @@
                             // Ask user for password to save it securely for auto-login
                             const currentPass = prompt("Please confirm your password to link it to this device's Passkey:");
                             if(!currentPass) {
-                                alert("Cancelled registration. Password is required to link.");
+                                showToast("Cancelled registration. Password is required to link.");
                                 return;
                             }
 
@@ -218,7 +218,7 @@
 
                     } catch (e) {
                         console.error("Biometric registration failed:", e);
-                        alert("Passkey registration failed: " + e.message + "\n\nMake sure you have Windows Hello, TouchID, or a Screen Lock enabled.");
+                        showToast("Passkey registration failed: " + e.message + "\n\nMake sure you have Windows Hello, TouchID, or a Screen Lock enabled.");
                     }
                 });
             } else if (regBtn) {

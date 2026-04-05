@@ -171,14 +171,14 @@ document.querySelectorAll('.task-complete-btn').forEach(btn => {
                 const container = this.closest('div').nextElementSibling;
                 const title = container.querySelector('span');
                 title.style.textDecoration = 'line-through';
-                alert('Task completed! +5 Points!');
+                showToast('Task completed! +5 Points!');
             }
         } catch (e) {
             console.error(e);
             this.innerHTML = '';
             this.disabled = false;
             this.style.border = '2px solid #cbd5e1';
-            alert('Network error.');
+            showToast('Network error.');
         }
     });
 });

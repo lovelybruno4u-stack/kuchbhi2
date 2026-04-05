@@ -266,14 +266,14 @@
                 // Force an immediate leaderboard update
                 fetchLiveLeaderboard();
             } else {
-                alert('Error saving score.');
+                showToast('Error saving score.');
                 btn.innerHTML = '<i class="fas fa-check"></i> Submit Quiz';
                 btn.disabled = false;
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Network error.');
+            showToast('Network error.');
             btn.innerHTML = '<i class="fas fa-check"></i> Submit Quiz';
             btn.disabled = false;
         });
