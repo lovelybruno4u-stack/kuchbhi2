@@ -1,0 +1,112 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <!-- AI Quiz Generator -->
+    <div class="glass-card" style="border-left: 4px solid var(--primary-color);">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-question-circle" style="color: var(--primary-color);"></i> AI Quiz Generator</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Generate 5 MCQs instantly.</p>
+        <div class="form-group">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Enter subject and topic (e.g., Science - Photosynthesis)">
+        </div>
+        <button id="btn-generate-quiz" class="btn btn-primary" style="width: 100%;"><i class="fas fa-magic"></i> Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div class="glass-card" style="border-left: 4px solid var(--success);">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-video" style="color: var(--success);"></i> AI Video Summary</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Generate summary notes for revision.</p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="Enter video topic">
+        </div>
+        <button id="btn-generate-summary" class="btn btn-outline" style="width: 100%;"><i class="fas fa-file-alt"></i> Generate Notes</button>
+        <div id="summary-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Attendance Analysis -->
+    <div class="glass-card" style="border-left: 4px solid var(--warning);">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-chart-line" style="color: var(--warning);"></i> AI Attendance Insight</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Analyze attendance data and provide insights.</p>
+        <button id="btn-analyze-attendance" class="btn btn-outline" style="width: 100%;"><i class="fas fa-search"></i> Analyze Now</button>
+        <div id="attendance-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Announcement Generator -->
+    <div class="glass-card" style="border-left: 4px solid var(--danger);">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-bullhorn" style="color: var(--danger);"></i> AI Announcement</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 15px;">Write a professional coaching class announcement.</p>
+        <div class="form-group">
+            <textarea id="announcement-prompt" class="form-control" rows="3" placeholder='e.g., "Write a professional coaching class announcement about holiday tomorrow"'></textarea>
+        </div>
+        <button id="btn-generate-announcement" class="btn btn-outline" style="width: 100%;"><i class="fas fa-pen"></i> Draft Announcement</button>
+        <div id="announcement-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+</div>
+
+<script>
+    async function handleAIApiCall(btnId, endpoint, payload, resultId) {
+        const btn = document.getElementById(btnId);
+        const resultDiv = document.getElementById(resultId);
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+        resultDiv.textContent = '';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                resultDiv.textContent = data.result;
+                resultDiv.style.display = 'block';
+            } else {
+                resultDiv.textContent = 'Error: ' + (data.error || 'Something went wrong');
+                resultDiv.style.display = 'block';
+                resultDiv.style.color = 'var(--danger)';
+            }
+        } catch (e) {
+            resultDiv.textContent = 'Network error occurred.';
+            resultDiv.style.display = 'block';
+            resultDiv.style.color = 'var(--danger)';
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    document.getElementById('btn-generate-quiz').addEventListener('click', () => {
+        const topic = document.getElementById('quiz-topic').value;
+        if(!topic) return alert('Please enter a topic');
+        handleAIApiCall('btn-generate-quiz', '/api/teacher/generate_quiz', { topic }, 'quiz-result');
+    });
+
+    document.getElementById('btn-generate-summary').addEventListener('click', () => {
+        const topic = document.getElementById('video-topic').value;
+        if(!topic) return alert('Please enter a topic');
+        handleAIApiCall('btn-generate-summary', '/api/teacher/generate_video_summary', { topic }, 'summary-result');
+    });
+
+    document.getElementById('btn-analyze-attendance').addEventListener('click', () => {
+        handleAIApiCall('btn-analyze-attendance', '/api/teacher/analyze_attendance', {}, 'attendance-result');
+    });
+
+    document.getElementById('btn-generate-announcement').addEventListener('click', () => {
+        const prompt = document.getElementById('announcement-prompt').value;
+        if(!prompt) return alert('Please enter instructions for the announcement');
+        handleAIApiCall('btn-generate-announcement', '/api/teacher/generate_announcement', { prompt }, 'announcement-result');
+    });
+</script>
+{% endblock %}
