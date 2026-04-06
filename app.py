@@ -1252,7 +1252,7 @@ def student_profile():
 def submit_quiz():
     try:
         student_id = session.get('student_id')
-        student_name = session.get('name', 'Student')
+        student_name = session.get('user_name', 'Student')
         data = request.json
         percentage = data.get('percentage', 0)
         score = data.get('score', 0)
