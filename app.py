@@ -165,7 +165,8 @@ def get_google_sheet(sheet_name):
         'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
         'DPP_Status': ['dpp_id', 'student_id', 'status'],
         'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
-        'Task_Status': ['task_id', 'student_id', 'status']
+        'Task_Status': ['task_id', 'student_id', 'status'],
+        'Student_Metrics': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
     }
 
     try:
