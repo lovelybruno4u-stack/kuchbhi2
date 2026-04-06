@@ -1389,6 +1389,10 @@ def submit_quiz():
 
         award_points(student_id, points_earned, f"Quiz Attempt ({percentage}%)")
 
+        # Psychological Intelligence Feedback
+        intel_feedback = get_intelligent_feedback(percentage)
+        belonging_signal = get_belonging_signal()
+
         # Check Quiz Champion badge
         gamification = get_data('gamification')
         sheet = get_google_sheet('gamification')
@@ -1402,7 +1406,14 @@ def submit_quiz():
                         sheet.update_cell(idx + 2, 3, ", ".join(badges_list))
                     break
 
-        return jsonify({'success': True, 'points_earned': points_earned})
+        return jsonify({
+            'success': True,
+            'points_earned': points_earned,
+            'intel_msg': intel_feedback['msg'],
+            'intel_color': intel_feedback['color'],
+            'intel_bg': intel_feedback['bg'],
+            'belonging_signal': belonging_signal
+        })
     except Exception as e:
         print("Submit quiz error:", e)
         return jsonify({'success': False, 'error': str(e)}), 500
