@@ -22,6 +22,19 @@ app.permanent_session_lifetime = timedelta(days=365)
 import traceback
 from werkzeug.exceptions import HTTPException
 
+
+# ==========================================
+# ENTERPRISE SECURITY HEADERS
+# ==========================================
+@app.after_request
+def add_security_headers(response):
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Optional: response.headers['Content-Security-Policy'] = "default-src 'self' https: 'unsafe-inline' 'unsafe-eval'"
+    return response
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     # Pass through HTTP errors (like 404s, 401s)
@@ -92,6 +105,33 @@ def get_gspread_client():
     except Exception as e:
         print(f"Error authenticating with Google: {e}")
         return None
+
+
+# ==========================================
+# ENTERPRISE GOOGLE SHEETS BACKOFF
+# ==========================================
+import random
+from functools import wraps
+
+def with_exponential_backoff(max_retries=3, base_delay=1.0):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    # If it's the last attempt, raise the error
+                    if attempt == max_retries - 1:
+                        print(f"FAILED after {max_retries} attempts: {func.__name__} - {e}")
+                        raise e
+
+                    # Wait before retrying (exponential backoff with jitter)
+                    delay = (base_delay * (2 ** attempt)) + random.uniform(0, 0.5)
+                    print(f"WARN: {func.__name__} failed (attempt {attempt+1}/{max_retries}). Retrying in {delay:.2f}s... Error: {e}")
+                    time.sleep(delay)
+        return wrapper
+    return decorator
 
 def get_google_sheet(sheet_name):
     """Helper to get a specific worksheet from Google Sheets.
@@ -171,8 +211,25 @@ def get_google_sheet(sheet_name):
 
 
 
+
+# ==========================================
+# ENTERPRISE XSS SANITIZATION
+# ==========================================
+import html
+
+def sanitize_input(data):
+    if isinstance(data, str):
+        return html.escape(data.strip())
+    elif isinstance(data, dict):
+        return {k: sanitize_input(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_input(i) for i in data]
+    return data
+
+@with_exponential_backoff(max_retries=3)
 def add_data_to_sheet(sheet_name, row_dict):
     try:
+        row_dict = sanitize_input(row_dict) # XSS protection
         sheet = get_google_sheet(sheet_name)
         if sheet:
             # We must map the dictionary to a list of values based on the sheet headers
@@ -187,6 +244,7 @@ def add_data_to_sheet(sheet_name, row_dict):
 
 def delete_data_from_sheet(sheet_name, row_id):
     try:
+        row_dict = sanitize_input(row_dict) # XSS protection
         sheet = get_google_sheet(sheet_name)
         if sheet:
             records = sheet.get_all_records()
@@ -266,6 +324,43 @@ def invalidate_cache(sheet_name):
 
 
 # --- Decorators for Authentication ---
+
+# ==========================================
+# ENTERPRISE RATE LIMITING
+# ==========================================
+import time
+
+# Simple in-memory rate limiter dictionary: {ip_address: [timestamp1, timestamp2, ...]}
+rate_limit_cache = {}
+RATE_LIMIT_MAX_REQUESTS = 50
+RATE_LIMIT_WINDOW_SECONDS = 60
+
+def rate_limit(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        now = time.time()
+
+        # Initialize or clean up old timestamps
+        if client_ip not in rate_limit_cache:
+            rate_limit_cache[client_ip] = []
+
+        rate_limit_cache[client_ip] = [ts for ts in rate_limit_cache[client_ip] if now - ts < RATE_LIMIT_WINDOW_SECONDS]
+
+        # Check limit
+        if len(rate_limit_cache[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
+            if request.path.startswith('/api/'):
+                return jsonify({'success': False, 'error': 'Too many requests. Please slow down.'}), 429
+            return render_template_string('''
+                <html><body style="font-family:sans-serif;text-align:center;padding:50px;">
+                <h1>429 Too Many Requests</h1><p>You have exceeded the rate limit. Please try again in a minute.</p>
+                </body></html>
+            '''), 429
+
+        rate_limit_cache[client_ip].append(now)
+        return f(*args, **kwargs)
+    return decorated_function
+
 def login_required(role=None):
     def decorator(f):
         @wraps(f)
@@ -408,6 +503,7 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
+@rate_limit
 def login():
     if request.method == 'POST':
         role = request.form.get('role')
@@ -1248,6 +1344,7 @@ def student_profile():
                            quiz_data=quiz_data)
 
 @app.route('/api/student/submit_quiz', methods=['POST'])
+@rate_limit
 @login_required(role='student')
 def submit_quiz():
     try:
