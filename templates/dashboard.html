@@ -1,0 +1,31 @@
+{% extends "teacher_base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="cards-grid">
+    <div class="card glass">
+        <div class="card-title">Total Students</div>
+        <div class="card-value">{{ total_students }}</div>
+    </div>
+    <div class="card glass">
+        <div class="card-title">Today's Attendance</div>
+        <div class="card-value">{{ today_present }} Present</div>
+    </div>
+    <div class="card glass" style="background: linear-gradient(135deg, var(--primary-color) 0%, #8B5CF6 100%); color: white;">
+        <div class="card-title" style="color: rgba(255,255,255,0.8);">Quick Action</div>
+        <div style="margin-top: 10px;">
+            <a href="{{ url_for('teacher_attendance') }}" class="btn" style="background: white; color: var(--primary-color);">Mark Attendance</a>
+        </div>
+    </div>
+</div>
+
+<div class="glass" style="padding: 2rem;">
+    <h3 style="margin-bottom: 1rem;">Quick Shortcuts</h3>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ url_for('teacher_students') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="{{ url_for('teacher_announcements') }}" class="btn" style="background: var(--secondary-color); color: white;"><i class="fas fa-bullhorn"></i> New Announcement</a>
+        <a href="{{ url_for('teacher_ai_tools') }}" class="btn" style="background: #111827; color: white;"><i class="fas fa-robot"></i> Use AI Tools</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "student_base.html" %}
+
+{% block page_title %}AI Study Bot{% endblock %}
+
+{% block content %}
+<div class="chat-container glass" style="max-width: 800px; margin: 0 auto;">
+    <div style="padding: 1.5rem; background: rgba(79, 70, 229, 0.05); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 40px; height: 40px; background: var(--primary-color); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div>
+            <h3 style="font-size: 1.1rem; margin: 0;">ASWATHAMA AI</h3>
+            <span style="font-size: 0.8rem; color: var(--secondary-color);"><i class="fas fa-circle" style="font-size: 0.6rem;"></i> Online</span>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="message ai">
+            Hello {{ session.get('name') }}! I'm your AI Study Assistant. You can ask me to explain concepts, give study tips, or help with exam preparation. How can I help you today?
+        </div>
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Type your question here..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+        <button class="btn btn-primary" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+{% endblock %}
