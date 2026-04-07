@@ -47,6 +47,10 @@
 <script>
 document.querySelectorAll('.complete-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
+        if (!confirm("Wait... are you absolutely sure you watched the whole thing? Be truthful! 🤨 The system knows... just kidding, but your conscience does!")) {
+            return;
+        }
+
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         this.disabled = true;
 

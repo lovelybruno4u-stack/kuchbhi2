@@ -154,19 +154,19 @@ def get_google_sheet(sheet_name):
         'subjects': ['id', 'subject_name'],
         'announcements': ['id', 'date', 'message', 'important'],
         'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer', 'start_time', 'end_time', 'score_expiry'],
-        'quiz_scores': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
+        'quiz_scores_V3': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
         'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
         'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
         'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
-        'video_completion': ['date', 'student_id', 'subject', 'completed'],
-        'gamification': ['student_id', 'points', 'badges'],
-        'leaderboard_cache': ['student_id', 'points', 'rank'],
+        'video_completion_V3': ['date', 'student_id', 'subject', 'video_id', 'completed'],
+        'gamification_V3': ['student_id', 'points', 'badges'],
+        'leaderboard_cache_V3': ['student_id', 'points', 'rank'],
         'ATTENDANCE_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
         'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
-        'DPP_Status': ['dpp_id', 'student_id', 'status'],
+        'DPP_Status_V3': ['dpp_id', 'student_id', 'status'],
         'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
-        'Task_Status': ['task_id', 'student_id', 'status'],
-        'Student_Metrics': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
+        'Task_Status_V3': ['task_id', 'student_id', 'status'],
+        'Student_Metrics_V3': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
     }
 
     try:
@@ -397,8 +397,8 @@ def bulk_award_points(student_points_dict, reason=""):
     if not student_points_dict: return
 
     try:
-        gamification = get_data('gamification')
-        sheet = get_google_sheet('gamification')
+        gamification = get_data('gamification_V3')
+        sheet = get_google_sheet('gamification_V3')
         if not sheet: return
 
         # Build map
@@ -419,7 +419,7 @@ def bulk_award_points(student_points_dict, reason=""):
 
         sheet.clear()
         sheet.update(new_data)
-        invalidate_cache('gamification')
+        invalidate_cache('gamification_V3')
 
         # Now bulk check badges
         bulk_check_badges(list(student_points_dict.keys()))
@@ -430,9 +430,9 @@ def bulk_award_points(student_points_dict, reason=""):
 
 def bulk_check_badges(student_ids):
     try:
-        videos = get_data('video_completion')
-        gamification = get_data('gamification')
-        sheet = get_google_sheet('gamification')
+        videos = get_data('video_completion_V3')
+        gamification = get_data('gamification_V3')
+        sheet = get_google_sheet('gamification_V3')
         if not sheet: return
 
         record_map = {str(rec.get('student_id')): rec for rec in gamification if rec.get('student_id')}
@@ -459,7 +459,7 @@ def bulk_check_badges(student_ids):
                 new_data.append([str(rec.get(h, '')) for h in headers])
             sheet.clear()
             sheet.update(new_data)
-            invalidate_cache('gamification')
+            invalidate_cache('gamification_V3')
     except Exception as e:
         print(f"Failed bulk check badges: {e}")
 
@@ -469,8 +469,8 @@ def award_points(student_id, points_to_add, reason=""):
 
 def update_leaderboard_cache():
     try:
-        gamification = get_data('gamification')
-        sheet = get_google_sheet('leaderboard_cache')
+        gamification = get_data('gamification_V3')
+        sheet = get_google_sheet('leaderboard_cache_V3')
         if not sheet: return
 
         sorted_students = sorted(gamification, key=lambda x: int(x.get('points', 0)), reverse=True)
@@ -482,7 +482,7 @@ def update_leaderboard_cache():
             rows.append([student.get('student_id'), student.get('points'), rank])
 
         sheet.update(rows)
-        invalidate_cache('leaderboard_cache')
+        invalidate_cache('leaderboard_cache_V3')
 
     except Exception as e:
         print(f"Failed to update leaderboard cache: {e}")
@@ -951,7 +951,7 @@ def complete_task():
         'student_id': student_id,
         'status': 'Completed'
     }
-    add_data_to_sheet('Task_Status', new_status)
+    add_data_to_sheet('Task_Status_V3', new_status)
     award_points(student_id, 5, "Completed Daily Task")
 
     return jsonify({'success': True, 'points_earned': 5})
@@ -996,7 +996,7 @@ def student_dashboard():
     latest_announcement = announcements[-1] if announcements else None
 
     # Get Leaderboard Cache
-    leaderboard = get_data('leaderboard_cache')
+    leaderboard = get_data('leaderboard_cache_V3')
     top_students = []
     student_names = {str(s.get('id')): s.get('name') for s in students_data}
 
@@ -1018,7 +1018,7 @@ def student_dashboard():
             if class_matches(student_class, t.get('class', '')):
                 my_tasks.append(t)
 
-        task_status_data = get_data('Task_Status')
+        task_status_data = get_data('Task_Status_V3')
         completed_task_ids = [str(t.get('task_id')) for t in task_status_data if str(t.get('student_id')) == str(student_id)]
     except Exception as e:
         print(f"Error fetching dashboard tasks/dpps: {e}")
@@ -1042,7 +1042,7 @@ def student_dashboard():
 @app.route('/student/leaderboard')
 @login_required(role='student')
 def student_leaderboard():
-    leaderboard = get_data('leaderboard_cache')
+    leaderboard = get_data('leaderboard_cache_V3')
     all_students = get_data('students')
     student_names = {str(s.get('id')): s.get('name') for s in all_students}
 
@@ -1059,7 +1059,7 @@ def student_leaderboard():
 def student_my_videos():
     student_id = session.get('student_id')
     videos = get_data('videos')
-    completions = get_data('video_completion')
+    completions = get_data('video_completion_V3')
 
     completed_video_subjects = [c.get('subject') for c in completions if str(c.get('student_id')) == str(student_id)]
 
@@ -1257,14 +1257,21 @@ def delete_quiz(id):
 @app.route('/student/quiz')
 @login_required(role='student')
 def student_quiz():
+    student_id = session.get('student_id')
     quiz_data = get_data('quiz')
+
+    # Get previously attempted quizzes
+    quiz_scores = get_data('quiz_scores_V3')
+    attempted_quiz_ids = [str(s.get('quiz_id')) for s in quiz_scores if str(s.get('student_id')) == str(student_id)]
+
     # Group by subject and date for better UI
     from collections import defaultdict
     quizzes = defaultdict(list)
     for q in quiz_data:
         key = f"{q.get('date', '')} - {q.get('subject', '')}"
         quizzes[key].append(q)
-    return render_template('student/quiz.html', quizzes=quizzes)
+
+    return render_template('student/quiz.html', quizzes=quizzes, attempted_quiz_ids=attempted_quiz_ids)
 
 # --- Profile Routes ---
 @app.route('/student/profile', endpoint='student_profile')
@@ -1317,9 +1324,9 @@ def student_profile():
     except Exception as e:
         print(f"Failed to update profile activity: {e}")
 
-    gamification = get_data('gamification')
-    leaderboard = get_data('leaderboard_cache')
-    video_completion = get_data('video_completion')
+    gamification = get_data('gamification_V3')
+    leaderboard = get_data('leaderboard_cache_V3')
+    video_completion = get_data('video_completion_V3')
     quiz_data = get_data('quiz')
 
     student_gami = next((g for g in gamification if str(g.get('student_id')) == str(student_id)), None)
@@ -1333,7 +1340,7 @@ def student_profile():
 
     # Layer 2 & 8: Digital Academic Passport Metrics
     from modules.momentum import calculate_level, get_level_title, get_xp_for_next_level
-    metrics_data = get_data('Student_Metrics')
+    metrics_data = get_data('Student_Metrics_V3')
     my_metrics = next((m for m in metrics_data if str(m.get('student_id')) == str(student_id)), {
         'xp': 0, 'level': 1, 'streak_days': 0, 'reputation_score': 50
     })
@@ -1378,6 +1385,16 @@ def submit_quiz():
         score = data.get('score', 0)
         quiz_id = data.get('quiz_id', 'unknown')
 
+        # ANTI-CHEAT: Check if already submitted
+        existing_scores = get_data('quiz_scores_V3')
+        has_submitted = any(
+            str(s.get('quiz_id')) == str(quiz_id) and str(s.get('student_id')) == str(student_id)
+            for s in existing_scores
+        )
+
+        if has_submitted:
+            return jsonify({'success': False, 'error': 'You have already submitted this quiz. Multiple attempts are not allowed.'}), 403
+
         # Store score in quiz_scores
         from datetime import datetime
         import pytz
@@ -1392,7 +1409,7 @@ def submit_quiz():
             'percentage': percentage,
             'timestamp': now
         }
-        success_insert = add_data_to_sheet('quiz_scores', score_record)
+        success_insert = add_data_to_sheet('quiz_scores_V3', score_record)
         if not success_insert:
             raise Exception("Failed to append quiz score to Google Sheets")
 
@@ -1416,8 +1433,8 @@ def submit_quiz():
         belonging_signal = get_belonging_signal()
 
         # Check Quiz Champion badge
-        gamification = get_data('gamification')
-        sheet = get_google_sheet('gamification')
+        gamification = get_data('gamification_V3')
+        sheet = get_google_sheet('gamification_V3')
         if sheet:
             for idx, rec in enumerate(gamification):
                 if str(rec.get('student_id')) == str(student_id):
@@ -1452,14 +1469,25 @@ def mark_video_complete():
     from datetime import datetime
     current_date = datetime.now().strftime('%Y-%m-%d')
 
+    # ANTI-CHEAT: Check if already completed this video
+    completed_videos = get_data('video_completion_V3')
+    already_done = any(
+        str(v.get('student_id')) == str(student_id) and str(v.get('video_id')) == str(video_id)
+        for v in completed_videos
+    )
+
+    if already_done:
+        return jsonify({'success': False, 'error': 'Video points already claimed.'}), 403
+
     new_completion = {
         'date': current_date,
         'student_id': student_id,
         'subject': subject,
+        'video_id': video_id,
         'completed': 'Yes'
     }
 
-    add_data_to_sheet('video_completion', new_completion)
+    add_data_to_sheet('video_completion_V3', new_completion)
 
     points_earned = 10
     if video_date == current_date:
@@ -1481,7 +1509,7 @@ def teacher_dpp_status(dpp_id):
     return redirect(url_for('teacher_dpp'))
 
     students = get_data('students')
-    dpp_status_data = get_data('DPP_Status')
+    dpp_status_data = get_data('DPP_Status_V3')
 
     # Filter students by class if DPP has a class assigned
     target_class = str(dpp.get('class', ''))
@@ -1506,7 +1534,7 @@ def save_dpp_status():
     dpp_id = data.get('dpp_id')
     records = data.get('records', [])
 
-    sheet = get_google_sheet('DPP_Status')
+    sheet = get_google_sheet('DPP_Status_V3')
     if not sheet:
         return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
 
@@ -1535,7 +1563,7 @@ def save_dpp_status():
 
         if rows_to_insert:
             sheet.append_rows(rows_to_insert)
-            invalidate_cache('DPP_Status')
+            invalidate_cache('DPP_Status_V3')
 
         return jsonify({'success': True})
     except Exception as e:
@@ -1549,7 +1577,7 @@ def leaderboard_live():
 
     if not quiz_id:
         # Default global gamification leaderboard
-        gamification = get_data('gamification')
+        gamification = get_data('gamification_V3')
         students = get_data('students')
         student_map = {str(s.get('id')): s.get('name', 'Unknown') for s in students}
 
@@ -1564,7 +1592,7 @@ def leaderboard_live():
         return jsonify({'success': True, 'leaderboard': leaderboard, 'type': 'global'})
     else:
         # Specific quiz leaderboard
-        scores = get_data('quiz_scores')
+        scores = get_data('quiz_scores_V3')
         quiz_data = get_data('quiz')
 
         # Check expiry
@@ -1601,7 +1629,7 @@ def leaderboard_live():
 @app.route('/teacher/quiz_scores')
 @login_required(role='teacher')
 def teacher_quiz_scores():
-    scores = get_data('quiz_scores')
+    scores = get_data('quiz_scores_V3')
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)

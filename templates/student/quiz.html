@@ -28,8 +28,17 @@
                     <p class="overlay-msg" style="color: var(--text-secondary);"></p>
                 </div>
 
-                <form class="quiz-form" onsubmit="submitQuiz(event, this, '{{ first_q.id }}')">
-                    <div class="questions-list">
+                {% set is_attempted = first_q.id in attempted_quiz_ids %}
+
+                {% if is_attempted %}
+                <div style="background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600;">
+                    <i class="fas fa-check-circle" style="font-size: 1.5rem; margin-bottom: 5px;"></i><br>
+                    You have already completed this quiz. Check your score on the leaderboard.
+                </div>
+                {% endif %}
+
+                <form class="quiz-form" {% if not is_attempted %}onsubmit="submitQuiz(event, this, '{{ first_q.id }}')"{% endif %}>
+                    <div class="questions-list" style="{% if is_attempted %}opacity: 0.6; pointer-events: none;{% endif %}">
                         {% for q in questions %}
                         <div class="question-item" style="margin-bottom: 25px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                             <p style="font-weight: 600; color: var(--text-primary); font-size: 1.05rem; margin-bottom: 15px;">{{ loop.index }}. {{ q.question }}</p>
@@ -54,7 +63,9 @@
 
                     <div class="quiz-result" style="display: none; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: 600; text-align: center; font-size: 1.2rem;"></div>
 
+                    {% if not is_attempted %}
                     <button type="submit" class="btn btn-primary submit-quiz-btn" style="width: 100%;"><i class="fas fa-check"></i> Submit Quiz</button>
+                    {% endif %}
                 </form>
             </div>
             {% endfor %}
