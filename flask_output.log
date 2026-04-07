@@ -1,0 +1,10 @@
+[2026-04-07 03:08:15 +0000] [62782] [INFO] Handling signal: term
+[2026-04-07 03:08:15 +0000] [62903] [INFO] Worker exiting (pid: 62903)
+CREDENTIALS.JSON is empty or invalid. Using mock database.
+[2026-04-07 03:08:15 +0000] [62782] [INFO] Worker (pid:62903) was sent SIGTERM!
+[2026-04-07 03:08:15 +0000] [62782] [INFO] Shutting down: Master
+[2026-04-07 03:08:15 +0000] [186867] [INFO] Starting gunicorn 25.3.0
+[2026-04-07 03:08:15 +0000] [186867] [INFO] Listening at: http://127.0.0.1:8000 (186867)
+[2026-04-07 03:08:15 +0000] [186867] [INFO] Using worker: sync
+[2026-04-07 03:08:15 +0000] [186987] [INFO] Booting worker with pid: 186987
+[2026-04-07 03:08:15 +0000] [186867] [INFO] Control socket listening at /home/jules/.gunicorn/gunicorn.ctl

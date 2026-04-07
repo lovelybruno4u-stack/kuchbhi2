@@ -1,128 +1,225 @@
+// ASWATHAMA CLASSES - Frontend Logic
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Role Toggle Logic
-    const roleBtns = document.querySelectorAll('.role-btn');
-    const roleInput = document.getElementById('role-input');
-
-    if (roleBtns.length > 0) {
-        roleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                roleBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if(roleInput) {
-                    roleInput.value = e.target.getAttribute('data-role');
-                }
-            });
-        });
-    }
-
-    // Sidebar Toggle for Mobile
-    const hamburger = document.getElementById('hamburger');
+    // Mobile Sidebar Toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
 
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', (e) => {
-            e.stopPropagation();
+    if (mobileMenuBtn && sidebar) {
+        mobileMenuBtn.addEventListener('click', () => {
             sidebar.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        });
-
-        // Close sidebar if clicking outside on mobile overlay
-        document.body.addEventListener('click', (e) => {
-            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
-                sidebar.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-            }
         });
     }
 
     // Modal Logic
-    const openModalBtns = document.querySelectorAll('[data-modal-target]');
-    const closeModalBtns = document.querySelectorAll('[data-close-button]');
-    const overlay = document.getElementById('modal-overlay');
+    const modals = document.querySelectorAll('.modal');
+    const modalTriggers = document.querySelectorAll('[data-modal-target]');
+    const closeButtons = document.querySelectorAll('.close-modal');
 
-    openModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = document.querySelector(button.dataset.modalTarget);
-            openModal(modal);
+    modalTriggers.forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            const target = document.querySelector(trigger.dataset.modalTarget);
+            if (target) target.classList.add('active');
         });
     });
 
-    closeModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal-overlay');
-            closeModal(modal);
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.modal').classList.remove('active');
         });
     });
 
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                const modals = document.querySelectorAll('.modal-overlay.active');
-                modals.forEach(modal => closeModal(modal));
+    window.addEventListener('click', (e) => {
+        modals.forEach(modal => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
             }
         });
-    }
-
-    function openModal(modal) {
-        if (modal == null) return;
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-    }
-
-    function closeModal(modal) {
-        if (modal == null) return;
-        modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
-    }
-
-    // Chatbot Logic
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    if (chatForm && chatInput && chatMessages) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            appendMessage('user', message);
-            chatInput.value = '';
-
-            try {
-                const response = await fetch('/api/chatbot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-
-                if(!response.ok) throw new Error("Network response was not ok");
-
-                const data = await response.json();
-                appendMessage('ai', data.reply);
-            } catch (error) {
-                console.error("Chat error:", error);
-                appendMessage('ai', "Sorry, I'm having trouble connecting right now.");
-            }
-        });
-    }
-
-    function appendMessage(sender, text) {
-        if(!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    });
 });
 
-function showLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'block';
+// Helper function for API calls
+async function apiCall(url, method, data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+
+    try {
+        const response = await fetch(url, options);
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        return { error: 'An error occurred' };
+    }
 }
 
-function hideLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'none';
+// AI Chatbot Logic
+async function sendChatMessage() {
+    const inputField = document.getElementById('chatInput');
+    const message = inputField.value.trim();
+    if (!message) return;
+
+    const chatMessages = document.getElementById('chatMessages');
+
+    // Add user message
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'message user';
+    userMsgDiv.textContent = message;
+    chatMessages.appendChild(userMsgDiv);
+
+    inputField.value = '';
+
+    // Add loading indicator
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message ai';
+    loadingDiv.innerHTML = '<span class="loader"></span> Thinking...';
+    chatMessages.appendChild(loadingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Call API
+    const response = await apiCall('/api/ai/chat', 'POST', { message: message });
+
+    // Replace loading with response
+    loadingDiv.innerHTML = response.reply || response.error;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Add Student Logic
+async function addStudent(event) {
+    event.preventDefault();
+    const form = event.target;
+    const data = {
+        name: form.name.value,
+        class: form.class.value,
+        roll: form.roll.value,
+        phone: form.phone.value,
+        email: form.email.value,
+        parent: form.parent.value
+    };
+
+    const result = await apiCall('/api/students', 'POST', data);
+    if (result.success) {
+        window.location.reload();
+    } else {
+        alert("Failed to add student.");
+    }
+}
+
+// Edit Student Logic
+function openEditStudentModal(id, name, cls, roll, phone, email, parent) {
+    document.getElementById('edit_id').value = id;
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_class').value = cls;
+    document.getElementById('edit_roll').value = roll;
+    document.getElementById('edit_phone').value = phone;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_parent').value = parent;
+    document.getElementById('editStudentModal').classList.add('active');
+}
+
+async function editStudent(event) {
+    event.preventDefault();
+    const form = event.target;
+    const id = form.id.value;
+    const data = {
+        name: form.name.value,
+        class: form.class.value,
+        roll: form.roll.value,
+        phone: form.phone.value,
+        email: form.email.value,
+        parent: form.parent.value
+    };
+
+    const result = await apiCall(`/api/students/${id}`, 'PUT', data);
+    if (result.success) {
+        window.location.reload();
+    } else {
+        alert("Failed to update student.");
+    }
+}
+
+// Delete Student
+async function deleteStudent(id) {
+    if (confirm("Are you sure you want to delete this student?")) {
+        const result = await apiCall(`/api/students/${id}`, 'DELETE');
+        if (result.success) {
+            window.location.reload();
+        }
+    }
+}
+
+// AI Announcement Generate
+async function generateAnnouncement() {
+    const promptInput = document.getElementById('aiPromptInput').value;
+    const resultBox = document.getElementById('message');
+    const btn = document.getElementById('generateBtn');
+
+    if (!promptInput) {
+        alert("Please enter a prompt");
+        return;
+    }
+
+    btn.innerHTML = '<span class="loader"></span>';
+    btn.disabled = true;
+
+    const response = await apiCall('/api/ai/announcement', 'POST', { prompt: promptInput });
+
+    btn.innerHTML = '<i class="fas fa-magic"></i> Generate with AI';
+    btn.disabled = false;
+
+    if (response.announcement) {
+        resultBox.value = response.announcement;
+    }
+}
+
+// AI Doubt Solver Logic
+async function solveDoubt() {
+    const question = document.getElementById('doubtInput').value;
+    if (!question) return;
+
+    const btn = document.getElementById('solveBtn');
+    const resultArea = document.getElementById('doubtResult');
+
+    btn.innerHTML = '<span class="loader"></span>';
+    btn.disabled = true;
+
+    const response = await apiCall('/api/ai/doubt', 'POST', { question: question });
+
+    btn.innerHTML = 'Ask AI Tutor';
+    btn.disabled = false;
+
+    resultArea.style.display = 'block';
+    resultArea.innerHTML = `<strong>Solution:</strong><br><br>${response.answer.replace(/\n/g, '<br>')}`;
+}
+
+// Save Attendance
+async function saveAttendance() {
+    const rows = document.querySelectorAll('#attendanceTable tbody tr');
+    const records = [];
+    const date = document.getElementById('attendanceDate').value;
+
+    rows.forEach(row => {
+        const studentId = row.dataset.id;
+        const status = row.querySelector('select').value;
+        records.push({ student_id: studentId, status: status });
+    });
+
+    const btn = document.getElementById('saveAttBtn');
+    btn.innerHTML = '<span class="loader"></span> Saving...';
+
+    const result = await apiCall('/api/attendance', 'POST', { date: date, records: records });
+
+    btn.innerHTML = '<i class="fas fa-save"></i> Save Attendance';
+
+    if (result.success) {
+        alert('Attendance saved successfully!');
+    } else {
+        alert('Error saving attendance.');
+    }
 }

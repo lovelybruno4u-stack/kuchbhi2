@@ -1,0 +1,89 @@
+{% extends "teacher_base.html" %}
+
+{% block page_title %}Manage Subjects{% endblock %}
+
+{% block content %}
+<div class="glass" style="max-width: 600px; padding: 2rem;">
+    <h3 style="margin-bottom: 1.5rem;">Add New Subject</h3>
+    <form id="addSubjectForm" style="display: flex; gap: 1rem;">
+        <input type="text" id="subjectName" placeholder="e.g. Mathematics" required style="margin-bottom: 0;">
+        <button type="submit" class="btn btn-primary">Add Subject</button>
+    </form>
+
+    <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Current Subjects</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject Name</th>
+                    <th style="width: 100px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in subjects %}
+                <tr>
+                    <td>{{ subject.subject_name }}</td>
+                    <td>
+                        <button class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; margin-right: 0.5rem;" onclick="openEditSubjectModal('{{ subject.subject_name }}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="deleteSubject('{{ subject.subject_name }}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" style="text-align: center;">No subjects added yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Subject Modal -->
+<div class="modal" id="editSubjectModal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 style="margin-bottom: 1.5rem;">Edit Subject</h2>
+        <form id="editSubjectForm" style="display: flex; gap: 1rem; flex-direction: column;">
+            <input type="hidden" id="editSubjectOriginalName">
+            <input type="text" id="editSubjectNewName" placeholder="New Subject Name" required>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Save Changes</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('addSubjectForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('subjectName').value;
+        const res = await apiCall('/api/subjects', 'POST', { subject_name: name });
+        if(res.success) window.location.reload();
+    });
+
+    function openEditSubjectModal(name) {
+        document.getElementById('editSubjectOriginalName').value = name;
+        document.getElementById('editSubjectNewName').value = name;
+        document.getElementById('editSubjectModal').classList.add('active');
+    }
+
+    document.getElementById('editSubjectForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const originalName = document.getElementById('editSubjectOriginalName').value;
+        const newName = document.getElementById('editSubjectNewName').value;
+        const res = await apiCall(`/api/subjects/${originalName}`, 'PUT', { subject_name: newName });
+        if(res.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to update subject');
+        }
+    });
+
+    async function deleteSubject(name) {
+        if(confirm(`Delete subject ${name}?`)) {
+            const res = await apiCall(`/api/subjects/${name}`, 'DELETE');
+            if(res.success) window.location.reload();
+        }
+    }
+</script>
+{% endblock %}

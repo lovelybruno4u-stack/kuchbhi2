@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>ASWATHAMA</h2>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">STUDENT PORTAL</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('student_dashboard') }}" class="{% if request.endpoint == 'student_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="{{ url_for('student_videos') }}" class="{% if request.endpoint == 'student_videos' %}active{% endif %}"><i class="fas fa-play-circle"></i> My Videos</a></li>
+                <li><a href="{{ url_for('student_attendance') }}" class="{% if request.endpoint == 'student_attendance' %}active{% endif %}"><i class="fas fa-user-check"></i> Attendance</a></li>
+                <li><a href="{{ url_for('student_announcements') }}" class="{% if request.endpoint == 'student_announcements' %}active{% endif %}"><i class="fas fa-bell"></i> Announcements</a></li>
+                <li><a href="{{ url_for('student_chatbot') }}" class="{% if request.endpoint == 'student_chatbot' %}active{% endif %}"><i class="fas fa-robot"></i> AI Study Bot</a></li>
+                <li style="margin-top: auto;"><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-nav">
+                <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+                <h1>{% block page_title %}Overview{% endblock %}</h1>
+                <div class="user-profile">
+                    <span style="font-weight: 500;">{{ session.get('name', 'Student') }}</span>
+                    <div class="avatar">{{ session.get('name', 'S')[0] }}</div>
+                </div>
+            </div>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

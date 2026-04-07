@@ -1,0 +1,52 @@
+{% extends "teacher_base.html" %}
+
+{% block page_title %}Announcements{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+    <!-- Create Announcement Form -->
+    <div class="glass" style="flex: 1; min-width: 300px; padding: 2rem; height: fit-content;">
+        <h3 style="margin-bottom: 1.5rem;">New Announcement</h3>
+
+        <div style="background: rgba(79, 70, 229, 0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px dashed var(--primary-color);">
+            <p style="font-size: 0.9rem; font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;"><i class="fas fa-magic"></i> AI Assistant</p>
+            <input type="text" id="aiPromptInput" placeholder="e.g. Write announcement about tomorrow holiday" style="font-size: 0.9rem;">
+            <button class="btn" id="generateBtn" onclick="generateAnnouncement()" style="background: white; border: 1px solid var(--primary-color); color: var(--primary-color); width: 100%; justify-content: center;"><i class="fas fa-bolt"></i> Generate Draft</button>
+        </div>
+
+        <form id="announcementForm">
+            <label>Message</label>
+            <textarea id="message" rows="5" required placeholder="Type or generate announcement here..."></textarea>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;"><i class="fas fa-paper-plane"></i> Publish</button>
+        </form>
+    </div>
+
+    <!-- History -->
+    <div class="glass" style="flex: 2; min-width: 400px; padding: 2rem;">
+        <h3 style="margin-bottom: 1.5rem;">Past Announcements</h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for ann in announcements|reverse %}
+            <div style="border-left: 4px solid var(--primary-color); padding: 1rem; background: rgba(255,255,255,0.5); border-radius: 0 8px 8px 0;">
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;"><i class="far fa-calendar-alt"></i> {{ ann.date }}</div>
+                <p style="white-space: pre-wrap; font-size: 0.95rem;">{{ ann.message }}</p>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--text-muted);">No announcements yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('message').value;
+        const res = await apiCall('/api/announcements', 'POST', { message: msg });
+        if(res.success) {
+            window.location.reload();
+        }
+    });
+</script>
+{% endblock %}

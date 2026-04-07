@@ -3,168 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ashwathama Classes - Login</title>
-    <!-- Open Graph / WhatsApp / Facebook Meta Tags -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://kuchbhi2.onrender.com/">
-    <meta property="og:title" content="Ashwathama Classes">
-    <meta property="og:description" content="Learn Practically. Smart Student Dashboard and Teacher Portal for Ashwathama Classes.">
-    <meta property="og:image" content="https://kuchbhi2.onrender.com/static/icon-512.png">
-
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://kuchbhi2.onrender.com/">
-    <meta property="twitter:title" content="Ashwathama Classes">
-    <meta property="twitter:description" content="Learn Practically. Smart Student Dashboard and Teacher Portal for Ashwathama Classes.">
-    <meta property="twitter:image" content="https://kuchbhi2.onrender.com/static/icon-512.png">
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Login - ASWATHAMA CLASSES</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Load FontAwesome via CDN for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#6366f1">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #8B5CF6 100%);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .login-card h1 {
+            color: var(--primary-color);
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+        .role-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .role-btn.active {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+        .flashes {
+            list-style: none;
+            color: var(--danger-color);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="glass-card login-card">
-            <div class="login-header">
-                <h1>Ashwathama Classes</h1>
-                <p style="color: var(--text-secondary);">Welcome back! Please login to your account.</p>
-            </div>
+    <div class="login-page">
+        <div class="login-card glass">
+            <h1>ASWATHAMA CLASSES</h1>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}" style="color: var(--danger); text-align: center; margin-bottom: 15px; font-weight: 500;">
-                            <i class="fas fa-exclamation-circle"></i> {{ message }}
-                        </div>
-                    {% endfor %}
-                {% endif %}
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul class="flashes">
+                {% for message in messages %}
+                  <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
             {% endwith %}
 
-            <form action="{{ url_for('login') }}" method="POST">
-                <div class="role-toggle">
-                    <div class="role-btn active" data-role="student">
-                        <i class="fas fa-user-graduate"></i> Student
-                    </div>
-                    <div class="role-btn" data-role="teacher">
-                        <i class="fas fa-chalkboard-teacher"></i> Teacher
-                    </div>
-                </div>
-                <input type="hidden" name="role" id="role-input" value="student">
+            <div class="role-selector">
+                <div class="role-btn active" onclick="setRole('student', this)">Student</div>
+                <div class="role-btn" onclick="setRole('teacher', this)">Teacher</div>
+            </div>
 
-                <div class="form-group">
-                    <label for="username" id="username-label">Username (Teachers) / Roll Number (Students)</label>
-                    <input type="text" id="username" name="username" class="form-control" required placeholder="Enter username">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" class="form-control" required placeholder="Enter password">
-                </div>
-
-                <div class="form-group" style="margin-top: 15px;">
-                    <button type="button" id="biometric-login-btn" class="btn btn-outline" style="width: 100%; display: none; padding: 12px; border-color: var(--secondary-color); color: var(--secondary-color);">
-                        <i class="fas fa-fingerprint"></i> Use Device Biometrics / Screen Lock
-                    </button>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px;">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
+            <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="role" id="roleInput" value="student">
+                <input type="text" name="username" placeholder="Email or Roll No (Admin: admin)" required>
+                <input type="password" name="password" placeholder="Password (Admin: admin)" id="passInput">
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Login</button>
             </form>
-
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                Test student login: email or roll no of mock data.<br>
+                Test teacher login: admin / admin
+            </p>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        // Set up the role toggle behavior specific to the login page
-        document.addEventListener('DOMContentLoaded', () => {
-            const roleBtns = document.querySelectorAll('.role-btn');
-            const roleInput = document.getElementById('role-input');
+        function setRole(role, el) {
+            document.getElementById('roleInput').value = role;
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
 
-            roleBtns.forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    roleBtns.forEach(b => b.classList.remove('active'));
-                    e.currentTarget.classList.add('active'); // Use currentTarget to capture the div, not icon
-                    roleInput.value = e.currentTarget.getAttribute('data-role');
-                });
-            });
-        });
+            const passInput = document.getElementById('passInput');
+            if(role === 'student') {
+                passInput.placeholder = "Password (Same as Email/Roll No)";
+                passInput.required = true;
+            } else {
+                passInput.placeholder = "Password";
+                passInput.required = true;
+            }
+        }
+        // Init
+        setRole('student', document.querySelector('.role-btn'));
     </script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
-                    .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
-                    .catch(err => console.error('ServiceWorker registration failed:', err));
-            });
-        }
-
-        // Biometric Login Logic
-        const bioBtn = document.getElementById('biometric-login-btn');
-        const roleInputBio = document.getElementById('role-input');
-
-        // Check if device supports biometrics and if user has registered
-        if (window.PublicKeyCredential && localStorage.getItem('bio_registered') === 'true') {
-            bioBtn.style.display = 'inline-flex';
-        }
-
-        if (bioBtn) {
-            bioBtn.addEventListener('click', async () => {
-                try {
-                    // Fetch the stored credential ID
-                    const credIdStr = localStorage.getItem('bio_cred_id');
-                    if (!credIdStr) throw new Error("No credential found.");
-
-                    const credId = new Uint8Array(JSON.parse(credIdStr)).buffer;
-
-                    // Request biometric assertion
-                    const challengeArray = new Uint8Array(32);
-                    window.crypto.getRandomValues(challengeArray);
-
-                    const assertion = await navigator.credentials.get({
-                        publicKey: {
-                            challenge: challengeArray,
-                            rpId: window.location.hostname,
-                            allowCredentials: [{
-                                id: credId,
-                                type: 'public-key'
-                            }],
-                            userVerification: "preferred", // Must match creation
-                            timeout: 60000
-                        }
-                    });
-
-                    if (assertion) {
-                        // Biometric successful, retrieve stored credentials
-                        const storedUser = localStorage.getItem('bio_user');
-                        const storedPass = localStorage.getItem('bio_pass');
-                        const storedRole = localStorage.getItem('bio_role') || 'student';
-
-                        if(storedUser && storedPass) {
-                            document.getElementById('username').value = storedUser;
-                            document.getElementById('password').value = storedPass;
-                            roleInputBio.value = storedRole;
-
-                            // Auto submit form
-                            bioBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
-                            document.querySelector('form').submit();
-                        } else {
-                            showToast("Stored credentials missing. Please login manually and re-register your device.");
-                        }
-                    }
-                } catch (e) {
-                    console.error("Biometric login failed:", e);
-                    if(e.name !== 'NotAllowedError') {
-                        showToast("Biometric verification failed or was cancelled.");
-                    }
-                }
-            });
-        }
-
-</script>
 </body>
 </html>

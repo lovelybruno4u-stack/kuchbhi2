@@ -1,0 +1,92 @@
+{% extends "teacher_base.html" %}
+
+{% block page_title %}AI Super Tools{% endblock %}
+
+{% block content %}
+<div class="cards-grid">
+    <!-- Attendance Insights -->
+    <div class="card glass">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: var(--secondary-color); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 style="font-size: 1.1rem;">Attendance Insights</h3>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.5rem;">Analyze recent attendance data to find irregular students.</p>
+        <button class="btn" style="background: var(--secondary-color); color: white; width: 100%; justify-content: center;" onclick="getAttendanceInsight(this)">Analyze Now</button>
+        <div id="attInsightResult" style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; font-size: 0.9rem; display: none;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="card glass">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(79, 70, 229, 0.1); color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fas fa-question-circle"></i>
+            </div>
+            <h3 style="font-size: 1.1rem;">Quiz Generator</h3>
+        </div>
+        <input type="text" id="quizSubj" placeholder="Subject" style="padding: 0.5rem; font-size: 0.9rem;">
+        <input type="text" id="quizTopic" placeholder="Topic" style="padding: 0.5rem; font-size: 0.9rem;">
+        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="generateQuiz(this)">Generate 5 MCQs</button>
+        <div id="quizResult" style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; font-size: 0.9rem; display: none; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="card glass">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: var(--danger-color); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <h3 style="font-size: 1.1rem;">Video Notes</h3>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Generate revision notes based on a topic.</p>
+        <input type="text" id="videoTopic" placeholder="Video Topic" style="padding: 0.5rem; font-size: 0.9rem;">
+        <button class="btn" style="background: var(--danger-color); color: white; width: 100%; justify-content: center;" onclick="generateSummary(this)">Generate Notes</button>
+        <div id="summaryResult" style="margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px; font-size: 0.9rem; display: none; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function getAttendanceInsight(btn) {
+        btn.innerHTML = '<span class="loader"></span>';
+        btn.disabled = true;
+        const res = await apiCall('/api/ai/attendance_insight', 'POST', {});
+        const box = document.getElementById('attInsightResult');
+        box.style.display = 'block';
+        box.innerHTML = res.insight ? res.insight.replace(/\n/g, '<br>') : res.error;
+        btn.innerHTML = 'Analyze Now';
+        btn.disabled = false;
+    }
+
+    async function generateQuiz(btn) {
+        const sub = document.getElementById('quizSubj').value;
+        const top = document.getElementById('quizTopic').value;
+        if(!sub || !top) return alert('Enter subject and topic');
+
+        btn.innerHTML = '<span class="loader"></span>';
+        btn.disabled = true;
+        const res = await apiCall('/api/ai/quiz', 'POST', { subject: sub, topic: top });
+        const box = document.getElementById('quizResult');
+        box.style.display = 'block';
+        box.innerHTML = res.quiz ? res.quiz.replace(/\n/g, '<br>') : res.error;
+        btn.innerHTML = 'Generate 5 MCQs';
+        btn.disabled = false;
+    }
+
+    async function generateSummary(btn) {
+        const top = document.getElementById('videoTopic').value;
+        if(!top) return alert('Enter topic');
+
+        btn.innerHTML = '<span class="loader"></span>';
+        btn.disabled = true;
+        const res = await apiCall('/api/ai/video_summary', 'POST', { topic: top });
+        const box = document.getElementById('summaryResult');
+        box.style.display = 'block';
+        box.innerHTML = res.summary ? res.summary.replace(/\n/g, '<br>') : res.error;
+        btn.innerHTML = 'Generate Notes';
+        btn.disabled = false;
+    }
+</script>
+{% endblock %}

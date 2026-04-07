@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>ASWATHAMA</h2>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">TEACHER PANEL</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('teacher_dashboard') }}" class="{% if request.endpoint == 'teacher_dashboard' %}active{% endif %}"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher_students') }}" class="{% if request.endpoint == 'teacher_students' %}active{% endif %}"><i class="fas fa-users"></i> Students</a></li>
+                <li><a href="{{ url_for('teacher_attendance') }}" class="{% if request.endpoint == 'teacher_attendance' %}active{% endif %}"><i class="fas fa-clipboard-check"></i> Attendance</a></li>
+                <li><a href="{{ url_for('teacher_videos') }}" class="{% if request.endpoint == 'teacher_videos' %}active{% endif %}"><i class="fas fa-video"></i> Daily Videos</a></li>
+                <li><a href="{{ url_for('teacher_subjects') }}" class="{% if request.endpoint == 'teacher_subjects' %}active{% endif %}"><i class="fas fa-book"></i> Subjects</a></li>
+                <li><a href="{{ url_for('teacher_announcements') }}" class="{% if request.endpoint == 'teacher_announcements' %}active{% endif %}"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+                <li><a href="{{ url_for('teacher_ai_tools') }}" class="{% if request.endpoint == 'teacher_ai_tools' %}active{% endif %}"><i class="fas fa-robot"></i> AI Tools</a></li>
+                <li style="margin-top: auto;"><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-nav">
+                <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+                <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="user-profile">
+                    <span style="font-weight: 500;">Teacher</span>
+                    <div class="avatar">T</div>
+                </div>
+            </div>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

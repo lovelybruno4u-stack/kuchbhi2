@@ -1,0 +1,51 @@
+{% extends "teacher_base.html" %}
+
+{% block page_title %}Daily Attendance{% endblock %}
+
+{% block content %}
+<div class="glass" style="padding: 2rem; margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+        <label for="attendanceDate" style="font-weight: 500;">Select Date:</label>
+        <input type="date" id="attendanceDate" style="max-width: 200px; margin-bottom: 0;">
+        <button class="btn btn-primary" id="saveAttBtn" onclick="saveAttendance()"><i class="fas fa-save"></i> Save Attendance</button>
+    </div>
+
+    <div class="table-container">
+        <table id="attendanceTable">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr data-id="{{ student.id }}">
+                    <td>{{ student.roll }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.class }}</td>
+                    <td>
+                        <select style="margin-bottom: 0; padding: 0.5rem; width: 120px;">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center;">No students available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('attendanceDate').valueAsDate = new Date();
+</script>
+{% endblock %}
