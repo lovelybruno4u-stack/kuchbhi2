@@ -10,6 +10,8 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+from openai import OpenAI
+openai_client = OpenAI()
 
 from datetime import timedelta
 app = Flask(__name__)
@@ -828,14 +830,71 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools', endpoint='teacher_ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
 
+@app.route('/api/teacher/generate_announcement', methods=['POST'])
+@login_required(role='teacher')
+def api_generate_announcement():
+    data = request.json
+    topic = data.get('topic', '')
+    prompt = f"Write a professional coaching class announcement about: {topic}"
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'result': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/analyze_attendance', methods=['POST'])
+@login_required(role='teacher')
+def api_analyze_attendance():
+    attendance_data = get_data('ATTENDANCE_V2')
+    # Basic serialization for the prompt
+    attendance_summary = "Attendance records: " + str(attendance_data[:50]) # Limiting to avoid huge context, assuming recent 50
+    prompt = f"Analyze attendance data and provide insights. Here is a sample of recent data: {attendance_summary}"
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'result': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/summarize_video', methods=['POST'])
+@login_required(role='teacher')
+def api_summarize_video():
+    data = request.json
+    topic = data.get('topic', '')
+    prompt = f"Generate summary notes for revision for the following topic: {topic}"
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'result': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
-
-
-
-
+@app.route('/api/teacher/generate_quiz', methods=['POST'])
+@login_required(role='teacher')
+def api_generate_quiz():
+    data = request.json
+    topic = data.get('topic', '')
+    prompt = f"Generate 5 MCQ questions with answers about {topic}. Please return it in a clear format."
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'result': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # --- Student Routes (Stubs for now) ---
@@ -1109,8 +1168,26 @@ def student_announcements_view():
 
 # --- API Endpoints for AI Features (Student) ---
 
+@app.route('/student/chatbot', endpoint='student_chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
 
+@app.route('/api/student/chat', methods=['POST'])
+@login_required(role='student')
+def api_student_chat():
+    data = request.json
+    user_message = data.get('message', '')
+    prompt = f"You are a friendly tutor. Explain this concept in very simple words for a school student. Answer step-by-step if it is a math question. The student asks: {user_message}"
 
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'reply': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 # --- Materials Routes ---
