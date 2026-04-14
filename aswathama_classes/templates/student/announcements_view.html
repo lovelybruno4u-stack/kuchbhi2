@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Class Announcements{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    {% for ann in announcements|reverse %}
+    <div class="card glass" style="position: relative; border-left: 4px solid var(--primary);">
+        <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-regular fa-calendar-days"></i> {{ ann.date }}
+        </div>
+        <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main);">
+            {{ ann.message | replace('\n', '<br>') | safe }}
+        </p>
+    </div>
+    {% else %}
+    <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 3rem;" class="card glass">
+        <div style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"><i class="fa-regular fa-bell-slash"></i></div>
+        <h3>No Announcements</h3>
+        <p>There are no recent updates from your teachers.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

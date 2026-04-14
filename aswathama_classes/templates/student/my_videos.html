@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}My Videos{% endblock %}
+{% block page_title %}Class Video Recordings{% endblock %}
+
+{% block content %}
+<div class="grid grid-3">
+    {% for video in videos|reverse %}
+    <div class="card glass" style="display: flex; flex-direction: column;">
+        <div style="background: rgba(79, 70, 229, 0.1); height: 140px; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 3rem;">
+            <i class="fa-brands fa-google-drive"></i>
+        </div>
+        <div style="margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;"><i class="fa-regular fa-calendar"></i> {{ video.date }}</span>
+        </div>
+        <h3 style="margin-bottom: auto; font-size: 1.1rem; padding-bottom: 1rem;">{{ video.subject }}</h3>
+
+        <a href="{{ video.drive_link }}" target="_blank" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            <i class="fa-solid fa-play"></i> Watch Video
+        </a>
+    </div>
+    {% else %}
+    <div style="grid-column: span 3; text-align: center; padding: 4rem; color: var(--text-muted);" class="card glass">
+        <div style="font-size: 3rem; margin-bottom: 1rem; color: #d1d5db;"><i class="fa-solid fa-video-slash"></i></div>
+        <h3>No videos available</h3>
+        <p>Your teacher hasn't uploaded any videos yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

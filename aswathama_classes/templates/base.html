@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASWATHAMA CLASSES {% block title %}{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar glass" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>ASWATHAMA</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            {% if session.get('role') == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-item {% if request.endpoint == 'teacher_dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+                <a href="{{ url_for('teacher_students') }}" class="nav-item {% if request.endpoint == 'teacher_students' %}active{% endif %}">
+                    <i class="fa-solid fa-users"></i> Students
+                </a>
+                <a href="{{ url_for('teacher_attendance') }}" class="nav-item {% if request.endpoint == 'teacher_attendance' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i> Attendance
+                </a>
+                <a href="{{ url_for('teacher_videos') }}" class="nav-item {% if request.endpoint == 'teacher_videos' %}active{% endif %}">
+                    <i class="fa-solid fa-video"></i> Daily Videos
+                </a>
+                <a href="{{ url_for('teacher_subjects') }}" class="nav-item {% if request.endpoint == 'teacher_subjects' %}active{% endif %}">
+                    <i class="fa-solid fa-book"></i> Subjects
+                </a>
+                <a href="{{ url_for('teacher_announcements') }}" class="nav-item {% if request.endpoint == 'teacher_announcements' %}active{% endif %}">
+                    <i class="fa-solid fa-bullhorn"></i> Announcements
+                </a>
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-item {% if request.endpoint == 'teacher_ai_tools' %}active{% endif %}">
+                    <i class="fa-solid fa-robot"></i> AI Tools
+                </a>
+            {% elif session.get('role') == 'student' %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-item {% if request.endpoint == 'student_dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+                <a href="{{ url_for('student_my_videos') }}" class="nav-item {% if request.endpoint == 'student_my_videos' %}active{% endif %}">
+                    <i class="fa-solid fa-video"></i> My Videos
+                </a>
+                <a href="{{ url_for('student_attendance') }}" class="nav-item {% if request.endpoint == 'student_attendance' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i> Attendance
+                </a>
+                <a href="{{ url_for('student_announcements') }}" class="nav-item {% if request.endpoint == 'student_announcements' %}active{% endif %}">
+                    <i class="fa-solid fa-bullhorn"></i> Announcements
+                </a>
+                <a href="{{ url_for('student_chatbot') }}" class="nav-item {% if request.endpoint == 'student_chatbot' %}active{% endif %}">
+                    <i class="fa-solid fa-robot"></i> Study Chatbot
+                </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="{{ url_for('logout') }}" class="nav-item">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="top-bar">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            </div>
+            <div class="user-profile glass" style="padding: 0.5rem 1rem; border-radius: 20px;">
+                <i class="fa-solid fa-user-circle"></i>
+                <span>{{ session.get('user_name', 'Admin' if session.get('role')=='teacher' else 'User') }}</span>
+            </div>
+        </header>
+
+        <!-- Flash Messages -->
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Page Content -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

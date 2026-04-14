@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-3">
+    <div class="card glass">
+        <div class="card-title">Total Students</div>
+        <div class="card-value">{{ total_students }}</div>
+    </div>
+
+    <div class="card glass">
+        <div class="card-title">Today's Attendance</div>
+        <div class="card-value">{{ today_attendance }}</div>
+    </div>
+
+    <div class="card glass" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); color: white;">
+        <div class="card-title" style="color: rgba(255,255,255,0.8);">Quick AI Action</div>
+        <div style="margin-top: 1rem;">
+            <a href="{{ url_for('teacher_ai_tools') }}" class="btn" style="background: white; color: var(--primary);">Go to AI Tools</a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-2" style="margin-top: 2rem;">
+    <div class="card glass">
+        <h3>Recent Activity</h3>
+        <p style="color: var(--text-muted); margin-top: 1rem;">System running smoothly. No recent issues reported.</p>
+    </div>
+
+    <div class="card glass">
+        <h3>Quick Links</h3>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-primary" style="justify-content: center;">Add New Student</a>
+            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-primary" style="justify-content: center;">Mark Today's Attendance</a>
+            <a href="{{ url_for('teacher_videos') }}" class="btn btn-primary" style="justify-content: center;">Upload Daily Video</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
