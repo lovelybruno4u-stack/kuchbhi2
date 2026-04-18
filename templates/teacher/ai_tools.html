@@ -1,0 +1,121 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant Tools{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="color: var(--text-primary); margin-bottom: 20px;"><i class="fas fa-magic" style="color: var(--primary-color);"></i> AI Utilities</h3>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+        <!-- Attendance Analysis -->
+        <div class="glass-card" style="padding: 20px;">
+            <h4>Attendance Analysis</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Analyze attendance data to find irregular students and get suggestions.</p>
+            <button class="btn btn-primary" onclick="analyzeAttendance()" id="btn-analyze" style="width: 100%;">Analyze Now</button>
+            <div id="attendance-result" style="margin-top: 15px; font-size: 0.9rem; white-space: pre-wrap; display: none; padding: 10px; background: var(--bg-color); border-radius: 8px;"></div>
+        </div>
+
+        <!-- Video Summary -->
+        <div class="glass-card" style="padding: 20px;">
+            <h4>Video Summary Generator</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Generate revision notes based on a video topic.</p>
+            <input type="text" id="video-topic" class="form-control" placeholder="Enter topic (e.g. Newton's Laws)" style="margin-bottom: 10px;">
+            <button class="btn btn-primary" onclick="summarizeVideo()" id="btn-summary" style="width: 100%;">Generate Summary</button>
+            <div id="summary-result" style="margin-top: 15px; font-size: 0.9rem; white-space: pre-wrap; display: none; padding: 10px; background: var(--bg-color); border-radius: 8px;"></div>
+        </div>
+
+        <!-- Quiz Generator -->
+        <div class="glass-card" style="padding: 20px;">
+            <h4>Quiz Question Generator</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Automatically generate 5 MCQs for a topic.</p>
+            <input type="text" id="quiz-subject" class="form-control" placeholder="Subject" style="margin-bottom: 10px;">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Topic" style="margin-bottom: 10px;">
+            <button class="btn btn-primary" onclick="generateQuiz()" id="btn-quiz" style="width: 100%;">Generate Quiz</button>
+            <div id="quiz-result" style="margin-top: 15px; font-size: 0.9rem; white-space: pre-wrap; display: none; padding: 10px; background: var(--bg-color); border-radius: 8px;"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+async function analyzeAttendance() {
+    const btn = document.getElementById('btn-analyze');
+    const res = document.getElementById('attendance-result');
+    btn.disabled = true; btn.innerText = "Analyzing..."; res.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/teacher/analyze_attendance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await response.json();
+        if(data.success) {
+            res.innerText = data.insight;
+            res.style.display = 'block';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch(err) {
+        alert('Failed to analyze');
+    }
+    btn.disabled = false; btn.innerText = "Analyze Now";
+}
+
+async function summarizeVideo() {
+    const topic = document.getElementById('video-topic').value;
+    if(!topic) return alert("Please enter a topic");
+
+    const btn = document.getElementById('btn-summary');
+    const res = document.getElementById('summary-result');
+    btn.disabled = true; btn.innerText = "Generating..."; res.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/teacher/summarize_video', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic})
+        });
+        const data = await response.json();
+        if(data.success) {
+            res.innerText = data.summary;
+            res.style.display = 'block';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch(err) {
+        alert('Failed to generate summary');
+    }
+    btn.disabled = false; btn.innerText = "Generate Summary";
+}
+
+async function generateQuiz() {
+    const subject = document.getElementById('quiz-subject').value;
+    const topic = document.getElementById('quiz-topic').value;
+    if(!subject || !topic) return alert("Please enter subject and topic");
+
+    const btn = document.getElementById('btn-quiz');
+    const res = document.getElementById('quiz-result');
+    btn.disabled = true; btn.innerText = "Generating..."; res.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/teacher/generate_quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({subject, topic})
+        });
+        const data = await response.json();
+        if(data.success) {
+            res.innerText = data.quiz;
+            res.style.display = 'block';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch(err) {
+        alert('Failed to generate quiz');
+    }
+    btn.disabled = false; btn.innerText = "Generate Quiz";
+}
+</script>
+{% endblock %}
