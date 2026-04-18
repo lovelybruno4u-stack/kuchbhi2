@@ -1,5 +1,7 @@
 import os
 import json
+from openai import OpenAI
+import os
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, render_template_string
 from dotenv import load_dotenv
@@ -85,6 +87,14 @@ def handle_exception(e):
 
 
 
+
+
+# Initialize OpenAI client
+try:
+    openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+except Exception as e:
+    print(f"OpenAI Client not initialized: {e}")
+    openai_client = None
 
 # Google Sheets Setup
 SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '1h_vz2JXdDX4GDqkQQwr3mQArHMqsYdem7Xjv8KVkrY8')
@@ -826,17 +836,98 @@ def delete_announcement(id):
 
 
 
+
+
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
 
+@app.route('/api/teacher/generate_announcement', methods=['POST'])
+@login_required(role='teacher')
+def generate_announcement():
+    data = request.json
+    topic = data.get('topic')
 
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
 
+    try:
+        prompt = f"Write a professional coaching class announcement about: {topic}"
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        message = response.choices[0].message.content
+        return jsonify({'success': True, 'message': message})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/analyze_attendance', methods=['POST'])
+@login_required(role='teacher')
+def analyze_attendance():
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
 
+    attendance_data = get_data('ATTENDANCE_V2')
+    students = get_data('students')
 
+    # Simple formatting of data for prompt
+    data_summary = f"Total attendance records: {len(attendance_data)}. Students count: {len(students)}."
 
+    try:
+        prompt = f"Analyze attendance data and provide insights based on this summary: {data_summary}"
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        insight = response.choices[0].message.content
+        return jsonify({'success': True, 'insight': insight})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/teacher/summarize_video', methods=['POST'])
+@login_required(role='teacher')
+def summarize_video():
+    data = request.json
+    topic = data.get('topic')
 
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
+
+    try:
+        prompt = f"Generate summary notes for revision for the topic: {topic}"
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        summary = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/teacher/generate_quiz', methods=['POST'])
+@login_required(role='teacher')
+def generate_quiz_ai():
+    data = request.json
+    subject = data.get('subject')
+    topic = data.get('topic')
+
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
+
+    try:
+        prompt = f"Generate 5 MCQ questions with answers about {subject}: {topic}. Format as simple text."
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        quiz = response.choices[0].message.content
+        return jsonify({'success': True, 'quiz': quiz})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # --- Student Routes (Stubs for now) ---
 @app.route('/old_student_dashboard')
@@ -1107,13 +1198,57 @@ def student_announcements_view():
 
 
 
+
+
 # --- API Endpoints for AI Features (Student) ---
 
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
 
+@app.route('/api/student/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def doubt_solver():
+    data = request.json
+    question = data.get('question')
 
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
 
+    try:
+        prompt = f"Explain this concept in very simple words for a school student. If it is a math question, give a step by step solution. Question: {question}"
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        explanation = response.choices[0].message.content
+        return jsonify({'success': True, 'explanation': explanation})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/student/study_chat', methods=['POST'])
+@login_required(role='student')
+def study_chat():
+    data = request.json
+    message = data.get('message')
+
+    if not openai_client:
+        return jsonify({'success': False, 'error': 'OpenAI client not configured'})
+
+    try:
+        prompt = f"You are a friendly tutor. A student asks: {message}"
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        reply = response.choices[0].message.content
+        return jsonify({'success': True, 'reply': reply})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # --- Materials Routes ---
+
 @app.route('/teacher/materials')
 @login_required(role='teacher')
 def teacher_materials():

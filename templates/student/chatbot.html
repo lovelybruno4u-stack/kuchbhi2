@@ -1,0 +1,73 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Chatbot{% endblock %}
+{% block page_title %}AI Study Companion{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px; display: flex; flex-direction: column; height: 70vh;">
+    <h3 style="color: var(--text-primary); margin-bottom: 20px; flex-shrink: 0;"><i class="fas fa-robot" style="color: var(--primary-color);"></i> Ask your Doubts</h3>
+
+    <div id="chat-box" style="flex-grow: 1; overflow-y: auto; padding: 15px; background: var(--bg-color); border-radius: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="align-self: flex-start; background: #e0e7ff; padding: 10px 15px; border-radius: 15px; border-bottom-left-radius: 0; max-width: 80%;">
+            Hello! I'm your AI Study Companion. Ask me any concept doubt, exam tips, or for step-by-step math solutions!
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-shrink: 0;">
+        <select id="chat-mode" class="form-control" style="width: 150px;">
+            <option value="doubt">Doubt Solver</option>
+            <option value="chat">Study Chat</option>
+        </select>
+        <input type="text" id="chat-input" class="form-control" placeholder="Type your question here..." onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button class="btn btn-primary" onclick="sendMessage()" id="btn-send"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<script>
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    const chatBox = document.getElementById('chat-box');
+    const btn = document.getElementById('btn-send');
+
+    // Add user message
+    chatBox.innerHTML += `<div style="align-self: flex-end; background: var(--primary-color); color: white; padding: 10px 15px; border-radius: 15px; border-bottom-right-radius: 0; max-width: 80%;">${msg}</div>`;
+    input.value = '';
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    btn.disabled = true;
+
+    try {
+        // Try to route appropriately. The prompt says both doubt solver and study chatbot.
+        // We can just use the doubt solver endpoint since the prompt combines both behaviors
+        const mode = document.getElementById('chat-mode').value;
+        const endpoint = mode === 'doubt' ? '/api/student/doubt_solver' : '/api/student/study_chat';
+        const payload = mode === 'doubt' ? {question: msg} : {message: msg};
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        let reply = "Sorry, I couldn't process that.";
+        if(data.success) {
+            reply = mode === 'doubt' ? data.explanation : data.reply;
+        }
+
+        // Add bot message
+        chatBox.innerHTML += `<div style="align-self: flex-start; background: #e0e7ff; padding: 10px 15px; border-radius: 15px; border-bottom-left-radius: 0; max-width: 80%; white-space: pre-wrap;">${reply}</div>`;
+
+    } catch(err) {
+        chatBox.innerHTML += `<div style="align-self: flex-start; background: #fee2e2; color: #991b1b; padding: 10px 15px; border-radius: 15px; border-bottom-left-radius: 0; max-width: 80%;">Failed to connect to AI. Please try again.</div>`;
+    }
+
+    btn.disabled = false;
+    chatBox.scrollTop = chatBox.scrollHeight;
+    input.focus();
+}
+</script>
+{% endblock %}
