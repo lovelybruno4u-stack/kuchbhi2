@@ -1,0 +1,17 @@
+{% extends 'student/base.html' %}
+{% block content %}
+<div class="content-header">
+    <h1>AI Study Chatbot & Doubt Solver</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <div id="chat-window" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="input-group">
+            <input type="text" id="chat-input" class="form-control" placeholder="Ask a question or enter a doubt...">
+            <button id="btn-chat-send" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
