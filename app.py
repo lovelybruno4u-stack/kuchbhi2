@@ -367,8 +367,12 @@ def login_required(role=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_role' not in session:
+                if request.path.startswith('/api/'):
+                    return jsonify({"error": "Unauthorized"}), 401
                 return redirect(url_for('login'))
             if role and session['user_role'] != role:
+                if request.path.startswith('/api/'):
+                    return jsonify({"error": "Forbidden"}), 403
                 return redirect(url_for('login'))
             return f(*args, **kwargs)
         return decorated_function
