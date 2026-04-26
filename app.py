@@ -3,6 +3,12 @@ import json
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, render_template_string
 from dotenv import load_dotenv
+
+from db import (
+    get_gspread_client, with_exponential_backoff, get_google_sheet,
+    sanitize_input, add_data_to_sheet, delete_data_from_sheet,
+    get_data, invalidate_cache, refresh_local_cache, background_refresh
+)
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -91,125 +97,12 @@ SPREADSHEET_ID = os.getenv('SPREADSHEET_ID', '1h_vz2JXdDX4GDqkQQwr3mQArHMqsYdem7
 GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')  # JSON string from Render env var
 CREDENTIALS_FILE = 'credentials.json'
 
-def get_gspread_client():
-    scopes = [
-        'https://www.googleapis.com/auth/spreadsheets'
-    ]
-    try:
-        if GOOGLE_CREDENTIALS:
-            creds_info = json.loads(GOOGLE_CREDENTIALS)
-            credentials = Credentials.from_service_account_info(creds_info, scopes=scopes)
-        else:
-            credentials = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=scopes)
-        return gspread.authorize(credentials)
-    except Exception as e:
-        print(f"Error authenticating with Google: {e}")
-        return None
-
 
 # ==========================================
 # ENTERPRISE GOOGLE SHEETS BACKOFF
 # ==========================================
 import random
 from functools import wraps
-
-def with_exponential_backoff(max_retries=3, base_delay=1.0):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            for attempt in range(max_retries):
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    # If it's the last attempt, raise the error
-                    if attempt == max_retries - 1:
-                        print(f"FAILED after {max_retries} attempts: {func.__name__} - {e}")
-                        raise e
-
-                    # Wait before retrying (exponential backoff with jitter)
-                    delay = (base_delay * (2 ** attempt)) + random.uniform(0, 0.5)
-                    print(f"WARN: {func.__name__} failed (attempt {attempt+1}/{max_retries}). Retrying in {delay:.2f}s... Error: {e}")
-                    time.sleep(delay)
-        return wrapper
-    return decorator
-
-def get_google_sheet(sheet_name):
-    """Helper to get a specific worksheet from Google Sheets.
-       Automatically creates the worksheet with headers if it doesn't exist.
-    """
-    gc = get_gspread_client()
-    if not gc:
-        print("Cannot get gspread client. Check JSON credentials.")
-        return None
-
-    try:
-        sh = gc.open_by_key(SPREADSHEET_ID)
-    except Exception as e:
-        print(f"CRITICAL: Cannot access spreadsheet {SPREADSHEET_ID}. Make sure the Service Account email is an EDITOR on the Google Sheet. Error: {e}")
-        return None
-
-    sheets_schema = {
-        'students': ['id', 'name', 'class', 'roll', 'phone', 'email', 'parent', 'password'],
-        'videos': ['id', 'date', 'subject', 'drive_link'],
-        'subjects': ['id', 'subject_name'],
-        'announcements': ['id', 'date', 'message', 'important'],
-        'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer', 'start_time', 'end_time', 'score_expiry'],
-        'quiz_scores_V3': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
-        'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
-        'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
-        'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
-        'video_completion_V3': ['date', 'student_id', 'subject', 'video_id', 'completed'],
-        'gamification_V3': ['student_id', 'points', 'badges'],
-        'leaderboard_cache_V3': ['student_id', 'points', 'rank'],
-        'ATTENDANCE_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
-        'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
-        'DPP_Status_V3': ['dpp_id', 'student_id', 'status'],
-        'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
-        'Task_Status_V3': ['task_id', 'student_id', 'status'],
-        'Student_Metrics_V3': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
-    }
-
-    try:
-        ws = sh.worksheet(sheet_name)
-    except Exception as e:
-        print(f"==========================================")
-        print(f"Worksheet '{sheet_name}' not found. Creating it now...")
-        print(f"==========================================")
-        if sheet_name in sheets_schema:
-            try:
-                ws = sh.add_worksheet(title=sheet_name, rows=100, cols=20)
-                ws.append_row(sheets_schema[sheet_name])
-                print(f"SUCCESS: Created '{sheet_name}' and populated headers.")
-            except Exception as creation_error:
-                if "already exists" in str(creation_error):
-                    try:
-                        ws = sh.worksheet(sheet_name)
-                    except:
-                        return None
-                else:
-                    print(f"FATAL: Failed to create worksheet '{sheet_name}': {creation_error}")
-                    return None
-        else:
-            print(f"ERROR: Unknown sheet schema requested: {sheet_name}")
-            return None
-
-    try:
-        if len(ws.get_all_values()) == 0:
-            if sheet_name in sheets_schema:
-                ws.append_row(sheets_schema[sheet_name])
-                print(f"Populated missing headers on '{sheet_name}'")
-    except Exception as e:
-        pass
-
-    return ws
-
-    try:
-        sh = gc.open_by_key(SPREADSHEET_ID)
-        return sh.worksheet(sheet_name)
-    except Exception as e:
-        print(f"Error accessing Google Sheets ({sheet_name}): {e}")
-        return None
-
 
 
 
@@ -218,83 +111,13 @@ def get_google_sheet(sheet_name):
 # ==========================================
 import html
 
-def sanitize_input(data):
-    if isinstance(data, str):
-        return html.escape(data.strip())
-    elif isinstance(data, dict):
-        return {k: sanitize_input(v) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [sanitize_input(i) for i in data]
-    return data
 
-@with_exponential_backoff(max_retries=3)
-def add_data_to_sheet(sheet_name, row_dict):
-    try:
-        row_dict = sanitize_input(row_dict) # XSS protection
-        sheet = get_google_sheet(sheet_name)
-        if sheet:
-            # We must map the dictionary to a list of values based on the sheet headers
-            headers = sheet.row_values(1)
-            row_to_insert = [str(row_dict.get(h, '')) for h in headers]
-            sheet.append_row(row_to_insert)
-            invalidate_cache(sheet_name)
-            return True
-    except Exception as e:
-        print(f"Failed to add data to {sheet_name} sheet: {e}")
-    return False
-
-def delete_data_from_sheet(sheet_name, row_id):
-    try:
-        row_dict = sanitize_input(row_dict) # XSS protection
-        sheet = get_google_sheet(sheet_name)
-        if sheet:
-            records = sheet.get_all_records()
-            for index, record in enumerate(records):
-                if str(record.get('id', '')) == str(row_id):
-                    # +2 because gspread is 1-indexed, and row 1 is headers
-                    sheet.delete_rows(index + 2)
-                    invalidate_cache(sheet_name)
-                    return True
-    except Exception as e:
-        print(f"Failed to delete data from {sheet_name} sheet: {e}")
-    return False
 
 
 # --- Global Cache for Performance ---
 # To avoid hitting Google Sheets API (which is very slow) on every page load,
 # we cache the data in memory. The cache is automatically invalidated when data is updated.
 import time
-DATA_CACHE = {}
-CACHE_TTL = 300 # 5 minutes
-
-def get_data(sheet_name):
-    # Check cache first
-    now = time.time()
-    if sheet_name in DATA_CACHE:
-        cache_entry = DATA_CACHE[sheet_name]
-        if now - cache_entry['timestamp'] < CACHE_TTL:
-            return cache_entry['data']
-
-    # If not in cache or expired, fetch from Google Sheets
-    sheet = get_google_sheet(sheet_name)
-    if sheet:
-        try:
-            records = sheet.get_all_records()
-            # Store in cache
-            DATA_CACHE[sheet_name] = {
-                'timestamp': now,
-                'data': records
-            }
-            return records
-        except Exception as e:
-            print(f"Error reading records from {sheet_name}: {e}")
-            # If fetch fails but we have stale cache, return stale cache to prevent crashing
-            if sheet_name in DATA_CACHE:
-                return DATA_CACHE[sheet_name]['data']
-            return []
-    else:
-        print(f"Failed to access Google Sheet '{sheet_name}'. Ensure tab exists and permissions are granted.")
-        return []
 
 
 import threading
@@ -316,8 +139,6 @@ def background_refresh():
     except Exception as e:
         print(f"Background refresh failed: {e}")
 
-def refresh_local_cache():
-    threading.Thread(target=background_refresh).start()
 
 def invalidate_cache(sheet_name):
     if sheet_name in DATA_CACHE:
@@ -366,9 +187,14 @@ def login_required(role=None):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
+            is_api = request.path.startswith('/api/')
             if 'user_role' not in session:
+                if is_api:
+                    return jsonify({'error': 'Unauthorized'}), 401
                 return redirect(url_for('login'))
             if role and session['user_role'] != role:
+                if is_api:
+                    return jsonify({'error': 'Forbidden'}), 403
                 return redirect(url_for('login'))
             return f(*args, **kwargs)
         return decorated_function
