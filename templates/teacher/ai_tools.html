@@ -1,0 +1,232 @@
+{% extends 'teacher/base.html' %}
+{% block page_title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <!-- Video Summarizer Card -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <h3><i class="fas fa-video"></i> AI Video Summarizer</h3>
+        </div>
+        <p class="text-secondary" style="margin-bottom: 15px;">Generate revision notes based on a video topic.</p>
+        <div class="form-group">
+            <label>Video Topic / Subject</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="E.g., Newton's Laws of Motion">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoSummary()" id="btn-video-summary" style="width: 100%; margin-bottom: 15px;">
+            <i class="fas fa-magic"></i> Generate Summary
+        </button>
+        <div id="video-summary-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+
+    <!-- Attendance Analyzer Card -->
+    <div class="card fade-in" style="animation-delay: 0.1s;">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-pie"></i> AI Attendance Analyzer</h3>
+        </div>
+        <p class="text-secondary" style="margin-bottom: 15px;">Analyze attendance patterns and get actionable insights.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" id="btn-attendance" style="width: 100%; margin-bottom: 15px;">
+            <i class="fas fa-brain"></i> Analyze Attendance
+        </button>
+        <div id="attendance-insight-result" style="display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+
+    <!-- Quiz Generator Card -->
+    <div class="card fade-in" style="animation-delay: 0.2s; grid-column: 1 / -1;">
+        <div class="card-header">
+            <h3><i class="fas fa-question-circle"></i> AI Quiz Generator</h3>
+        </div>
+        <p class="text-secondary" style="margin-bottom: 15px;">Generate 5 MCQs automatically and add them to the Quiz section.</p>
+        <div class="form-group" style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <label>Subject</label>
+                <select id="quiz-subject" class="form-control">
+                    {% for subject in subjects %}
+                        <option value="{{ subject.subject_name }}">{{ subject.subject_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="flex: 2;">
+                <label>Topic</label>
+                <input type="text" id="quiz-topic" class="form-control" placeholder="E.g., Thermodynamics">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" id="btn-quiz" style="margin-bottom: 15px;">
+            <i class="fas fa-magic"></i> Generate 5 MCQs
+        </button>
+        <div id="quiz-result" style="display: none;"></div>
+    </div>
+
+</div>
+
+<script>
+async function generateVideoSummary() {
+    const topic = document.getElementById('video-topic').value;
+    if (!topic) {
+        showToast("Please enter a topic", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('btn-video-summary');
+    const resultDiv = document.getElementById('video-summary-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/video_summary', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            resultDiv.innerHTML = data.summary;
+            resultDiv.style.display = 'block';
+            showToast("Summary generated!", "success");
+        } else {
+            showToast("AI Error: " + data.error, "error");
+        }
+    } catch (e) {
+        showToast("Network error.", "error");
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+        btn.disabled = false;
+    }
+}
+
+async function analyzeAttendance() {
+    const btn = document.getElementById('btn-attendance');
+    const resultDiv = document.getElementById('attendance-insight-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/attendance_insight', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            resultDiv.innerHTML = data.insight;
+            resultDiv.style.display = 'block';
+            showToast("Analysis complete!", "success");
+        } else {
+            showToast("AI Error: " + data.error, "error");
+        }
+    } catch (e) {
+        showToast("Network error.", "error");
+    } finally {
+        btn.innerHTML = '<i class="fas fa-brain"></i> Analyze Attendance';
+        btn.disabled = false;
+    }
+}
+
+let generatedQuestions = [];
+
+async function generateQuiz() {
+    const subject = document.getElementById('quiz-subject').value;
+    const topic = document.getElementById('quiz-topic').value;
+    if (!topic || !subject) {
+        showToast("Please enter both subject and topic", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('btn-quiz');
+    const resultDiv = document.getElementById('quiz-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/generate_quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({subject: subject, topic: topic})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            generatedQuestions = data.questions;
+            let html = '<h4 style="margin-bottom:15px;">Review Generated Questions</h4>';
+
+            data.questions.forEach((q, index) => {
+                html += `
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+                    <p style="font-weight: 600; margin-bottom: 10px;">Q${index+1}: ${q.question}</p>
+                    <ul style="list-style: none; padding: 0; margin: 0; color: #475569; font-size: 0.9rem;">
+                        <li>A) ${q.option1}</li>
+                        <li>B) ${q.option2}</li>
+                        <li>C) ${q.option3}</li>
+                        <li>D) ${q.option4}</li>
+                    </ul>
+                    <p style="margin-top: 10px; color: #10b981; font-weight: 600; font-size: 0.9rem;">Answer: ${q.answer}</p>
+                </div>`;
+            });
+
+            html += `<button class="btn btn-success" onclick="saveQuizToDB()" id="btn-save-quiz" style="margin-top: 10px;"><i class="fas fa-save"></i> Save to Quiz System</button>`;
+
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            showToast("Quiz generated!", "success");
+        } else {
+            showToast("AI Error: " + data.error, "error");
+        }
+    } catch (e) {
+        showToast("Network error.", "error");
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate 5 MCQs';
+        btn.disabled = false;
+    }
+}
+
+async function saveQuizToDB() {
+    const subject = document.getElementById('quiz-subject').value;
+    const btn = document.getElementById('btn-save-quiz');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    btn.disabled = true;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+        date: today,
+        subject: subject,
+        start_time: '',
+        end_time: '',
+        score_expiry: 'None',
+        questions: generatedQuestions
+    };
+
+    try {
+        const response = await fetch('/teacher/add_quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast("Quiz saved successfully!", "success");
+            document.getElementById('quiz-result').innerHTML = '<div class="alert alert-success">Questions saved! Check the Quiz tab.</div>';
+        } else {
+            showToast("Error: " + data.error, "error");
+            btn.innerHTML = '<i class="fas fa-save"></i> Save to Quiz System';
+            btn.disabled = false;
+        }
+    } catch(e) {
+        showToast("Network error.", "error");
+        btn.innerHTML = '<i class="fas fa-save"></i> Save to Quiz System';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
