@@ -3,6 +3,10 @@ import json
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, render_template_string
 from dotenv import load_dotenv
+
+from openai import OpenAI
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY', 'dummy'))
+
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
@@ -828,6 +832,114 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    subjects = get_data('subjects')
+    return render_template('teacher/ai_tools.html', subjects=subjects)
+
+@app.route('/api/ai/generate_announcement', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_generate_announcement():
+    data = request.json
+    topic = data.get('topic', '')
+
+    prompt = "Write a professional coaching class announcement. " + topic
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'message': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/attendance_insight', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_attendance_insight():
+    attendance_data = get_data('ATTENDANCE_V2')
+    students = get_data('students')
+
+    # summarize data simply to pass to AI to save tokens
+    summary = f"Total students: {len(students)}\n"
+
+    summary += f"Total attendance records: {len(attendance_data)}\n"
+
+
+    # basic stats per student
+    student_stats = {}
+    for s in students:
+        student_stats[str(s['id'])] = {'name': s['name'], 'present': 0, 'total': 0}
+
+    for a in attendance_data:
+        sid = str(a.get('student_id'))
+        if sid in student_stats:
+            student_stats[sid]['total'] += 1
+            if a.get('status') in ['1', 'Present']:
+                student_stats[sid]['present'] += 1
+
+    for sid, stat in student_stats.items():
+        if stat['total'] > 0:
+            summary += f"- {stat['name']}: {stat['present']}/{stat['total']} days present\n"
+
+    prompt = f"Analyze attendance data and provide insights based on this summary:\n{summary}"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'insight': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_video_summary():
+    data = request.json
+    topic = data.get('topic', '')
+
+    prompt = f"Generate summary notes for revision for the topic: {topic}"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/generate_quiz', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_generate_quiz():
+    data = request.json
+    subject = data.get('subject', '')
+    topic = data.get('topic', '')
+
+    prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' and topic '{topic}'. Return ONLY a JSON array of objects with keys: 'question', 'option1', 'option2', 'option3', 'option4', 'answer'. Make sure 'answer' matches one of the options exactly."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        raw_json = response.choices[0].message.content
+        # Try to parse out the JSON block if it has markdown formatting
+        if "```json" in raw_json:
+            raw_json = raw_json.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_json:
+            raw_json = raw_json.split("```")[1].strip()
+
+        import json
+        questions = json.loads(raw_json)
+        return jsonify({'success': True, 'questions': questions})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
 
 
 
@@ -854,10 +966,7 @@ def old_student_my_videos():
 def old_student_attendance_view():
     return render_template('student/attendance_view.html')
 
-@app.route('/old_student_chatbot')
-@login_required(role='student')
-def old_student_chatbot():
-    return render_template('student/chatbot.html')
+
 
 @app.route('/old_student_announcements')
 @login_required(role='student')
@@ -1108,6 +1217,39 @@ def student_announcements_view():
 
 
 # --- API Endpoints for AI Features (Student) ---
+
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required(role='student')
+@rate_limit
+def api_ai_chat():
+    data = request.json
+    message = data.get('message', '')
+
+    is_math = False
+    math_keywords = ['math', 'calculate', 'equation', 'algebra', 'calculus', '+', '-', '*', '/', '=', 'solve']
+    if any(k in message.lower() for k in math_keywords):
+        is_math = True
+
+    prompt = "Explain this concept in very simple words for a school student. "
+    if is_math:
+        prompt += "Since this looks like a math question, give a step by step solution. "
+
+    prompt += "\nStudent asks: " + message
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'reply': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 
 
