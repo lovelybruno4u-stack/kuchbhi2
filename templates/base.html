@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ashwathama Classes{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <button class="hamburger-menu" id="mobile-menu-btn">
+        <i class="fas fa-bars"></i>
+    </button>
+    <nav class="sidebar glass-card" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Ashwathama</h2>
+        </div>
+        <ul class="nav-links">
+            {% if session.get('user_role') == 'teacher' %}
+            <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('teacher_students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('teacher_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('teacher_videos') }}"><i class="fas fa-video"></i> Videos</a></li>
+            <li><a href="{{ url_for('teacher_subjects') }}"><i class="fas fa-book"></i> Subjects</a></li>
+            <li><a href="{{ url_for('teacher_announcements') }}"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+            <li><a href="{{ url_for('teacher_ai_tools') }}"><i class="fas fa-robot"></i> AI Tools</a></li>
+            {% elif session.get('user_role') == 'student' %}
+            <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('student_my_videos') }}"><i class="fas fa-video"></i> My Videos</a></li>
+            <li><a href="{{ url_for('student_attendance_view') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('student_chatbot_view') }}"><i class="fas fa-comments"></i> Study Chatbot</a></li>
+            <li><a href="{{ url_for('student_announcements_view') }}"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header class="top-navbar">
+            <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            <div class="user-profile">
+                <span>{{ session.get('user_name', 'User') }}</span>
+                <i class="fas fa-user-circle fa-2x"></i>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background-color: {% if category == 'success' %}#d1fae5; color: #065f46;{% else %}#fee2e2; color: #991b1b;{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

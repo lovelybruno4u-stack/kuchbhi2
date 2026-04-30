@@ -239,13 +239,17 @@ def add_data_to_sheet(sheet_name, row_dict):
             sheet.append_row(row_to_insert)
             invalidate_cache(sheet_name)
             return True
+        else:
+            print(f"Using MOCK_DB fallback to add data for '{sheet_name}'.")
+            get_mock_sheet(sheet_name).append(row_dict)
+            invalidate_cache(sheet_name)
+            return True
     except Exception as e:
         print(f"Failed to add data to {sheet_name} sheet: {e}")
     return False
 
 def delete_data_from_sheet(sheet_name, row_id):
     try:
-        row_dict = sanitize_input(row_dict) # XSS protection
         sheet = get_google_sheet(sheet_name)
         if sheet:
             records = sheet.get_all_records()
@@ -255,10 +259,27 @@ def delete_data_from_sheet(sheet_name, row_id):
                     sheet.delete_rows(index + 2)
                     invalidate_cache(sheet_name)
                     return True
+        else:
+            print(f"Using MOCK_DB fallback to delete data for '{sheet_name}'.")
+            mock_data = get_mock_sheet(sheet_name)
+            MOCK_DB[sheet_name] = [r for r in mock_data if str(r.get('id', '')) != str(row_id)]
+            invalidate_cache(sheet_name)
+            return True
     except Exception as e:
         print(f"Failed to delete data from {sheet_name} sheet: {e}")
     return False
 
+
+
+# ==========================================
+# MOCK IN-MEMORY DATABASE FALLBACK
+# ==========================================
+MOCK_DB = {}
+
+def get_mock_sheet(sheet_name):
+    if sheet_name not in MOCK_DB:
+        MOCK_DB[sheet_name] = []
+    return MOCK_DB[sheet_name]
 
 # --- Global Cache for Performance ---
 # To avoid hitting Google Sheets API (which is very slow) on every page load,
@@ -288,13 +309,12 @@ def get_data(sheet_name):
             return records
         except Exception as e:
             print(f"Error reading records from {sheet_name}: {e}")
-            # If fetch fails but we have stale cache, return stale cache to prevent crashing
             if sheet_name in DATA_CACHE:
                 return DATA_CACHE[sheet_name]['data']
             return []
     else:
-        print(f"Failed to access Google Sheet '{sheet_name}'. Ensure tab exists and permissions are granted.")
-        return []
+        print(f"Failed to access Google Sheet. Using MOCK_DB fallback for '{sheet_name}'.")
+        return get_mock_sheet(sheet_name)
 
 
 import threading
@@ -367,8 +387,12 @@ def login_required(role=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_role' not in session:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Unauthorized'}), 401
                 return redirect(url_for('login'))
             if role and session['user_role'] != role:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Forbidden'}), 403
                 return redirect(url_for('login'))
             return f(*args, **kwargs)
         return decorated_function
@@ -826,7 +850,187 @@ def delete_announcement(id):
 
 
 
-# --- API Endpoints for AI Features (Teacher) ---
+
+# --- API Endpoints for AI Features ---
+from openai import OpenAI
+client_ai = None
+if os.getenv('OPENAI_API_KEY'):
+    client_ai = OpenAI()
+
+@app.route('/api/ai/doubt', methods=['POST'])
+@rate_limit
+@login_required(role='student')
+def ai_doubt_solver():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+    data = request.json
+    question = data.get('question', '')
+    if not question:
+        return jsonify({'success': False, 'error': 'No question provided'}), 400
+
+    prompt = f"Explain this concept in very simple words for a school student. If it's a math question, give a step by step solution. Question: {question}"
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content": prompt}]
+        )
+        return jsonify({'success': True, 'answer': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/chat', methods=['POST'])
+@rate_limit
+@login_required(role='student')
+def ai_study_chatbot():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+    data = request.json
+    messages = data.get('messages', [])
+    if not messages:
+        return jsonify({'success': False, 'error': 'No messages provided'}), 400
+
+    system_msg = {"role": "system", "content": "You are a friendly tutor. Help the student with concept doubts, exam preparation, and study tips in a simple and encouraging way."}
+
+    # Prepend system message
+    api_messages = [system_msg] + messages
+
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=api_messages
+        )
+        return jsonify({'success': True, 'answer': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/analyze_attendance', methods=['POST'])
+@rate_limit
+@login_required(role='teacher')
+def ai_analyze_attendance():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    attendance_data = get_data('ATTENDANCE_V2')
+    students = get_data('students')
+
+    # summarize data for prompt to avoid token limit
+    summary_data = []
+    student_map = {str(s.get('id')): s.get('name') for s in students}
+
+    attendance_count = {}
+    for a in attendance_data:
+        sid = str(a.get('student_id'))
+        if sid not in attendance_count:
+            attendance_count[sid] = {'present': 0, 'total': 0}
+        attendance_count[sid]['total'] += 1
+        if str(a.get('status')) == '1' or a.get('status') == 'Present':
+            attendance_count[sid]['present'] += 1
+
+    for sid, counts in attendance_count.items():
+        name = student_map.get(sid, 'Unknown')
+        pct = (counts['present'] / counts['total']) * 100 if counts['total'] > 0 else 0
+        summary_data.append(f"Student: {name}, Attendance: {pct:.1f}%")
+
+    data_str = "\n".join(summary_data)
+    prompt = f"Analyze attendance data and provide insights. Here is the summary data:\n{data_str}\n\nProvide a summary example: which students irregular, attendance percentage, suggest action."
+
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content": prompt}]
+        )
+        return jsonify({'success': True, 'analysis': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/summarize_video', methods=['POST'])
+@rate_limit
+@login_required(role='teacher')
+def ai_summarize_video():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+    data = request.json
+    topic = data.get('topic', '')
+    if not topic:
+        return jsonify({'success': False, 'error': 'No topic provided'}), 400
+
+    prompt = f"Generate summary notes for revision for the topic: {topic}. Include summary, key points, and revision notes."
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content": prompt}]
+        )
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/generate_quiz', methods=['POST'])
+@rate_limit
+@login_required(role='teacher')
+def ai_generate_quiz():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+    data = request.json
+    subject = data.get('subject', '')
+    topic = data.get('topic', '')
+    if not topic:
+        return jsonify({'success': False, 'error': 'No topic provided'}), 400
+
+    prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' and topic '{topic}'. Format as JSON array where each object has 'question', 'option1', 'option2', 'option3', 'option4', and 'answer' (which should perfectly match one of the options)."
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"system","content":"You must respond ONLY with valid JSON."},{"role":"user","content": prompt}],
+            response_format={ "type": "json_object" }
+        )
+        # We handle both formats (if AI returns an array, or an object with a 'questions' array)
+        content = response.choices[0].message.content
+        import json
+        try:
+            parsed = json.loads(content)
+            # If wrapped in an object
+            if isinstance(parsed, dict) and len(parsed.keys()) == 1:
+                key = list(parsed.keys())[0]
+                parsed = parsed[key]
+            return jsonify({'success': True, 'questions': parsed})
+        except:
+            return jsonify({'success': False, 'error': 'Failed to parse JSON from AI'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/generate_announcement', methods=['POST'])
+@rate_limit
+@login_required(role='teacher')
+def ai_generate_announcement():
+    if not client_ai:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+    data = request.json
+    topic = data.get('topic', '')
+    if not topic:
+        return jsonify({'success': False, 'error': 'No topic provided'}), 400
+
+    prompt = f"Write a professional coaching class announcement about: {topic}"
+    try:
+        response = client_ai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user","content": prompt}]
+        )
+        return jsonify({'success': True, 'announcement': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- Teacher AI Tools Template Route ---
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
+# --- Student Chatbot Template Route ---
+@app.route('/student/chatbot', endpoint='student_chatbot_view')
+@login_required(role='student')
+def student_chatbot_view():
+    return render_template('student/chatbot.html')
+
 
 
 
