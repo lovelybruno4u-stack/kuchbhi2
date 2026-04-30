@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tools - Teacher Portal{% endblock %}
+{% block page_title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr;">
+    <div class="glass-card">
+        <h3><i class="fas fa-question-circle"></i> AI Quiz Generator</h3>
+        <form id="quiz-form">
+            <div class="form-group">
+                <label>Subject</label>
+                <input type="text" id="quiz-subject" class="form-control" placeholder="e.g. Physics">
+            </div>
+            <div class="form-group">
+                <label>Topic</label>
+                <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Newton's Laws">
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-quiz"><i class="fas fa-magic"></i> Generate Quiz</button>
+        </form>
+        <div id="quiz-result" style="margin-top:20px; white-space: pre-wrap; display:none; background:#f9fafb; padding:15px; border-radius:8px;"></div>
+    </div>
+
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-bar"></i> AI Attendance Analysis</h3>
+        <button class="btn btn-primary" id="btn-attendance"><i class="fas fa-magic"></i> Analyze Attendance Data</button>
+        <div id="attendance-result" style="margin-top:20px; white-space: pre-wrap; display:none; background:#f9fafb; padding:15px; border-radius:8px;"></div>
+    </div>
+
+    <div class="glass-card">
+        <h3><i class="fas fa-video"></i> AI Video Summary</h3>
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g. Chemical Bonding">
+        </div>
+        <button class="btn btn-primary" id="btn-video"><i class="fas fa-magic"></i> Generate Summary</button>
+        <div id="video-result" style="margin-top:20px; white-space: pre-wrap; display:none; background:#f9fafb; padding:15px; border-radius:8px;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('quiz-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btn-quiz');
+    const resDiv = document.getElementById('quiz-result');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+    resDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/generate_quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                subject: document.getElementById('quiz-subject').value,
+                topic: document.getElementById('quiz-topic').value
+            })
+        });
+        const data = await response.json();
+        if(data.success) {
+            resDiv.innerHTML = JSON.stringify(data.questions, null, 2);
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
+        }
+        resDiv.style.display = 'block';
+    } catch(err) {
+        resDiv.innerHTML = `<span style="color:red">Error generating quiz.</span>`;
+        resDiv.style.display = 'block';
+    }
+    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Quiz';
+    btn.disabled = false;
+});
+
+document.getElementById('btn-attendance').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-attendance');
+    const resDiv = document.getElementById('attendance-result');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+    resDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/analyze_attendance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
+        const data = await response.json();
+        if(data.success) {
+            resDiv.innerHTML = data.analysis;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
+        }
+        resDiv.style.display = 'block';
+    } catch(err) {
+        resDiv.innerHTML = `<span style="color:red">Error analyzing attendance.</span>`;
+        resDiv.style.display = 'block';
+    }
+    btn.innerHTML = '<i class="fas fa-magic"></i> Analyze Attendance Data';
+    btn.disabled = false;
+});
+
+document.getElementById('btn-video').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-video');
+    const resDiv = document.getElementById('video-result');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+    resDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/summarize_video', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: document.getElementById('video-topic').value})
+        });
+        const data = await response.json();
+        if(data.success) {
+            resDiv.innerHTML = data.summary;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${data.error}</span>`;
+        }
+        resDiv.style.display = 'block';
+    } catch(err) {
+        resDiv.innerHTML = `<span style="color:red">Error generating summary.</span>`;
+        resDiv.style.display = 'block';
+    }
+    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+    btn.disabled = false;
+});
+</script>
+{% endblock %}
