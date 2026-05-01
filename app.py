@@ -1633,3 +1633,178 @@ def teacher_quiz_scores():
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)
+
+# ==========================================
+# AI PAGE ROUTES
+# ==========================================
+
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
+
+
+# ==========================================
+# AI DOUBT SOLVER & CHATBOT ROUTES
+# ==========================================
+import os
+from openai import OpenAI
+
+def get_openai_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key)
+
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def ai_doubt_solver():
+    try:
+        data = request.json
+        question = data.get('question')
+        if not question:
+            return jsonify({'success': False, 'error': 'Question is required.'}), 400
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = "Explain this concept in very simple words for a school student. If it's a math question, give step-by-step solutions: " + question
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({'success': True, 'answer': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/chatbot', methods=['POST'])
+@login_required(role='student')
+def ai_chatbot():
+    try:
+        data = request.json
+        message = data.get('message')
+        if not message:
+            return jsonify({'success': False, 'error': 'Message is required.'}), 400
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = "Act as a friendly, supportive tutor for a school student. Answer their questions about concept doubts, exam preparation, or study tips simply and encouragingly: " + message
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({'success': True, 'response': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ==========================================
+# TEACHER AI TOOLS ROUTES
+# ==========================================
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz_generator():
+    try:
+        data = request.json
+        subject = data.get('subject')
+        topic = data.get('topic')
+        if not subject or not topic:
+            return jsonify({'success': False, 'error': 'Subject and topic are required.'}), 400
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = f"Generate 5 MCQ questions with answers about {topic} for {subject}. Return them in JSON format as an array of objects, each with 'question', 'options' (array of 4 strings), and 'answer' (the correct option string)."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={ "type": "json_object" }
+        )
+
+        return jsonify({'success': True, 'quiz': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    try:
+        data = request.json
+        prompt_text = data.get('prompt')
+        if not prompt_text:
+            return jsonify({'success': False, 'error': 'Prompt is required.'}), 400
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = f"Write a professional coaching class announcement. Context: {prompt_text}"
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({'success': True, 'announcement': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/attendance', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance():
+    try:
+        data = request.json
+        attendance_data = data.get('attendance_data', 'No recent attendance data provided.')
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = f"Analyze attendance data and provide insights. Which students are irregular? Give summary and suggest actions based on this data: {attendance_data}"
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({'success': True, 'insight': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/video', methods=['POST'])
+@login_required(role='teacher')
+def ai_video():
+    try:
+        data = request.json
+        topic = data.get('topic')
+        if not topic:
+            return jsonify({'success': False, 'error': 'Video topic is required.'}), 400
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured.'}), 500
+
+        prompt = f"Generate summary notes for revision for a class video on the topic: {topic}. Include summary, key points, and revision notes."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
