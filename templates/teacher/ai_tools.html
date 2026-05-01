@@ -1,0 +1,173 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}Teacher AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <!-- AI Quiz Generator -->
+    <div class="glass-card" style="padding: 24px;">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-brain" style="color: var(--primary-color);"></i> AI Quiz Generator</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate 5 MCQs based on subject and topic.</p>
+
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="quiz-subject" class="form-control" placeholder="e.g. Physics">
+        </div>
+        <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Newton's Laws of Motion">
+        </div>
+
+        <button class="btn btn-primary" onclick="generateQuiz()" id="quiz-btn">Generate Quiz</button>
+
+        <div id="quiz-result" style="margin-top: 20px; white-space: pre-wrap; display: none; background: #f8f9fa; padding: 15px; border-radius: 8px;"></div>
+    </div>
+
+    <!-- AI Video Summarizer -->
+    <div class="glass-card" style="padding: 24px;">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-video" style="color: #10b981;"></i> AI Video Summary</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate summary notes for revision.</p>
+
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g. Introduction to Calculus">
+        </div>
+
+        <button class="btn btn-primary" onclick="generateVideoSummary()" id="video-btn">Generate Summary</button>
+
+        <div id="video-result" style="margin-top: 20px; white-space: pre-wrap; display: none; background: #f8f9fa; padding: 15px; border-radius: 8px;"></div>
+    </div>
+
+    <!-- AI Attendance Analysis -->
+    <div class="glass-card" style="padding: 24px; grid-column: 1 / -1;">
+        <h3 style="margin-bottom: 15px; color: var(--text-primary);"><i class="fas fa-chart-line" style="color: #f59e0b;"></i> AI Attendance Insights</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Analyze recent attendance data for insights and suggestions.</p>
+
+        <div class="form-group">
+            <label>Paste Recent Attendance Data</label>
+            <textarea id="attendance-data" class="form-control" rows="4" placeholder="Student A: Present, Student B: Absent..."></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateAttendanceInsight()" id="attendance-btn">Analyze Attendance</button>
+
+        <div id="attendance-result" style="margin-top: 20px; white-space: pre-wrap; display: none; background: #f8f9fa; padding: 15px; border-radius: 8px;"></div>
+    </div>
+
+</div>
+
+<script>
+async function generateQuiz() {
+    const subject = document.getElementById('quiz-subject').value;
+    const topic = document.getElementById('quiz-topic').value;
+    const btn = document.getElementById('quiz-btn');
+    const resultDiv = document.getElementById('quiz-result');
+
+    if (!subject || !topic) {
+        showToast('Please enter both subject and topic.', 'error');
+        return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+    resultDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ subject, topic })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            resultDiv.textContent = typeof data.quiz === 'string' ? data.quiz : JSON.stringify(data.quiz, null, 2);
+            resultDiv.style.display = 'block';
+            showToast('Quiz generated!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        showToast('Failed to connect to AI.', 'error');
+    } finally {
+        btn.innerHTML = 'Generate Quiz';
+        btn.disabled = false;
+    }
+}
+
+async function generateVideoSummary() {
+    const topic = document.getElementById('video-topic').value;
+    const btn = document.getElementById('video-btn');
+    const resultDiv = document.getElementById('video-result');
+
+    if (!topic) {
+        showToast('Please enter a video topic.', 'error');
+        return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+    resultDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/video', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ topic })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            resultDiv.textContent = data.summary;
+            resultDiv.style.display = 'block';
+            showToast('Summary generated!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        showToast('Failed to connect to AI.', 'error');
+    } finally {
+        btn.innerHTML = 'Generate Summary';
+        btn.disabled = false;
+    }
+}
+
+async function generateAttendanceInsight() {
+    const attendanceData = document.getElementById('attendance-data').value;
+    const btn = document.getElementById('attendance-btn');
+    const resultDiv = document.getElementById('attendance-result');
+
+    if (!attendanceData) {
+        showToast('Please enter attendance data.', 'error');
+        return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+    resultDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/attendance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ attendance_data: attendanceData })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            resultDiv.textContent = data.insight;
+            resultDiv.style.display = 'block';
+            showToast('Insights generated!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        showToast('Failed to connect to AI.', 'error');
+    } finally {
+        btn.innerHTML = 'Analyze Attendance';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
