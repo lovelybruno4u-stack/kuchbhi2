@@ -1,0 +1,123 @@
+{% extends "teacher/base.html" %}
+
+{% block page_title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 20px;">
+    <h2>AI Quiz Generator</h2>
+    <p>Generate MCQs automatically.</p>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <input type="text" id="quiz-subject" placeholder="Subject (e.g. Science)" class="form-control" style="flex:1;">
+        <input type="text" id="quiz-topic" placeholder="Topic (e.g. Gravity)" class="form-control" style="flex:2;">
+        <button onclick="generateQuiz()" id="generate-quiz-btn" class="btn btn-primary"><i class="fas fa-magic"></i> Generate</button>
+    </div>
+    <div id="quiz-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px;"></div>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h2>AI Attendance Analyzer</h2>
+    <p>Analyze recent attendance trends and get insights.</p>
+    <button onclick="analyzeAttendance()" id="analyze-att-btn" class="btn btn-primary" style="margin-top: 10px;"><i class="fas fa-chart-line"></i> Analyze Data</button>
+    <div id="attendance-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; white-space: pre-wrap;"></div>
+</div>
+
+<div class="card">
+    <h2>AI Video Summarizer</h2>
+    <p>Generate summary notes for your recorded videos.</p>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <input type="text" id="video-topic" placeholder="Video Topic" class="form-control" style="flex:1;">
+        <button onclick="summarizeVideo()" id="summarize-vid-btn" class="btn btn-primary"><i class="fas fa-file-alt"></i> Summarize</button>
+    </div>
+    <div id="video-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; white-space: pre-wrap;"></div>
+</div>
+
+<script>
+    async function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        if(!subject || !topic) return alert("Enter subject and topic");
+
+        document.getElementById('generate-quiz-btn').disabled = true;
+        document.getElementById('generate-quiz-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        try {
+            const res = await fetch('/api/teacher/generate_quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({subject, topic})
+            });
+            const data = await res.json();
+            if(data.success) {
+                let html = '<h4>Generated Quiz:</h4><ul>';
+                data.quiz.forEach((q, i) => {
+                    html += `<li><strong>Q${i+1}:</strong> ${q.question}<br>
+                             <em>Options:</em> ${q.options.join(', ')}<br>
+                             <strong>Ans:</strong> ${q.correct_answer}</li><br>`;
+                });
+                html += '</ul>';
+                document.getElementById('quiz-result').innerHTML = html;
+                document.getElementById('quiz-result').style.display = 'block';
+            } else {
+                alert(data.error);
+            }
+        } catch(e) {
+            alert("Error generating quiz.");
+        } finally {
+            document.getElementById('generate-quiz-btn').disabled = false;
+            document.getElementById('generate-quiz-btn').innerHTML = '<i class="fas fa-magic"></i> Generate';
+        }
+    }
+
+    async function analyzeAttendance() {
+        document.getElementById('analyze-att-btn').disabled = true;
+        document.getElementById('analyze-att-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+
+        try {
+            const res = await fetch('/api/teacher/analyze_attendance', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('attendance-result').innerText = data.analysis;
+                document.getElementById('attendance-result').style.display = 'block';
+            } else {
+                alert(data.error);
+            }
+        } catch(e) {
+            alert("Error analyzing attendance.");
+        } finally {
+            document.getElementById('analyze-att-btn').disabled = false;
+            document.getElementById('analyze-att-btn').innerHTML = '<i class="fas fa-chart-line"></i> Analyze Data';
+        }
+    }
+
+    async function summarizeVideo() {
+        const topic = document.getElementById('video-topic').value;
+        if(!topic) return alert("Enter video topic");
+
+        document.getElementById('summarize-vid-btn').disabled = true;
+        document.getElementById('summarize-vid-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Summarizing...';
+
+        try {
+            const res = await fetch('/api/teacher/summarize_video', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('video-result').innerText = data.summary;
+                document.getElementById('video-result').style.display = 'block';
+            } else {
+                alert(data.error);
+            }
+        } catch(e) {
+            alert("Error summarizing video.");
+        } finally {
+            document.getElementById('summarize-vid-btn').disabled = false;
+            document.getElementById('summarize-vid-btn').innerHTML = '<i class="fas fa-file-alt"></i> Summarize';
+        }
+    }
+</script>
+{% endblock %}

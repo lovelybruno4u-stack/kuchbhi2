@@ -58,6 +58,7 @@
                 <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-outline" onclick="openAIGenerator()"><i class="fas fa-magic"></i> AI Generate</button>
                 <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
                 <button type="submit" class="btn btn-primary" onclick="showLoading()">Post Announcement</button>
             </div>
@@ -65,5 +66,57 @@
     </div>
 </div>
 
+<!-- AI Generator Modal -->
+<div id="ai-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 400px; max-width: 90%; background: white; padding: 20px; border-radius: 12px;">
+        <h3 style="margin-bottom: 10px;"><i class="fas fa-magic"></i> AI Generator</h3>
+        <p style="margin-bottom: 15px;">What is the announcement about?</p>
+        <input type="text" id="ai-topic" class="form-control" placeholder="e.g. Holiday tomorrow due to rain" style="width: 100%; margin-bottom: 15px;">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-outline" onclick="closeAIGenerator()">Cancel</button>
+            <button class="btn btn-primary" id="ai-generate-btn" onclick="generateAIAnnouncement()">Generate</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAIGenerator() {
+        document.getElementById('ai-modal').style.display = 'flex';
+    }
+
+    function closeAIGenerator() {
+        document.getElementById('ai-modal').style.display = 'none';
+        document.getElementById('ai-topic').value = '';
+    }
+
+    async function generateAIAnnouncement() {
+        const topic = document.getElementById('ai-topic').value;
+        if(!topic) return alert("Please enter a topic");
+
+        const btn = document.getElementById('ai-generate-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch('/api/teacher/generate_announcement', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('announcement-message').value = data.announcement;
+                closeAIGenerator();
+            } else {
+                alert(data.error);
+            }
+        } catch(e) {
+            alert("Error generating announcement");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Generate';
+        }
+    }
+</script>
 
 {% endblock %}
