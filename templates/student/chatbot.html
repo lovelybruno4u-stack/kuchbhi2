@@ -1,0 +1,117 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Chatbot{% endblock %}
+{% block page_title %}AI Study Assistant{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="color: var(--text-primary);"><i class="fas fa-robot" style="color: var(--primary-color);"></i> AI Chatbot & Doubt Solver</h3>
+
+    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- AI Doubt Solver -->
+        <div style="flex: 1; min-width: 300px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <h4 style="color: var(--text-primary);"><i class="fas fa-question-circle" style="color: var(--warning);"></i> Doubt Solver</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Ask a question and get a simple explanation.</p>
+            <textarea id="doubt-question" class="form-control" rows="4" placeholder="Type your doubt here..."></textarea>
+            <button id="btn-doubt-solver" class="btn btn-warning" style="margin-top: 10px; width: 100%;" onclick="solveDoubt()">Solve Doubt</button>
+            <div id="doubt-result" style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; display: none;"></div>
+        </div>
+
+        <!-- AI Study Chatbot -->
+        <div style="flex: 1; min-width: 300px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
+            <h4 style="color: var(--text-primary);"><i class="fas fa-comments" style="color: var(--success);"></i> Study Chatbot</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Chat with your friendly tutor.</p>
+            <div id="chat-history" style="flex: 1; background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 10px; overflow-y: auto; max-height: 250px; min-height: 150px; display: flex; flex-direction: column; gap: 10px;">
+                <!-- Chat messages go here -->
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chat-message" class="form-control" placeholder="Ask a question..." style="flex: 1;">
+                <button id="btn-send-chat" class="btn btn-success" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function solveDoubt() {
+        const questionInput = document.getElementById('doubt-question');
+        const question = questionInput.value.trim();
+        if (!question) {
+            showToast('Please enter a doubt to solve.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btn-doubt-solver');
+        const resultDiv = document.getElementById('doubt-result');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Solving...';
+
+        try {
+            const response = await fetch('/api/ai/doubt_solver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: question })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = `<p style="white-space: pre-wrap;">${data.answer}</p>`;
+                resultDiv.style.display = 'block';
+                showToast('Doubt solved!');
+            } else {
+                showToast(data.error || 'Failed to solve doubt.', 'error');
+            }
+        } catch (e) {
+            showToast('Network error.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Solve Doubt';
+        }
+    }
+
+    async function sendChat() {
+        const chatInput = document.getElementById('chat-message');
+        const message = chatInput.value.trim();
+        if (!message) {
+            return;
+        }
+
+        const chatHistory = document.getElementById('chat-history');
+        const btn = document.getElementById('btn-send-chat');
+
+        // Append user message
+        const userDiv = document.createElement('div');
+        userDiv.style.cssText = 'align-self: flex-end; background: var(--primary-color); color: white; padding: 8px 12px; border-radius: 12px 12px 0 12px; max-width: 80%;';
+        userDiv.textContent = message;
+        chatHistory.appendChild(userDiv);
+
+        chatInput.value = '';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const response = await fetch('/api/ai/chatbot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const aiDiv = document.createElement('div');
+                aiDiv.style.cssText = 'align-self: flex-start; background: #e5e7eb; color: var(--text-primary); padding: 8px 12px; border-radius: 12px 12px 12px 0; max-width: 80%; white-space: pre-wrap;';
+                aiDiv.textContent = data.reply;
+                chatHistory.appendChild(aiDiv);
+            } else {
+                showToast(data.error || 'Failed to get reply.', 'error');
+            }
+        } catch (e) {
+            showToast('Network error.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    }
+</script>
+{% endblock %}

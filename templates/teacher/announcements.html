@@ -56,6 +56,10 @@
             <div class="form-group">
                 <label>Message Content</label>
                 <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="ai-announcement-topic" class="form-control" placeholder="AI Topic (e.g., Holiday tomorrow)" style="flex: 1;">
+                    <button type="button" id="btn-ai-announcement" class="btn btn-warning" onclick="generateAIAnnouncement()"><i class="fas fa-magic"></i> AI Generate</button>
+                </div>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
@@ -65,5 +69,41 @@
     </div>
 </div>
 
+<script>
+    async function generateAIAnnouncement() {
+        const topicInput = document.getElementById('ai-announcement-topic');
+        const topic = topicInput.value.trim();
+        if (!topic) {
+            showToast('Please enter a topic for AI generation.', 'warning');
+            return;
+        }
+
+        const btn = document.getElementById('btn-ai-announcement');
+        const messageArea = document.getElementById('announcement-message');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        try {
+            const response = await fetch('/api/ai/generate_announcement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                messageArea.value = data.announcement;
+                showToast('AI Announcement generated!');
+            } else {
+                showToast(data.error || 'Failed to generate announcement.', 'error');
+            }
+        } catch (e) {
+            showToast('Network error.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> AI Generate';
+        }
+    }
+</script>
 
 {% endblock %}
