@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Load Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            ASWATHAMA<br><span style="font-size: 0.8rem; font-weight: 400; color: #9ca3af;">CLASSES</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            {% block sidebar_nav %}{% endblock %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="window.location.href='/logout'">
+                <i class="ph ph-sign-out"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button id="mobile-menu-btn" style="display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer;">
+                    <i class="ph ph-list"></i>
+                </button>
+                <h2>{% block page_title %}{% endblock %}</h2>
+            </div>
+            <div class="user-info">
+                <i class="ph ph-user-circle" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <span>{{ session.get('user_name', 'User') }}</span>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

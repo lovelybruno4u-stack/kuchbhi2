@@ -1,0 +1,59 @@
+{% extends "base_student.html" %}
+{% block title %}My Attendance{% endblock %}
+{% block page_title %}My Attendance Record{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <label style="font-weight: 500;">Filter by Date:</label>
+        <input type="date" id="att-date" class="form-control" style="max-width: 200px;" onchange="loadAttendance()">
+        <button class="btn" style="background: #e5e7eb;" onclick="document.getElementById('att-date').value=''; loadAttendance();">Show All</button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="attendance-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Loaded via JS -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadAttendance() {
+        const dateFilter = document.getElementById('att-date').value;
+        const url = dateFilter ? `/api/attendance?date=${dateFilter}` : `/api/attendance`;
+        const res = await apiCall(url);
+
+        if(res.success) {
+            const tbody = document.querySelector('#attendance-table tbody');
+            let records = res.attendance;
+
+            // sort by date descending
+            records.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            tbody.innerHTML = records.map(a => {
+                const color = a.status.toLowerCase() === 'present' ? 'var(--success)' : 'var(--danger)';
+                return `
+                <tr>
+                    <td>${a.date}</td>
+                    <td style="color: ${color}; font-weight: 500;">${a.status.toUpperCase()}</td>
+                </tr>
+                `;
+            }).join('');
+
+            if(records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: var(--text-muted);">No records found.</td></tr>`;
+            }
+        }
+    }
+
+    loadAttendance();
+</script>
+{% endblock %}

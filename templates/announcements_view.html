@@ -1,0 +1,32 @@
+{% extends "base_student.html" %}
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" id="announcements-grid">
+    <!-- Loaded via JS -->
+</div>
+
+<script>
+    async function loadAnnouncements() {
+        const res = await apiCall('/api/announcements');
+        if(res.success) {
+            const grid = document.getElementById('announcements-grid');
+            grid.innerHTML = res.announcements.reverse().map(a => `
+                <div class="glass-card">
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        <i class="ph ph-calendar-blank"></i> ${a.date}
+                    </p>
+                    <p style="white-space: pre-wrap; font-size: 1.05rem;">${a.message}</p>
+                </div>
+            `).join('');
+
+            if(res.announcements.length === 0) {
+                grid.innerHTML = `<div class="glass-card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">No announcements at this time.</div>`;
+            }
+        }
+    }
+
+    loadAnnouncements();
+</script>
+{% endblock %}

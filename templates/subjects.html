@@ -1,0 +1,60 @@
+{% extends "base_teacher.html" %}
+{% block title %}Subjects{% endblock %}
+{% block page_title %}Subjects Management{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem; max-width: 500px;">
+    <form onsubmit="addSubject(event)" style="display: flex; gap: 1rem;">
+        <input type="text" id="subject_name" class="form-control" placeholder="New Subject Name" required>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div class="table-container" style="max-width: 500px;">
+    <table id="subjects-table">
+        <thead>
+            <tr>
+                <th>Subject Name</th>
+                <th style="width: 100px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Loaded via JS -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    async function loadSubjects() {
+        const res = await apiCall('/api/subjects');
+        if(res.success) {
+            const tbody = document.querySelector('#subjects-table tbody');
+            tbody.innerHTML = res.subjects.map(s => `
+                <tr>
+                    <td>${s.subject_name}</td>
+                    <td><button class="btn" style="padding: 5px 10px; background: #fee2e2; color: var(--danger);" onclick="deleteSubject('${s.subject_name}')">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    async function addSubject(e) {
+        e.preventDefault();
+        const data = { subject_name: document.getElementById('subject_name').value };
+        const res = await apiCall('/api/subjects', 'POST', data);
+        if(res.success) {
+            document.getElementById('subject_name').value = '';
+            loadSubjects();
+        }
+    }
+
+    async function deleteSubject(name) {
+        if(confirm(`Delete subject: ${name}?`)) {
+            const res = await apiCall('/api/subjects/' + encodeURIComponent(name), 'DELETE');
+            if(res.success) loadSubjects();
+        }
+    }
+
+    loadSubjects();
+</script>
+{% endblock %}

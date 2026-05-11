@@ -1,0 +1,73 @@
+{% extends "base_teacher.html" %}
+{% block title %}Class Videos{% endblock %}
+{% block page_title %}Daily Class Videos{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem;">
+    <h3>Add New Video</h3>
+    <form id="add-video-form" onsubmit="addVideo(event)" style="display: flex; gap: 1rem; align-items: flex-end; margin-top: 1rem; flex-wrap: wrap;">
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Date</label>
+            <input type="date" id="v_date" class="form-control" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>Subject</label>
+            <select id="v_subject" class="form-control" required>
+                <!-- Loaded via JS -->
+            </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
+            <label>Google Drive Link</label>
+            <input type="url" id="v_link" class="form-control" placeholder="https://drive.google.com/..." required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="height: 46px;">Save Video</button>
+    </form>
+</div>
+
+<div class="dashboard-grid" id="videos-grid">
+    <!-- Videos loaded via JS -->
+</div>
+
+<script>
+    document.getElementById('v_date').valueAsDate = new Date();
+
+    async function loadSubjects() {
+        const res = await apiCall('/api/subjects');
+        if(res.success) {
+            const select = document.getElementById('v_subject');
+            select.innerHTML = res.subjects.map(s => `<option value="${s.subject_name}">${s.subject_name}</option>`).join('');
+        }
+    }
+
+    async function loadVideos() {
+        const res = await apiCall('/api/videos');
+        if(res.success) {
+            const grid = document.getElementById('videos-grid');
+            grid.innerHTML = res.videos.reverse().map(v => `
+                <div class="glass-card">
+                    <h4>${v.subject}</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0.5rem 0;">${v.date}</p>
+                    <a href="${v.drive_link}" target="_blank" class="btn" style="background: #e5e7eb; margin-top: 1rem; display: block; text-align: center;">Watch Video</a>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function addVideo(e) {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('v_date').value,
+            subject: document.getElementById('v_subject').value,
+            drive_link: document.getElementById('v_link').value
+        };
+        const res = await apiCall('/api/videos', 'POST', data);
+        if(res.success) {
+            document.getElementById('v_link').value = '';
+            loadVideos();
+        }
+    }
+
+    loadSubjects();
+    loadVideos();
+</script>
+{% endblock %}

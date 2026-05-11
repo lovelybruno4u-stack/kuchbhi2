@@ -1,0 +1,31 @@
+{% extends "base_student.html" %}
+{% block title %}My Videos{% endblock %}
+{% block page_title %}Class Videos{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" id="videos-grid">
+    <!-- Videos loaded via JS -->
+</div>
+
+<script>
+    async function loadVideos() {
+        const res = await apiCall('/api/videos');
+        if(res.success) {
+            const grid = document.getElementById('videos-grid');
+            grid.innerHTML = res.videos.reverse().map(v => `
+                <div class="glass-card">
+                    <h4>${v.subject}</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0.5rem 0;">${v.date}</p>
+                    <a href="${v.drive_link}" target="_blank" class="btn btn-primary" style="margin-top: 1rem; display: block; text-align: center;">Watch Video</a>
+                </div>
+            `).join('');
+
+            if(res.videos.length === 0) {
+                grid.innerHTML = `<div class="glass-card" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">No videos available.</div>`;
+            }
+        }
+    }
+
+    loadVideos();
+</script>
+{% endblock %}

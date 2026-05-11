@@ -1,0 +1,30 @@
+{% extends "base_student.html" %}
+{% block title %}Student Dashboard{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem;">
+    <h2>Welcome, {{ session.get('user_name') }}!</h2>
+    <p style="color: var(--text-muted); margin-top: 0.5rem;">Ready to learn today?</p>
+</div>
+
+<div class="dashboard-grid">
+    <div class="glass-card stat-card" onclick="window.location.href='/student/my_videos'" style="cursor: pointer;">
+        <i class="ph ph-video-camera" style="font-size: 2rem; color: var(--primary-color);"></i>
+        <h3 style="margin-top: 1rem;">Latest Videos</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Catch up on today's classes.</p>
+    </div>
+
+    <div class="glass-card stat-card" onclick="window.location.href='/student/chatbot'" style="cursor: pointer;">
+        <i class="ph ph-robot" style="font-size: 2rem; color: var(--success);"></i>
+        <h3 style="margin-top: 1rem;">AI Doubt Solver</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Get instant help with your studies.</p>
+    </div>
+
+    <div class="glass-card stat-card" onclick="window.location.href='/student/announcements'" style="cursor: pointer;">
+        <i class="ph ph-megaphone" style="font-size: 2rem; color: var(--danger);"></i>
+        <h3 style="margin-top: 1rem;">Announcements</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Check recent notices from teachers.</p>
+    </div>
+</div>
+{% endblock %}

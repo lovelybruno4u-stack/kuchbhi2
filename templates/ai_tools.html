@@ -1,0 +1,92 @@
+{% extends "base_teacher.html" %}
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}Teacher AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <!-- Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="ph ph-chart-bar" style="color: var(--primary-color);"></i> Attendance Analysis</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0;">Analyze attendance data and get AI insights on irregular students.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" id="btn-att">Generate Insight</button>
+        <div id="res-att" class="ai-response-box" style="display: none;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card">
+        <h3><i class="ph ph-file-text" style="color: var(--primary-color);"></i> Video Summary</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0;">Generate summary notes for revision.</p>
+        <div class="form-group">
+            <input type="text" id="topic-video" class="form-control" placeholder="Enter video topic (e.g., Photosynthesis)">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoSummary()" id="btn-vid">Generate Summary</button>
+        <div id="res-vid" class="ai-response-box" style="display: none;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="grid-column: 1 / -1;">
+        <h3><i class="ph ph-exam" style="color: var(--primary-color);"></i> Quiz Generator</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0;">Generate 5 MCQ questions with answers.</p>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <input type="text" id="topic-quiz" class="form-control" placeholder="Subject and Topic (e.g., Physics: Thermodynamics)">
+            <button class="btn btn-primary" onclick="generateQuiz()" id="btn-quiz">Generate Quiz</button>
+        </div>
+        <div id="res-quiz" class="ai-response-box" style="display: none;"></div>
+    </div>
+
+</div>
+
+<script>
+    async function analyzeAttendance() {
+        const btn = document.getElementById('btn-att');
+        const resBox = document.getElementById('res-att');
+        btn.innerHTML = createLoader();
+        resBox.style.display = 'none';
+
+        const res = await apiCall('/api/ai/attendance_analysis', 'POST', {});
+        btn.innerHTML = 'Generate Insight';
+
+        if(res.success) {
+            resBox.innerText = res.answer;
+            resBox.style.display = 'block';
+        }
+    }
+
+    async function generateVideoSummary() {
+        const topic = document.getElementById('topic-video').value;
+        if(!topic) return alert("Enter a topic");
+
+        const btn = document.getElementById('btn-vid');
+        const resBox = document.getElementById('res-vid');
+        btn.innerHTML = createLoader();
+        resBox.style.display = 'none';
+
+        const res = await apiCall('/api/ai/video_summary', 'POST', {topic});
+        btn.innerHTML = 'Generate Summary';
+
+        if(res.success) {
+            resBox.innerText = res.answer;
+            resBox.style.display = 'block';
+        }
+    }
+
+    async function generateQuiz() {
+        const topic = document.getElementById('topic-quiz').value;
+        if(!topic) return alert("Enter a topic");
+
+        const btn = document.getElementById('btn-quiz');
+        const resBox = document.getElementById('res-quiz');
+        btn.innerHTML = createLoader();
+        resBox.style.display = 'none';
+
+        const res = await apiCall('/api/ai/quiz_generator', 'POST', {topic});
+        btn.innerHTML = 'Generate Quiz';
+
+        if(res.success) {
+            resBox.innerText = res.answer;
+            resBox.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}
