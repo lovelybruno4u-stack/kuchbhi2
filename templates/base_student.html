@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block sidebar_nav %}
+<div class="nav-item {% if request.path == '/student/dashboard' %}active{% endif %}" onclick="window.location.href='/student/dashboard'">
+    <i class="ph ph-squares-four"></i> Dashboard
+</div>
+<div class="nav-item {% if request.path == '/student/my_videos' %}active{% endif %}" onclick="window.location.href='/student/my_videos'">
+    <i class="ph ph-video-camera"></i> My Videos
+</div>
+<div class="nav-item {% if request.path == '/student/attendance' %}active{% endif %}" onclick="window.location.href='/student/attendance'">
+    <i class="ph ph-calendar-check"></i> Attendance
+</div>
+<div class="nav-item {% if request.path == '/student/chatbot' %}active{% endif %}" onclick="window.location.href='/student/chatbot'">
+    <i class="ph ph-robot"></i> AI Study Bot
+</div>
+<div class="nav-item {% if request.path == '/student/announcements' %}active{% endif %}" onclick="window.location.href='/student/announcements'">
+    <i class="ph ph-megaphone"></i> Announcements
+</div>
+{% endblock %}

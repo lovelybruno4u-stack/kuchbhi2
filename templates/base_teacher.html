@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block sidebar_nav %}
+<div class="nav-item {% if request.path == '/teacher/dashboard' %}active{% endif %}" onclick="window.location.href='/teacher/dashboard'">
+    <i class="ph ph-squares-four"></i> Dashboard
+</div>
+<div class="nav-item {% if request.path == '/teacher/students' %}active{% endif %}" onclick="window.location.href='/teacher/students'">
+    <i class="ph ph-users"></i> Students
+</div>
+<div class="nav-item {% if request.path == '/teacher/attendance' %}active{% endif %}" onclick="window.location.href='/teacher/attendance'">
+    <i class="ph ph-calendar-check"></i> Attendance
+</div>
+<div class="nav-item {% if request.path == '/teacher/videos' %}active{% endif %}" onclick="window.location.href='/teacher/videos'">
+    <i class="ph ph-video-camera"></i> Class Videos
+</div>
+<div class="nav-item {% if request.path == '/teacher/subjects' %}active{% endif %}" onclick="window.location.href='/teacher/subjects'">
+    <i class="ph ph-books"></i> Subjects
+</div>
+<div class="nav-item {% if request.path == '/teacher/announcements' %}active{% endif %}" onclick="window.location.href='/teacher/announcements'">
+    <i class="ph ph-megaphone"></i> Announcements
+</div>
+<div class="nav-item {% if request.path == '/teacher/ai_tools' %}active{% endif %}" onclick="window.location.href='/teacher/ai_tools'">
+    <i class="ph ph-sparkle"></i> AI Tools
+</div>
+{% endblock %}

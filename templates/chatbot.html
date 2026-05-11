@@ -1,0 +1,72 @@
+{% extends "base_student.html" %}
+{% block title %}AI Study Chatbot{% endblock %}
+{% block page_title %}AI Study Bot & Doubt Solver{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-history" id="chat-history">
+        <div class="chat-bubble ai">
+            Hello! I'm your AI tutor. You can ask me concept doubts, study tips, or request step-by-step math solutions!
+        </div>
+    </div>
+    <form class="chat-input-area" onsubmit="sendMessage(event)">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type your doubt here..." required autocomplete="off">
+        <button type="button" class="btn btn-success" onclick="solveDoubt()" title="Quick Concept Explanation"><i class="ph ph-lightning"></i> Quick Explain</button>
+        <button type="submit" class="btn btn-primary" title="General Chat"><i class="ph ph-paper-plane-right"></i> Chat</button>
+    </form>
+</div>
+
+<script>
+    const chatHistory = document.getElementById('chat-history');
+    const input = document.getElementById('chat-input');
+
+    function appendMessage(text, role) {
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${role}`;
+        bubble.innerText = text;
+        chatHistory.appendChild(bubble);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    async function sendMessage(e) {
+        e.preventDefault();
+        const msg = input.value;
+        if(!msg) return;
+
+        appendMessage(msg, 'user');
+        input.value = '';
+
+        appendMessage('Thinking...', 'ai');
+        const loadingBubble = chatHistory.lastChild;
+
+        const res = await apiCall('/api/ai/chatbot', 'POST', {message: msg});
+
+        chatHistory.removeChild(loadingBubble);
+        if(res.success) {
+            appendMessage(res.answer, 'ai');
+        } else {
+            appendMessage('Sorry, I am having trouble connecting right now.', 'ai');
+        }
+    }
+
+    async function solveDoubt() {
+        const msg = input.value;
+        if(!msg) return alert("Please enter a question first.");
+
+        appendMessage(msg, 'user');
+        input.value = '';
+
+        appendMessage('Analyzing doubt...', 'ai');
+        const loadingBubble = chatHistory.lastChild;
+
+        const res = await apiCall('/api/ai/doubt_solver', 'POST', {question: msg});
+
+        chatHistory.removeChild(loadingBubble);
+        if(res.success) {
+            appendMessage(res.answer, 'ai');
+        } else {
+            appendMessage('Sorry, I am having trouble connecting right now.', 'ai');
+        }
+    }
+</script>
+{% endblock %}

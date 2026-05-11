@@ -1,0 +1,87 @@
+{% extends "base_teacher.html" %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <label style="font-weight: 500;">Select Date:</label>
+        <input type="date" id="att-date" class="form-control" style="max-width: 200px;" onchange="loadAttendance()">
+        <button class="btn btn-primary" onclick="saveAttendance()">Save Attendance to Sheets</button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="attendance-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status (Present / Absent)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Loaded via JS -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let currentStudents = [];
+
+    // Set today as default
+    document.getElementById('att-date').valueAsDate = new Date();
+
+    async function loadAttendance() {
+        const date = document.getElementById('att-date').value;
+        const [studentsRes, attRes] = await Promise.all([
+            apiCall('/api/students'),
+            apiCall(`/api/attendance?date=${date}`)
+        ]);
+
+        if(studentsRes.success && attRes.success) {
+            currentStudents = studentsRes.students;
+            const savedAtt = attRes.attendance;
+
+            // Map saved attendance
+            const attMap = {};
+            savedAtt.forEach(a => attMap[a.student_id] = a.status);
+
+            const tbody = document.querySelector('#attendance-table tbody');
+            tbody.innerHTML = currentStudents.map(s => {
+                const status = attMap[s.id] || 'present'; // default present
+                return `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.name}</td>
+                    <td>
+                        <select class="form-control att-select" data-id="${s.id}" style="max-width: 150px; padding: 0.5rem;">
+                            <option value="present" ${status.toLowerCase() === 'present' ? 'selected' : ''}>Present</option>
+                            <option value="absent" ${status.toLowerCase() === 'absent' ? 'selected' : ''}>Absent</option>
+                        </select>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+    }
+
+    async function saveAttendance() {
+        const date = document.getElementById('att-date').value;
+        const selects = document.querySelectorAll('.att-select');
+        const records = Array.from(selects).map(select => ({
+            student_id: select.getAttribute('data-id'),
+            status: select.value
+        }));
+
+        const res = await apiCall('/api/attendance', 'POST', { date, records });
+        if(res.success) {
+            showModal('Success', '<p>Attendance saved successfully.</p>');
+        } else {
+            showModal('Error', '<p>Failed to save attendance.</p>');
+        }
+    }
+
+    loadAttendance();
+</script>
+{% endblock %}

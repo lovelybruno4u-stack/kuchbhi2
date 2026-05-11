@@ -1,0 +1,39 @@
+{% extends "base_teacher.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Overview{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" id="stats-grid">
+    <!-- Stats will be loaded here -->
+</div>
+
+<div class="glass-card">
+    <h3>Welcome to Aswathama Classes!</h3>
+    <p style="margin-top: 1rem; color: var(--text-muted);">Use the sidebar to manage students, mark attendance, and access AI tools.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadStats() {
+        const res = await apiCall('/api/dashboard_stats');
+        if(res.success) {
+            document.getElementById('stats-grid').innerHTML = `
+                <div class="glass-card stat-card">
+                    <span class="stat-title">Total Students</span>
+                    <span class="stat-value">${res.total_students}</span>
+                </div>
+                <div class="glass-card stat-card">
+                    <span class="stat-title">Today's Attendance</span>
+                    <span class="stat-value">${res.today_attendance_percent}%</span>
+                </div>
+                <div class="glass-card stat-card">
+                    <span class="stat-title">Recent Activity</span>
+                    <span class="stat-value" style="font-size: 1.2rem; color: var(--text-main); font-weight: normal; margin-top: 5px;">${res.recent_activity}</span>
+                </div>
+            `;
+        }
+    }
+    loadStats();
+</script>
+{% endblock %}

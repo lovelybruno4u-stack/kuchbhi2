@@ -1,0 +1,108 @@
+{% extends "base_teacher.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <input type="text" id="search-input" class="form-control" placeholder="Search students..." style="max-width: 300px;" onkeyup="filterStudents()">
+    <button class="btn btn-primary" onclick="showAddStudentModal()">+ Add Student</button>
+</div>
+
+<div class="table-container">
+    <table id="students-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Roll</th>
+                <th>Phone</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Loaded via JS -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    let allStudents = [];
+
+    async function loadStudents() {
+        const res = await apiCall('/api/students');
+        if(res.success) {
+            allStudents = res.students;
+            renderTable(allStudents);
+        }
+    }
+
+    function renderTable(students) {
+        const tbody = document.querySelector('#students-table tbody');
+        tbody.innerHTML = students.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.class}</td>
+                <td>${s.roll}</td>
+                <td>${s.phone}</td>
+                <td>
+                    <button class="btn" style="padding: 5px 10px; background: #e5e7eb;" onclick="deleteStudent('${s.id}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function filterStudents() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = allStudents.filter(s =>
+            String(s.name).toLowerCase().includes(query) ||
+            String(s.id).toLowerCase().includes(query)
+        );
+        renderTable(filtered);
+    }
+
+    function showAddStudentModal() {
+        const formHtml = `
+            <form id="add-student-form" onsubmit="submitStudent(event)">
+                <div class="form-group"><label>Name</label><input type="text" id="s_name" class="form-control" required></div>
+                <div class="form-group"><label>Class</label><input type="text" id="s_class" class="form-control" required></div>
+                <div class="form-group"><label>Roll Number</label><input type="text" id="s_roll" class="form-control" required></div>
+                <div class="form-group"><label>Phone</label><input type="text" id="s_phone" class="form-control" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="s_email" class="form-control" required></div>
+                <div class="form-group"><label>Parent Name</label><input type="text" id="s_parent" class="form-control" required></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Save Student</button>
+            </form>
+        `;
+        showModal('Add New Student', formHtml);
+    }
+
+    async function submitStudent(e) {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('s_name').value,
+            class: document.getElementById('s_class').value,
+            roll: document.getElementById('s_roll').value,
+            phone: document.getElementById('s_phone').value,
+            email: document.getElementById('s_email').value,
+            parent: document.getElementById('s_parent').value
+        };
+        const res = await apiCall('/api/students', 'POST', data);
+        if(res.success) {
+            document.querySelector('.modal-overlay').remove();
+            loadStudents();
+        } else {
+            alert('Failed to add student');
+        }
+    }
+
+    async function deleteStudent(id) {
+        if(confirm('Delete this student?')) {
+            const res = await apiCall('/api/students/' + id, 'DELETE');
+            if(res.success) loadStudents();
+        }
+    }
+
+    loadStudents();
+</script>
+{% endblock %}

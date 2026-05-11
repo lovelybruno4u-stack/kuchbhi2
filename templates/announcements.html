@@ -1,0 +1,76 @@
+{% extends "base_teacher.html" %}
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 2rem;">
+    <h3>Create Announcement</h3>
+    <div style="margin-top: 1rem;">
+        <label style="display: block; margin-bottom: 0.5rem;">AI Assist (Optional): Tell AI what to write</label>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+            <input type="text" id="ai-prompt" class="form-control" placeholder='e.g., "Write a professional coaching class announcement about holiday tomorrow"'>
+            <button class="btn btn-primary" onclick="generateAI()" id="ai-btn"><i class="ph ph-sparkle"></i> Generate</button>
+        </div>
+
+        <form onsubmit="saveAnnouncement(event)">
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="message" class="form-control" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Publish Announcement</button>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-grid" id="announcements-grid">
+    <!-- Loaded via JS -->
+</div>
+
+<script>
+    async function loadAnnouncements() {
+        const res = await apiCall('/api/announcements');
+        if(res.success) {
+            const grid = document.getElementById('announcements-grid');
+            grid.innerHTML = res.announcements.reverse().map(a => `
+                <div class="glass-card">
+                    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;">${a.date}</p>
+                    <p style="white-space: pre-wrap;">${a.message}</p>
+                </div>
+            `).join('');
+        }
+    }
+
+    async function generateAI() {
+        const prompt = document.getElementById('ai-prompt').value;
+        if(!prompt) return alert('Enter a prompt first');
+
+        const btn = document.getElementById('ai-btn');
+        btn.innerHTML = createLoader();
+
+        const res = await apiCall('/api/ai/generate_announcement', 'POST', {topic: prompt});
+        btn.innerHTML = `<i class="ph ph-sparkle"></i> Generate`;
+
+        if(res.success) {
+            document.getElementById('message').value = res.answer;
+        } else {
+            alert('AI Generation failed.');
+        }
+    }
+
+    async function saveAnnouncement(e) {
+        e.preventDefault();
+        const data = {
+            date: new Date().toISOString().split('T')[0],
+            message: document.getElementById('message').value
+        };
+        const res = await apiCall('/api/announcements', 'POST', data);
+        if(res.success) {
+            document.getElementById('message').value = '';
+            document.getElementById('ai-prompt').value = '';
+            loadAnnouncements();
+        }
+    }
+
+    loadAnnouncements();
+</script>
+{% endblock %}
