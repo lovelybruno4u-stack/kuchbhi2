@@ -108,6 +108,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ url_for('student_chatbot') }}" class="nav-link {% if request.path == url_for('student_chatbot') %}active{% endif %}">
+                    <i class="fas fa-comments"></i> AI Tutor
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ url_for('student_announcements_view') }}" class="nav-link {% if request.path == url_for('student_announcements_view') %}active{% endif %}">
                     <i class="fas fa-bell"></i> Announcements
                 </a>
