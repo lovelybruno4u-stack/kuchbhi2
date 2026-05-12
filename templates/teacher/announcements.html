@@ -67,3 +67,49 @@
 
 
 {% endblock %}
+
+{% block scripts %}
+
+<script>
+async function generateAIAnnouncement(btn) {
+    const topicInput = document.getElementById('ai-announcement-topic');
+    const messageTextarea = document.getElementById('message'); // Assuming the textarea has id="message", let's check
+    const topic = topicInput.value;
+
+    if (!topic) {
+        showToast('Please enter a topic to generate.', 'warning');
+        return;
+    }
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/announcement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic: topic })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            // Find textarea by name if id is not present
+            const textarea = document.querySelector('textarea[name="message"]');
+            if (textarea) {
+                textarea.value = data.announcement;
+                showToast('Announcement generated successfully!', 'success');
+            }
+        } else {
+            showToast(data.error || 'Failed to generate.', 'error');
+        }
+    } catch (err) {
+        showToast('Error connecting to AI.', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+</script>
+
+{% endblock %}

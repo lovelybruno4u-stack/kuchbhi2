@@ -1,5 +1,6 @@
 import os
 import json
+from openai import OpenAI
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, render_template_string
 from dotenv import load_dotenv
@@ -828,6 +829,129 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
+@app.route('/api/ai/attendance_analysis', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance_analysis():
+    attendance_data = get_data('attendance')
+
+    if not attendance_data:
+        return jsonify({'success': False, 'error': 'No attendance data found'})
+
+    client = OpenAI()
+    prompt = "Analyze attendance data and provide insights"
+
+    # Structure data for AI
+    raw_data = str(attendance_data)
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Here is the raw attendance data: {raw_data}"}
+            ]
+        )
+        return jsonify({'success': True, 'insights': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def ai_video_summary():
+    data = request.json
+    topic = data.get('topic')
+
+    if not topic:
+        return jsonify({'success': False, 'error': 'Topic is required'})
+
+    client = OpenAI()
+    prompt = "Generate summary notes for revision"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Topic: {topic}"}
+            ]
+        )
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/quiz_generator', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz_generator():
+    data = request.json
+    subject = data.get('subject')
+    topic = data.get('topic')
+
+    if not subject or not topic:
+        return jsonify({'success': False, 'error': 'Subject and topic are required'})
+
+    client = OpenAI()
+    prompt = 'Generate 5 MCQ questions with answers. Return the response in valid JSON format only, like this: [{"question": "...", "options": ["...", "...", "...", "..."], "answer": "..."}]'
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Subject: {subject}, Topic: {topic}"}
+            ],
+            response_format={ "type": "json_object" }
+        )
+        # Attempt to parse json structure
+        import json
+        result_text = response.choices[0].message.content
+        try:
+            quiz_data = json.loads(result_text)
+            if isinstance(quiz_data, dict) and 'questions' in quiz_data:
+                quiz_data = quiz_data['questions']
+            elif isinstance(quiz_data, dict):
+                # Try finding a list inside dict
+                for k,v in quiz_data.items():
+                    if isinstance(v, list):
+                        quiz_data = v
+                        break
+        except:
+             # if standard parsing fails, just return raw string and handle in UI
+             return jsonify({'success': True, 'quiz': result_text})
+
+        return jsonify({'success': True, 'quiz': quiz_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    data = request.json
+    topic = data.get('topic')
+
+    if not topic:
+        return jsonify({'success': False, 'error': 'Topic is required'})
+
+    client = OpenAI()
+    prompt = "Write a professional coaching class announcement"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Announcement Topic: {topic}"}
+            ]
+        )
+        return jsonify({'success': True, 'announcement': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
 
 
 
@@ -955,9 +1079,6 @@ def complete_task():
     award_points(student_id, 5, "Completed Daily Task")
 
     return jsonify({'success': True, 'points_earned': 5})
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 # --- Student Specific Backend Routes ---
 @app.route('/student/dashboard', endpoint='student_dashboard')
@@ -1108,6 +1229,66 @@ def student_announcements_view():
 
 
 # --- API Endpoints for AI Features (Student) ---
+
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
+
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def ai_doubt_solver():
+    data = request.json
+    question = data.get('question')
+
+    if not question:
+        return jsonify({'success': False, 'error': 'Question is required'})
+
+    client = OpenAI()
+    prompt = "Explain this concept in very simple words for a school student"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": question}
+            ]
+        )
+        return jsonify({'success': True, 'answer': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required(role='student')
+def ai_chat():
+    data = request.json
+    message = data.get('message')
+    history = data.get('history', [])
+
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required'})
+
+    client = OpenAI()
+    prompt = "You are a friendly and helpful tutor for a coaching class. Help the student with their studies, concepts, exam prep, and study tips."
+
+    messages = [{"role": "system", "content": prompt}]
+
+    # Append history
+    for msg in history:
+        messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+
+    messages.append({"role": "user", "content": message})
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        return jsonify({'success': True, 'reply': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 
 
@@ -1633,3 +1814,5 @@ def teacher_quiz_scores():
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
