@@ -53,6 +53,15 @@
                 <label>Date</label>
                 <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
             </div>
+
+            <div class="form-group" style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
+                <label style="color: var(--primary-color);"><i class="fas fa-magic"></i> AI Announcement Generator</label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="text" id="ai-topic-input" class="form-control" placeholder="Topic (e.g. holiday tomorrow)">
+                    <button type="button" id="ai-generate-btn" class="btn btn-primary" onclick="generateAnnouncement()"><i class="fas fa-bolt"></i> Generate</button>
+                </div>
+            </div>
+
             <div class="form-group">
                 <label>Message Content</label>
                 <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
@@ -64,6 +73,45 @@
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
+<script>
+function generateAnnouncement() {
+    const topic = document.getElementById('ai-topic-input').value;
+    if (!topic) {
+        showToast('Please enter a topic for the AI generator', 'warning');
+        return;
+    }
 
+    const btn = document.getElementById('ai-generate-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    fetch('/api/teacher/generate_announcement', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({topic: topic})
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Generate';
+        btn.disabled = false;
+
+        if(data.success) {
+            document.getElementById('announcement-message').value = data.announcement;
+            showToast('AI Announcement Generated!', 'success');
+        } else {
+            showToast('Generation failed: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Generate';
+        btn.disabled = false;
+        showToast('Network error occurred', 'error');
+    });
+}
+</script>
 {% endblock %}

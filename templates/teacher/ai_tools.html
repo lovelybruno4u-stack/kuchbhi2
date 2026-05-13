@@ -1,0 +1,181 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- AI Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-pie" style="color: var(--primary-color);"></i> AI Attendance Analyzer</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Analyze student attendance records to find irregular students and get actionable insights.</p>
+        <button id="analyze-attendance-btn" class="btn btn-primary" onclick="analyzeAttendance()" style="width: 100%;"><i class="fas fa-magic"></i> Generate Insights</button>
+        <div id="attendance-insights-result" style="margin-top: 15px; display: none; padding: 15px; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-video" style="color: var(--primary-color);"></i> AI Video Summarizer</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Generate quick summary notes and key points for a class video topic.</p>
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic-input" class="form-control" placeholder="e.g. Newton's Laws of Motion">
+        </div>
+        <button id="generate-summary-btn" class="btn btn-primary" onclick="generateVideoSummary()" style="width: 100%;"><i class="fas fa-magic"></i> Generate Summary</button>
+        <div id="video-summary-result" style="margin-top: 15px; display: none; padding: 15px; background: #f8fafc; border-radius: 8px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Quiz Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-brain" style="color: var(--primary-color);"></i> AI Quiz Generator</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Automatically generate 5 MCQ questions for a subject and topic.</p>
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="quiz-subject-input" class="form-control" placeholder="e.g. Physics">
+        </div>
+        <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="quiz-topic-input" class="form-control" placeholder="e.g. Thermodynamics">
+        </div>
+        <button id="generate-quiz-btn" class="btn btn-primary" onclick="generateQuiz()" style="width: 100%;"><i class="fas fa-magic"></i> Generate MCQs</button>
+        <div id="quiz-generator-result" style="margin-top: 15px; display: none; padding: 15px; background: #f8fafc; border-radius: 8px;"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function analyzeAttendance() {
+    const btn = document.getElementById('analyze-attendance-btn');
+    const resultDiv = document.getElementById('attendance-insights-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+
+    fetch('/api/teacher/analyze_attendance', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Insights';
+        btn.disabled = false;
+
+        if (data.success) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerText = data.insights;
+            showToast('Insights generated!', 'success');
+        } else {
+            showToast('Failed to analyze attendance: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Insights';
+        btn.disabled = false;
+        showToast('Network error occurred.', 'error');
+    });
+}
+
+function generateVideoSummary() {
+    const topic = document.getElementById('video-topic-input').value;
+    if (!topic) {
+        showToast('Please enter a video topic', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('generate-summary-btn');
+    const resultDiv = document.getElementById('video-summary-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    fetch('/api/teacher/generate_video_summary', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({topic: topic})
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+        btn.disabled = false;
+
+        if (data.success) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerText = data.summary;
+            showToast('Summary generated!', 'success');
+        } else {
+            showToast('Failed to generate summary: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+        btn.disabled = false;
+        showToast('Network error occurred.', 'error');
+    });
+}
+
+function generateQuiz() {
+    const subject = document.getElementById('quiz-subject-input').value;
+    const topic = document.getElementById('quiz-topic-input').value;
+
+    if (!subject || !topic) {
+        showToast('Please enter both subject and topic', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('generate-quiz-btn');
+    const resultDiv = document.getElementById('quiz-generator-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    fetch('/api/teacher/generate_quiz', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({subject: subject, topic: topic})
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate MCQs';
+        btn.disabled = false;
+
+        if (data.success) {
+            resultDiv.style.display = 'block';
+
+            let htmlContent = '<h4 style="margin-bottom: 10px;">Generated Questions</h4>';
+            data.quiz.questions.forEach((q, index) => {
+                htmlContent += `<div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0;">
+                    <p style="font-weight: 600; margin-bottom: 5px;">Q${index+1}: ${q.question}</p>
+                    <ul style="list-style-type: none; padding-left: 0; margin-bottom: 5px;">
+                        <li>A) ${q.option1}</li>
+                        <li>B) ${q.option2}</li>
+                        <li>C) ${q.option3}</li>
+                        <li>D) ${q.option4}</li>
+                    </ul>
+                    <p style="color: var(--success); font-weight: 500; font-size: 0.9rem;">Answer: ${q.answer}</p>
+                </div>`;
+            });
+
+            resultDiv.innerHTML = htmlContent;
+            showToast('Quiz generated!', 'success');
+        } else {
+            showToast('Failed to generate quiz: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate MCQs';
+        btn.disabled = false;
+        showToast('Network error occurred.', 'error');
+    });
+}
+</script>
+{% endblock %}

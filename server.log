@@ -1,0 +1,21 @@
+[2026-05-13 03:05:54 +0000] [270408] [INFO] Starting gunicorn 26.0.0
+[2026-05-13 03:05:54 +0000] [270408] [INFO] Listening at: http://127.0.0.1:8000 (270408)
+[2026-05-13 03:05:54 +0000] [270408] [INFO] Using worker: sync
+[2026-05-13 03:05:54 +0000] [270736] [INFO] Booting worker with pid: 270736
+[2026-05-13 03:05:54 +0000] [270408] [INFO] Control socket listening at /home/jules/.gunicorn/gunicorn.ctl
+[2026-05-13 03:22:38 +0000] [270408] [INFO] Handling signal: term
+[2026-05-13 03:22:38 +0000] [270736] [INFO] Worker exiting (pid: 270736)
+Error authenticating with Google: Service account info was not in the expected format, missing fields client_email, token_uri.
+Cannot get gspread client. Check JSON credentials.
+Failed to access Google Sheet 'students'. Ensure tab exists and permissions are granted.
+Error authenticating with Google: Service account info was not in the expected format, missing fields client_email, token_uri.
+Cannot get gspread client. Check JSON credentials.
+Failed to access Google Sheet 'students'. Ensure tab exists and permissions are granted.
+Error authenticating with Google: Service account info was not in the expected format, missing fields client_email, token_uri.
+Cannot get gspread client. Check JSON credentials.
+Failed to access Google Sheet 'videos'. Ensure tab exists and permissions are granted.
+Error authenticating with Google: Service account info was not in the expected format, missing fields client_email, token_uri.
+Cannot get gspread client. Check JSON credentials.
+Failed to access Google Sheet 'attendance'. Ensure tab exists and permissions are granted.
+[2026-05-13 03:22:38 +0000] [270408] [INFO] Worker (pid:270736) was sent SIGTERM!
+[2026-05-13 03:22:38 +0000] [270408] [INFO] Shutting down: Master
