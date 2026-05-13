@@ -1,0 +1,167 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Chatbot{% endblock %}
+{% block page_title %}AI Study Companion{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr; margin-bottom: 24px;">
+
+    <!-- AI Doubt Solver Quick Form -->
+    <div class="glass-card" style="margin-bottom: 20px; border-left: 4px solid var(--primary-color);">
+        <h3 style="color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-question-circle"></i> Quick Doubt Solver</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="doubt-input" class="form-control" placeholder="Type a concept you need explained simply..." style="flex-grow: 1;">
+            <button id="doubt-btn" class="btn btn-primary" onclick="solveDoubt()"><i class="fas fa-magic"></i> Explain</button>
+        </div>
+        <div id="doubt-result" style="margin-top: 15px; display: none; padding: 15px; background: #f8fafc; border-radius: 8px; font-size: 1.05rem; line-height: 1.6;"></div>
+    </div>
+
+    <!-- Main Chatbot Interface -->
+    <div class="glass-card" style="display: flex; flex-direction: column; height: 500px; padding: 0; overflow: hidden;">
+        <!-- Chat Header -->
+        <div style="background: var(--primary-color); color: white; padding: 15px 20px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.1rem;">Study Buddy</h3>
+                <span style="font-size: 0.8rem; opacity: 0.8;">Online • AI Tutor</span>
+            </div>
+        </div>
+
+        <!-- Chat History -->
+        <div id="chat-history" style="flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #f8fafc;">
+            <!-- Initial Greeting -->
+            <div style="align-self: flex-start; max-width: 80%;">
+                <div style="background: white; padding: 12px 18px; border-radius: 18px; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: var(--text-primary);">
+                    Hi there! 👋 I'm your AI Study Buddy. Need help understanding a concept, preparing for an exam, or looking for study tips? Just ask!
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div style="padding: 15px 20px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 10px;">
+            <input type="text" id="chat-input" class="form-control" placeholder="Message Study Buddy..." style="border-radius: 20px;" onkeypress="handleChatEnter(event)">
+            <button id="chat-send-btn" class="btn btn-primary" onclick="sendChatMessage()" style="border-radius: 50%; width: 45px; height: 45px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-paper-plane" style="margin-left: -2px;"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// --- Doubt Solver Logic ---
+function solveDoubt() {
+    const question = document.getElementById('doubt-input').value.trim();
+    if (!question) {
+        showToast('Please type a question first', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('doubt-btn');
+    const resultDiv = document.getElementById('doubt-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    fetch('/api/student/doubt_solver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Explain';
+        btn.disabled = false;
+
+        if(data.success) {
+            resultDiv.style.display = 'block';
+            // Basic formatting for markdown-like bold text **text**
+            let htmlText = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+            resultDiv.innerHTML = htmlText;
+            showToast('Answer generated!', 'success');
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Explain';
+        btn.disabled = false;
+        showToast('Network error occurred', 'error');
+    });
+}
+
+// --- Chatbot Logic ---
+let chatMessages = []; // Store conversation history
+
+function appendMessage(role, text) {
+    const historyDiv = document.getElementById('chat-history');
+    const msgDiv = document.createElement('div');
+
+    // Basic markdown bold to HTML
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+    if (role === 'user') {
+        msgDiv.style.cssText = "align-self: flex-end; max-width: 80%;";
+        msgDiv.innerHTML = `<div style="background: var(--primary-color); color: white; padding: 12px 18px; border-radius: 18px; border-bottom-right-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${text}</div>`;
+    } else {
+        msgDiv.style.cssText = "align-self: flex-start; max-width: 80%;";
+        msgDiv.innerHTML = `<div style="background: white; padding: 12px 18px; border-radius: 18px; border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: var(--text-primary);">${text}</div>`;
+    }
+
+    historyDiv.appendChild(msgDiv);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+
+function handleChatEnter(e) {
+    if (e.key === 'Enter') {
+        sendChatMessage();
+    }
+}
+
+function sendChatMessage() {
+    const inputField = document.getElementById('chat-input');
+    const messageText = inputField.value.trim();
+
+    if (!messageText) return;
+
+    // Add user message to UI
+    appendMessage('user', messageText);
+    inputField.value = '';
+
+    // Add to message history payload
+    chatMessages.push({ role: "user", content: messageText });
+
+    // Show typing indicator
+    const btn = document.getElementById('chat-send-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    fetch('/api/student/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatMessages })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-left: -2px;"></i>';
+        btn.disabled = false;
+
+        if (data.success) {
+            appendMessage('assistant', data.reply);
+            chatMessages.push({ role: "assistant", content: data.reply });
+        } else {
+            showToast('Chatbot error: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-left: -2px;"></i>';
+        btn.disabled = false;
+        showToast('Network error occurred', 'error');
+    });
+}
+</script>
+{% endblock %}

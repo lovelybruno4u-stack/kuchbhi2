@@ -16,6 +16,10 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
 app.permanent_session_lifetime = timedelta(days=365)
 
+# Initialize OpenAI
+from openai import OpenAI
+openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
 # ==========================================
 # GLOBAL HARDENED ERROR HANDLING
 # ==========================================
@@ -161,7 +165,7 @@ def get_google_sheet(sheet_name):
         'video_completion_V3': ['date', 'student_id', 'subject', 'video_id', 'completed'],
         'gamification_V3': ['student_id', 'points', 'badges'],
         'leaderboard_cache_V3': ['student_id', 'points', 'rank'],
-        'ATTENDANCE_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
+        'attendance': ['date', 'student_id', 'status'],
         'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
         'DPP_Status_V3': ['dpp_id', 'student_id', 'status'],
         'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
@@ -303,7 +307,7 @@ def background_refresh():
     try:
         # Silently fetch latest data to update cache behind the scenes
         print("Starting silent background refresh for all V2 sheets...")
-        sheets_to_refresh = ['ATTENDANCE_V2', 'DPP_V2', 'TASKS_V2']
+        sheets_to_refresh = ['attendance', 'DPP_V2', 'TASKS_V2']
         for s in sheets_to_refresh:
             sheet = get_google_sheet(s)
             if sheet:
@@ -367,8 +371,12 @@ def login_required(role=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_role' not in session:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Unauthorized'}), 401
                 return redirect(url_for('login'))
             if role and session['user_role'] != role:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Forbidden'}), 403
                 return redirect(url_for('login'))
             return f(*args, **kwargs)
         return decorated_function
@@ -555,7 +563,7 @@ def logout():
 def teacher_dashboard():
     students = get_data('students')
     videos = get_data('videos')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
 
     current_date = datetime.now().strftime('%Y-%m-%d')
     today_attendance_count = len([a for a in attendance if a.get('date') == current_date and a.get('status') == 'Present'])
@@ -641,7 +649,7 @@ def delete_student(id):
 @login_required(role='teacher')
 def teacher_attendance():
     students = get_data('students')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
     current_date = datetime.now().strftime('%Y-%m-%d')
 
     # Calculate today's absentees
@@ -673,20 +681,15 @@ def save_attendance():
     date = data.get('date')
     records = data.get('records', [])
 
-    sheet = get_google_sheet('ATTENDANCE_V2')
+    sheet = get_google_sheet('attendance')
     if not sheet:
         return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
 
     try:
-        from datetime import datetime
-        last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
         all_records = sheet.get_all_records()
         headers = sheet.row_values(1)
         if not headers:
-            headers = ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated']
-
-        students_info = {str(s.get('id')): s for s in get_data('students')}
+            headers = ['date', 'student_id', 'status']
 
         record_map = {}
         for r in all_records:
@@ -696,28 +699,21 @@ def save_attendance():
         points_to_award = {}
         for record in records:
             s_id = str(record['student_id'])
-            status = '1' if record['status'] == 'Present' else '0'
-            s_name = students_info.get(s_id, {}).get('name', 'Unknown')
-            s_class = students_info.get(s_id, {}).get('class', '')
+            # Ensure "Present" / "Absent" format based on instructions
+            status = 'Present' if record['status'] == 'Present' else 'Absent'
 
             key = f"{s_id}_{date}"
 
             if key in record_map:
                 record_map[key]['status'] = status
-                record_map[key]['last_updated'] = last_updated
-                record_map[key]['student_name'] = s_name
-                record_map[key]['class'] = s_class
             else:
                 record_map[key] = {
-                    'student_id': s_id,
-                    'student_name': s_name,
-                    'class': s_class,
                     'date': date,
-                    'status': status,
-                    'last_updated': last_updated
+                    'student_id': s_id,
+                    'status': status
                 }
 
-            if status == '1':
+            if status == 'Present':
                 # We will collect this and do it in bulk later
                 points_to_award[s_id] = 5
 
@@ -732,16 +728,13 @@ def save_attendance():
         if points_to_award:
             bulk_award_points(points_to_award, "Attendance")
 
-        invalidate_cache('ATTENDANCE_V2')
+        invalidate_cache('attendance')
         refresh_local_cache()
 
         return jsonify({'success': True, 'message': 'Attendance saved successfully'})
     except Exception as e:
-        print(f"Failed to save Attendance_V2: {e}")
+        print(f"Failed to save attendance: {e}")
         return jsonify({'success': False, 'error': str(e)})
-
-    else:
-        return jsonify({'success': False, 'error': 'Cannot save: Sheet not found'})
 
 @app.route('/teacher/videos')
 @login_required(role='teacher')
@@ -828,14 +821,95 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
 
+@app.route('/api/teacher/generate_announcement', methods=['POST'])
+@login_required(role='teacher')
+def generate_announcement():
+    try:
+        data = request.json
+        topic = data.get('topic', '')
+        prompt = f"Write a professional coaching class announcement about {topic}"
 
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        message = response.choices[0].message.content
+        return jsonify({'success': True, 'announcement': message})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/teacher/analyze_attendance', methods=['POST'])
+@login_required(role='teacher')
+def analyze_attendance():
+    try:
+        attendance_data = get_data('attendance')
+        students = get_data('students')
 
+        # Structure data as dictionary per instructions
+        structured_data = {}
+        for s in students:
+            structured_data[str(s.get('id'))] = {'name': s.get('name'), 'present': 0, 'absent': 0}
 
+        for a in attendance_data:
+            sid = str(a.get('student_id'))
+            if sid in structured_data:
+                if a.get('status') == 'Present':
+                    structured_data[sid]['present'] += 1
+                else:
+                    structured_data[sid]['absent'] += 1
 
+        prompt = f"Analyze attendance data and provide insights:\n{json.dumps(structured_data)}"
 
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        insights = response.choices[0].message.content
+        return jsonify({'success': True, 'insights': insights})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/teacher/generate_video_summary', methods=['POST'])
+@login_required(role='teacher')
+def generate_video_summary():
+    try:
+        data = request.json
+        topic = data.get('topic', '')
+        prompt = f"Generate summary notes for revision for the topic: {topic}"
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        summary = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/teacher/generate_quiz', methods=['POST'])
+@login_required(role='teacher')
+def generate_quiz():
+    try:
+        data = request.json
+        subject = data.get('subject', '')
+        topic = data.get('topic', '')
+
+        prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' and topic '{topic}'. Provide the response strictly in JSON format with a 'questions' array. Each object in the array should have 'question', 'option1', 'option2', 'option3', 'option4', and 'answer' (which is the correct option string)."
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        quiz_json = json.loads(response.choices[0].message.content)
+        return jsonify({'success': True, 'quiz': quiz_json})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # --- Student Routes (Stubs for now) ---
@@ -972,11 +1046,11 @@ def student_dashboard():
     student_class = next((s.get('class') for s in students_data if str(s.get('id')) == str(student_id)), '')
 
     # Safely fetch attendance and calculate rate
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
     if attendance_data:
         unique_dates = set([a.get('date') for a in attendance_data if a.get('date')])
         total = len(unique_dates) if len(unique_dates) > 0 else 1
-        present = len([a for a in attendance_data if str(a.get('student_id')) == str(student_id) and str(a.get('status')) in ['1', 'Present']])
+        present = len([a for a in attendance_data if str(a.get('student_id')) == str(student_id) and str(a.get('status')) == 'Present'])
     else:
         total = 1
         present = 0
@@ -1071,7 +1145,7 @@ def student_attendance_view():
     student_id = session.get('student_id')
 
     # Use Attendance_V2
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
 
     if attendance_data:
         attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
@@ -1079,17 +1153,15 @@ def student_attendance_view():
         attendance_records = []
 
     total = len(attendance_records)
-    # The new Attendance_V2 stores status as binary '1' or '0'
-    present = len([a for a in attendance_records if str(a.get('status')) == '1'])
+    present = len([a for a in attendance_records if str(a.get('status')) == 'Present'])
     absent = total - present
     percentage = (present / total) * 100 if total > 0 else 0
 
-    # Map the binary status back to "Present"/"Absent" string for the UI template so we don't have to rewrite the HTML logic
     formatted_records = []
     for rec in attendance_records[::-1]: # reverse chronological
         formatted_records.append({
             'date': rec.get('date'),
-            'status': 'Present' if str(rec.get('status')) == '1' else 'Absent'
+            'status': 'Present' if str(rec.get('status')) == 'Present' else 'Absent'
         })
 
     return render_template('student/attendance_view.html',
@@ -1109,9 +1181,47 @@ def student_announcements_view():
 
 # --- API Endpoints for AI Features (Student) ---
 
+@app.route('/api/student/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def doubt_solver():
+    try:
+        data = request.json
+        question = data.get('question', '')
+        prompt = f"Explain this concept in very simple words for a school student: {question}. If it's a math question, give step by step solution."
 
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')
 
+@app.route('/api/student/chatbot', methods=['POST'])
+@login_required(role='student')
+def student_chatbot_api():
+    try:
+        data = request.json
+        messages = data.get('messages', [])
+
+        # Prepend system prompt
+        system_prompt = {"role": "system", "content": "You are a friendly tutor. Help the student with concept doubts, exam preparation, and study tips in a student-friendly language."}
+        api_messages = [system_prompt] + messages
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=api_messages
+        )
+        reply = response.choices[0].message.content
+        return jsonify({'success': True, 'reply': reply})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- Materials Routes ---
 @app.route('/teacher/materials')
@@ -1285,7 +1395,7 @@ def student_profile():
         flash("Profile not found.", "error")
         return redirect(url_for('student_dashboard'))
 
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
     attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
 
     total_classes = len(attendance)
