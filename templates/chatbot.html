@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block page_title %}AI Study Chatbot{% endblock %}
+{% block content %}
+
+<div class="chat-container">
+    <div class="chat-messages" id="chatBox">
+        <div class="chat-message ai">
+            Hello {{ session.get('name') }}! I'm your AI Study Tutor. Ask me any concept doubts, for study tips, or exam preparation advice!
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="Type your message..." style="flex: 1;" onkeypress="handleEnter(event)">
+        <button class="btn btn-primary" onclick="sendMessage()" id="sendBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    let messages = [];
+
+    function appendMessage(role, content) {
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div');
+        div.className = `chat-message ${role}`;
+        div.innerText = content;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if(!text) return;
+
+        appendMessage('user', text);
+        messages.push({"role": "user", "content": text});
+        input.value = '';
+
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+
+        const res = await apiCall('/api/ai/chatbot', 'POST', { messages });
+
+        if(res.success) {
+            appendMessage('ai', res.reply);
+            messages.push({"role": "assistant", "content": res.reply});
+        } else {
+            appendMessage('ai', 'Sorry, I encountered an error. ' + (res.error || ''));
+        }
+
+        btn.disabled = false;
+        input.focus();
+    }
+
+    function handleEnter(e) {
+        if(e.key === 'Enter') sendMessage();
+    }
+</script>
+{% endblock %}

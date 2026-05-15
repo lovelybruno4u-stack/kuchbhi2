@@ -1,128 +1,80 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Role Toggle Logic
-    const roleBtns = document.querySelectorAll('.role-btn');
-    const roleInput = document.getElementById('role-input');
+// Custom Alert System
+function showAlert(message, type = 'success') {
+    const alertEl = document.createElement('div');
+    alertEl.className = `custom-alert ${type}`;
+    alertEl.innerText = message;
+    document.body.appendChild(alertEl);
 
-    if (roleBtns.length > 0) {
-        roleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                roleBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if(roleInput) {
-                    roleInput.value = e.target.getAttribute('data-role');
-                }
-            });
-        });
-    }
+    // Trigger animation
+    setTimeout(() => alertEl.classList.add('show'), 10);
 
-    // Sidebar Toggle for Mobile
-    const hamburger = document.getElementById('hamburger');
-    const sidebar = document.getElementById('sidebar');
+    // Remove after 3 seconds
+    setTimeout(() => {
+        alertEl.classList.remove('show');
+        setTimeout(() => alertEl.remove(), 300);
+    }, 3000);
+}
 
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sidebar.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        });
-
-        // Close sidebar if clicking outside on mobile overlay
-        document.body.addEventListener('click', (e) => {
-            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
-                sidebar.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-    }
-
-    // Modal Logic
-    const openModalBtns = document.querySelectorAll('[data-modal-target]');
-    const closeModalBtns = document.querySelectorAll('[data-close-button]');
-    const overlay = document.getElementById('modal-overlay');
-
-    openModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = document.querySelector(button.dataset.modalTarget);
-            openModal(modal);
-        });
-    });
-
-    closeModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal-overlay');
-            closeModal(modal);
-        });
-    });
-
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                const modals = document.querySelectorAll('.modal-overlay.active');
-                modals.forEach(modal => closeModal(modal));
-            }
-        });
-    }
-
-    function openModal(modal) {
-        if (modal == null) return;
+// Modal handling
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if(modal) {
         modal.classList.add('active');
-        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
     }
+}
 
-    function closeModal(modal) {
-        if (modal == null) return;
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if(modal) {
         modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
+        document.body.style.overflow = 'auto';
     }
+}
 
-    // Chatbot Logic
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    if (chatForm && chatInput && chatMessages) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            appendMessage('user', message);
-            chatInput.value = '';
-
-            try {
-                const response = await fetch('/api/chatbot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-
-                if(!response.ok) throw new Error("Network response was not ok");
-
-                const data = await response.json();
-                appendMessage('ai', data.reply);
-            } catch (error) {
-                console.error("Chat error:", error);
-                appendMessage('ai', "Sorry, I'm having trouble connecting right now.");
-            }
-        });
-    }
-
-    function appendMessage(sender, text) {
-        if(!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+// Close modals when clicking outside
+document.addEventListener('click', (e) => {
+    if(e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+        document.body.style.overflow = 'auto';
     }
 });
 
-function showLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'block';
+// API Helper
+async function apiCall(url, method = 'GET', data = null) {
+    const options = {
+        method,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+
+    if (data) {
+        options.body = JSON.stringify(data);
+    }
+
+    try {
+        const response = await fetch(url, options);
+        if (response.status === 401 || response.status === 403) {
+            window.location.href = '/login';
+            return { success: false, error: 'Session expired' };
+        }
+        const result = await response.json();
+        return result;
+    } catch (err) {
+        console.error("API Error:", err);
+        return { success: false, error: 'Network error' };
+    }
 }
 
-function hideLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'none';
-}
+// Set active nav link based on current path
+document.addEventListener('DOMContentLoaded', () => {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-item');
+
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        }
+    });
+});

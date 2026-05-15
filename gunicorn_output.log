@@ -1,0 +1,7 @@
+[2026-05-15 03:43:54 +0000] [1204951] [INFO] Starting gunicorn 21.2.0
+[2026-05-15 03:43:54 +0000] [1204951] [INFO] Listening at: http://127.0.0.1:5000 (1204951)
+[2026-05-15 03:43:54 +0000] [1204951] [INFO] Using worker: sync
+[2026-05-15 03:43:54 +0000] [1205290] [INFO] Booting worker with pid: 1205290
+[2026-05-15 03:45:01 +0000] [1205290] [INFO] Worker exiting (pid: 1205290)
+[2026-05-15 03:45:01 +0000] [1204951] [INFO] Handling signal: term
+[2026-05-15 03:45:01 +0000] [1204951] [INFO] Shutting down: Master

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block page_title %}Announcements{% endblock %}
+{% block content %}
+
+<div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+    <h3>Create Announcement</h3>
+    <form id="announceForm" onsubmit="postAnnouncement(event)" style="margin-top: 1rem;">
+        <div class="form-group">
+            <textarea id="a_message" rows="4" required placeholder="Type your announcement here..."></textarea>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button type="submit" class="btn btn-primary" id="postBtn">Post Announcement</button>
+            <span style="color: var(--text-secondary);">or</span>
+            <button type="button" class="btn btn-secondary" onclick="generateWithAI()" id="aiBtn">
+                ✨ Generate with AI
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table id="aTable">
+        <thead><tr><th>Date</th><th>Message</th></tr></thead>
+        <tbody><tr><td colspan="2" class="text-center">Loading...</td></tr></tbody>
+    </table>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function loadAnnouncements() {
+        const res = await apiCall('/api/announcements');
+        if(res.success) {
+            const tbody = document.querySelector('#aTable tbody');
+            if(res.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center">No announcements.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = res.data.reverse().map(a => `<tr><td style="width: 120px;">${a.date}</td><td>${a.message}</td></tr>`).join('');
+        }
+    }
+
+    async function postAnnouncement(e) {
+        e.preventDefault();
+        const btn = document.getElementById('postBtn');
+        btn.innerText = 'Posting...';
+        btn.disabled = true;
+
+        const data = { message: document.getElementById('a_message').value };
+        const res = await apiCall('/api/announcements', 'POST', data);
+
+        if(res.success) {
+            showAlert('Posted successfully');
+            document.getElementById('announceForm').reset();
+            loadAnnouncements();
+        } else {
+            showAlert(res.error, 'error');
+        }
+        btn.innerText = 'Post Announcement';
+        btn.disabled = false;
+    }
+
+    async function generateWithAI() {
+        const topic = prompt("What is the announcement about? (e.g. Holiday tomorrow due to rain)");
+        if(!topic) return;
+
+        const btn = document.getElementById('aiBtn');
+        btn.innerHTML = '<span class="loader" style="width:14px;height:14px;border-width:2px;"></span> Generating...';
+        btn.disabled = true;
+
+        const res = await apiCall('/api/ai/announcement', 'POST', { topic });
+        if(res.success) {
+            document.getElementById('a_message').value = res.announcement;
+            showAlert('AI generation complete');
+        } else {
+            showAlert(res.error, 'error');
+        }
+
+        btn.innerHTML = '✨ Generate with AI';
+        btn.disabled = false;
+    }
+
+    loadAnnouncements();
+</script>
+{% endblock %}

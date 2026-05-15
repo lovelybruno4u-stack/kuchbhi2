@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block page_title %}AI Tools for Teachers{% endblock %}
+{% block content %}
+
+<div class="tabs" style="margin-bottom: 2rem;">
+    <div class="tab active" onclick="switchTab('attendance')" id="tab-attendance">Attendance Analysis</div>
+    <div class="tab" onclick="switchTab('video')" id="tab-video">Video Summary</div>
+    <div class="tab" onclick="switchTab('quiz')" id="tab-quiz">Quiz Generator</div>
+</div>
+
+<!-- Attendance Insight -->
+<div id="panel-attendance" class="glass-panel" style="padding: 2rem;">
+    <h3>AI Attendance Insight</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Analyze current attendance data to find irregular students and get actionable suggestions.</p>
+    <button class="btn btn-primary" onclick="runAttendanceInsight()" id="btn-insight">Generate Insights</button>
+    <div class="ai-output-box hidden" id="out-attendance"></div>
+</div>
+
+<!-- Video Summary -->
+<div id="panel-video" class="glass-panel hidden" style="padding: 2rem;">
+    <h3>AI Video Summary Generator</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Enter a topic covered in class to generate summary notes for students.</p>
+    <div class="form-group">
+        <input type="text" id="video-topic" placeholder="e.g. Newton's Laws of Motion">
+    </div>
+    <button class="btn btn-primary" onclick="runVideoSummary()" id="btn-video">Generate Summary</button>
+    <div class="ai-output-box hidden" id="out-video"></div>
+</div>
+
+<!-- Quiz Generator -->
+<div id="panel-quiz" class="glass-panel hidden" style="padding: 2rem;">
+    <h3>AI Quiz Generator</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Generate 5 MCQs for a specific subject and topic.</p>
+    <div class="form-group">
+        <input type="text" id="quiz-topic" placeholder="e.g. Thermodynamics Physics">
+    </div>
+    <button class="btn btn-primary" onclick="runQuiz()" id="btn-quiz">Generate Quiz</button>
+    <div class="ai-output-box hidden" id="out-quiz"></div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    function switchTab(tab) {
+        ['attendance', 'video', 'quiz'].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.remove('active');
+            document.getElementById(`panel-${t}`).classList.add('hidden');
+        });
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        document.getElementById(`panel-${tab}`).classList.remove('hidden');
+    }
+
+    async function runAttendanceInsight() {
+        const btn = document.getElementById('btn-insight');
+        const out = document.getElementById('out-attendance');
+        btn.innerText = 'Analyzing Data...'; btn.disabled = true;
+
+        const res = await apiCall('/api/ai/attendance-insight', 'POST');
+        out.classList.remove('hidden');
+        out.innerText = res.success ? res.insight : 'Error: ' + res.error;
+
+        btn.innerText = 'Generate Insights'; btn.disabled = false;
+    }
+
+    async function runVideoSummary() {
+        const topic = document.getElementById('video-topic').value;
+        if(!topic) return showAlert('Please enter a topic', 'error');
+
+        const btn = document.getElementById('btn-video');
+        const out = document.getElementById('out-video');
+        btn.innerText = 'Generating...'; btn.disabled = true;
+
+        const res = await apiCall('/api/ai/video-summary', 'POST', { topic });
+        out.classList.remove('hidden');
+        out.innerText = res.success ? res.summary : 'Error: ' + res.error;
+
+        btn.innerText = 'Generate Summary'; btn.disabled = false;
+    }
+
+    async function runQuiz() {
+        const topic = document.getElementById('quiz-topic').value;
+        if(!topic) return showAlert('Please enter a topic', 'error');
+
+        const btn = document.getElementById('btn-quiz');
+        const out = document.getElementById('out-quiz');
+        btn.innerText = 'Generating...'; btn.disabled = true;
+
+        const res = await apiCall('/api/ai/quiz-generator', 'POST', { topic });
+        out.classList.remove('hidden');
+        out.innerText = res.success ? res.quiz : 'Error: ' + res.error;
+
+        btn.innerText = 'Generate Quiz'; btn.disabled = false;
+    }
+</script>
+{% endblock %}

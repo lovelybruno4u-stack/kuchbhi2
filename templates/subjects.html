@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block page_title %}Subjects Management{% endblock %}
+{% block content %}
+
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+    <button class="btn btn-primary" onclick="openModal('addSubjectModal')">+ Add Subject</button>
+</div>
+
+<div class="table-container" style="max-width: 600px;">
+    <table id="subjectsTable">
+        <thead>
+            <tr>
+                <th>Subject Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td class="text-center">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="addSubjectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add New Subject</h3>
+            <button class="modal-close" onclick="closeModal('addSubjectModal')">&times;</button>
+        </div>
+        <form id="addSubjectForm" onsubmit="addSubject(event)">
+            <div class="form-group"><label>Subject Name</label><input type="text" id="subj_name" required></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function loadSubjects() {
+        const res = await apiCall('/api/subjects');
+        if(res.success) {
+            const tbody = document.querySelector('#subjectsTable tbody');
+            if(res.data.length === 0) {
+                tbody.innerHTML = '<tr><td class="text-center">No subjects found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = res.data.map(s => `<tr><td>${s.subject_name}</td></tr>`).join('');
+        }
+    }
+
+    async function addSubject(e) {
+        e.preventDefault();
+        const data = { subject_name: document.getElementById('subj_name').value };
+        const res = await apiCall('/api/subjects', 'POST', data);
+        if(res.success) {
+            showAlert('Subject added');
+            closeModal('addSubjectModal');
+            document.getElementById('addSubjectForm').reset();
+            loadSubjects();
+        }
+    }
+    loadSubjects();
+</script>
+{% endblock %}
