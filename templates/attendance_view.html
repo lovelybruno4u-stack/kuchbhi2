@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block page_title %}My Attendance{% endblock %}
+{% block content %}
+
+<div class="glass-panel stat-card" style="margin-bottom: 2rem; max-width: 400px;">
+    <div class="stat-icon" style="background: #E0E7FF; color: var(--primary-color);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="stat-details">
+        <h3>Total Present</h3>
+        <p id="presentCount">0</p>
+    </div>
+</div>
+
+<div class="table-container" style="max-width: 600px;">
+    <table id="myAttendanceTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="2" class="text-center">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function loadMyAttendance() {
+        const res = await apiCall('/api/attendance');
+        if(res.success) {
+            const tbody = document.querySelector('#myAttendanceTable tbody');
+            if(res.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center">No attendance records found.</td></tr>';
+                return;
+            }
+
+            let present = 0;
+            const rows = res.data.map(a => {
+                if(a.status.toLowerCase() === 'present') present++;
+                const color = a.status.toLowerCase() === 'present' ? 'color: #10B981;' : 'color: #EF4444;';
+                return `<tr><td>${a.date}</td><td style="font-weight: 500; ${color}">${a.status}</td></tr>`;
+            }).join('');
+
+            tbody.innerHTML = rows;
+            document.getElementById('presentCount').innerText = present;
+        }
+    }
+    loadMyAttendance();
+</script>
+{% endblock %}

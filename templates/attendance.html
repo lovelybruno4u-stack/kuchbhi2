@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block page_title %}Attendance System{% endblock %}
+{% block content %}
+
+<div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 1rem; align-items: flex-end;">
+        <div class="form-group" style="margin-bottom: 0; flex: 1; max-width: 250px;">
+            <label>Date</label>
+            <input type="date" id="attendanceDate" required>
+        </div>
+        <button class="btn btn-secondary" onclick="loadStudentsForAttendance()">Load Students</button>
+    </div>
+</div>
+
+<div class="table-container hidden" id="attendanceContainer">
+    <table id="attendanceTable">
+        <thead>
+            <tr>
+                <th>Roll No</th>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div style="padding: 1rem; border-top: 1px solid var(--border-color); text-align: right;">
+        <button class="btn btn-primary" onclick="saveAttendance()" id="saveBtn">Save Attendance</button>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.getElementById('attendanceDate').valueAsDate = new Date();
+    let studentsList = [];
+
+    async function loadStudentsForAttendance() {
+        const res = await apiCall('/api/students');
+        if(res.success) {
+            studentsList = res.data;
+            document.getElementById('attendanceContainer').classList.remove('hidden');
+            const tbody = document.querySelector('#attendanceTable tbody');
+            tbody.innerHTML = studentsList.map(s => `
+                <tr data-id="${s.id}">
+                    <td>${s.roll}</td>
+                    <td>${s.name}</td>
+                    <td>${s.class}</td>
+                    <td>
+                        <select class="status-select">
+                            <option value="Present">Present</option>
+                            <option value="Absent">Absent</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    async function saveAttendance() {
+        const date = document.getElementById('attendanceDate').value;
+        if(!date) return showAlert('Please select a date', 'error');
+
+        const rows = document.querySelectorAll('#attendanceTable tbody tr');
+        const attendance = [];
+        rows.forEach(row => {
+            attendance.push({
+                student_id: row.getAttribute('data-id'),
+                status: row.querySelector('.status-select').value
+            });
+        });
+
+        const btn = document.getElementById('saveBtn');
+        btn.innerText = 'Saving...';
+        btn.disabled = true;
+
+        const res = await apiCall('/api/attendance', 'POST', { date, attendance });
+        if(res.success) {
+            showAlert('Attendance saved successfully');
+        } else {
+            showAlert(res.error || 'Failed to save', 'error');
+        }
+
+        btn.innerText = 'Save Attendance';
+        btn.disabled = false;
+    }
+</script>
+{% endblock %}

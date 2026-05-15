@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <!-- Icon Placeholder -->
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <h2>Aswathama</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                {% if session.get('role') == 'Teacher' %}
+                    <a href="/teacher/dashboard" class="nav-item">Dashboard</a>
+                    <a href="/teacher/students" class="nav-item">Students</a>
+                    <a href="/teacher/attendance" class="nav-item">Attendance</a>
+                    <a href="/teacher/videos" class="nav-item">Class Videos</a>
+                    <a href="/teacher/subjects" class="nav-item">Subjects</a>
+                    <a href="/teacher/announcements" class="nav-item">Announcements</a>
+                    <a href="/teacher/ai-tools" class="nav-item">AI Tools</a>
+                {% elif session.get('role') == 'Student' %}
+                    <a href="/student/dashboard" class="nav-item">Dashboard</a>
+                    <a href="/student/my-videos" class="nav-item">My Videos</a>
+                    <a href="/student/attendance" class="nav-item">My Attendance</a>
+                    <a href="/student/chatbot" class="nav-item">AI Study Bot</a>
+                    <a href="/student/announcements" class="nav-item">Announcements</a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/logout" class="nav-item" style="color: #EF4444;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-title">
+                    {% block page_title %}Dashboard{% endblock %}
+                </div>
+                <div class="user-profile">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        {{ session.get('role')[0] if session.get('role') else 'U' }}
+                    </div>
+                    <span>{{ session.get('name') if session.get('role') == 'Student' else 'Admin' }}</span>
+                </div>
+            </header>
+
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
