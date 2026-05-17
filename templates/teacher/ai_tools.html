@@ -1,0 +1,105 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant Tools 🤖{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- Video Summarizer -->
+    <div class="glass-card" style="border-top: 4px solid var(--primary-color);">
+        <h3 style="margin-bottom: 15px;"><i class="fas fa-video" style="color: var(--primary-color);"></i> AI Video Summary</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Generate summary notes and key points for a class video topic.</p>
+        <div class="form-group">
+            <label>Video Topic / Transcript</label>
+            <textarea id="video-topic" class="form-control" rows="3" placeholder="Enter the topic or paste partial transcript..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="width: 100%;" onclick="generateSummary()">Generate Summary</button>
+        <div id="summary-result" style="margin-top: 15px; padding: 15px; background: var(--white); border-radius: 8px; display: none; font-size: 0.9rem; line-height: 1.5;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="border-top: 4px solid var(--secondary-color);">
+        <h3 style="margin-bottom: 15px;"><i class="fas fa-question-circle" style="color: var(--secondary-color);"></i> AI Quiz Generator</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Instantly generate 5 MCQs with answers for any subject topic.</p>
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="quiz-subject" class="form-control" placeholder="e.g. Physics">
+        </div>
+        <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Newton's Laws of Motion">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; background-color: var(--secondary-color);" onclick="generateQuiz()">Generate MCQs</button>
+        <div id="quiz-result" style="margin-top: 15px; padding: 15px; background: var(--white); border-radius: 8px; display: none; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Announcement Generator -->
+    <div class="glass-card" style="border-top: 4px solid var(--success);">
+        <h3 style="margin-bottom: 15px;"><i class="fas fa-bullhorn" style="color: var(--success);"></i> AI Announcement</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Write professional class announcements quickly.</p>
+        <div class="form-group">
+            <label>What's the announcement about?</label>
+            <textarea id="announcement-prompt" class="form-control" rows="3" placeholder='e.g. "Holiday tomorrow due to heavy rain"'></textarea>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; background-color: var(--success);" onclick="generateAnnouncement()">Draft Announcement</button>
+        <div id="announcement-result" style="margin-top: 15px; padding: 15px; background: var(--white); border-radius: 8px; display: none; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Attendance Analyzer -->
+    <div class="glass-card" style="border-top: 4px solid var(--warning);">
+        <h3 style="margin-bottom: 15px;"><i class="fas fa-chart-pie" style="color: var(--warning);"></i> AI Attendance Insight</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Analyze recent attendance data to find irregular students.</p>
+        <button class="btn btn-primary" style="width: 100%; background-color: var(--warning); color: #fff;" onclick="analyzeAttendance()">Analyze Current Data</button>
+        <div id="attendance-result" style="margin-top: 15px; padding: 15px; background: var(--white); border-radius: 8px; display: none; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap;"></div>
+    </div>
+</div>
+
+<script>
+    async function apiCall(endpoint, payload, resultElementId) {
+        const resultDiv = document.getElementById(resultElementId);
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                resultDiv.innerHTML = data.result || data.reply;
+            } else {
+                resultDiv.innerHTML = `<span style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Error: ${data.error}</span>`;
+            }
+        } catch (e) {
+            resultDiv.innerHTML = `<span style="color: var(--danger);"><i class="fas fa-wifi"></i> Network error.</span>`;
+        }
+    }
+
+    function generateSummary() {
+        const topic = document.getElementById('video-topic').value;
+        if(!topic) return alert("Please enter a topic.");
+        apiCall('/api/ai/video_summary', { topic: topic }, 'summary-result');
+    }
+
+    function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        if(!subject || !topic) return alert("Please enter both subject and topic.");
+        apiCall('/api/ai/quiz_generator', { subject: subject, topic: topic }, 'quiz-result');
+    }
+
+    function generateAnnouncement() {
+        const prompt = document.getElementById('announcement-prompt').value;
+        if(!prompt) return alert("Please enter the announcement details.");
+        apiCall('/api/ai/announcement_generator', { prompt: prompt }, 'announcement-result');
+    }
+
+    function analyzeAttendance() {
+        apiCall('/api/ai/attendance_analysis', {}, 'attendance-result');
+    }
+</script>
+{% endblock %}
