@@ -126,3 +126,201 @@ function hideLoading() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display = 'none';
 }
+
+// --- STUDENT AI LOGIC ---
+let chatHistory = [];
+
+function appendChatMessage(role, content) {
+    const chatWindow = document.getElementById('chat-window');
+    if(!chatWindow) return;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('chat-message', `${role}-message`);
+
+    if(role === 'user') {
+        msgDiv.style.background = '#e2e8f0';
+        msgDiv.style.color = '#1e293b';
+        msgDiv.style.padding = '10px 15px';
+        msgDiv.style.borderRadius = '15px 15px 0 15px';
+        msgDiv.style.maxWidth = '80%';
+        msgDiv.style.marginBottom = '15px';
+        msgDiv.style.alignSelf = 'flex-end';
+        msgDiv.style.marginLeft = 'auto';
+        msgDiv.style.display = 'block';
+        msgDiv.style.width = 'fit-content';
+    } else {
+        msgDiv.style.background = 'var(--primary)';
+        msgDiv.style.color = 'white';
+        msgDiv.style.padding = '10px 15px';
+        msgDiv.style.borderRadius = '15px 15px 15px 0';
+        msgDiv.style.maxWidth = '80%';
+        msgDiv.style.marginBottom = '15px';
+        msgDiv.style.alignSelf = 'flex-start';
+        msgDiv.style.display = 'block';
+        msgDiv.style.width = 'fit-content';
+    }
+
+    msgDiv.innerText = content;
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+window.sendChatMessage = async function() {
+    const input = document.getElementById('chat-input');
+    if(!input) return;
+    const message = input.value.trim();
+    if(!message) return;
+
+    appendChatMessage('user', message);
+    input.value = '';
+
+    const chatWindow = document.getElementById('chat-window');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'chat-loading';
+    loadingDiv.innerText = "Thinking...";
+    loadingDiv.style.color = '#64748b';
+    loadingDiv.style.fontStyle = 'italic';
+    loadingDiv.style.marginBottom = '10px';
+    chatWindow.appendChild(loadingDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    try {
+        const res = await fetch('/api/ai/chatbot', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ message: message, history: chatHistory })
+        });
+        const data = await res.json();
+        chatWindow.removeChild(loadingDiv);
+
+        if(data.success) {
+            appendChatMessage('ai', data.answer);
+            chatHistory.push({"role": "user", "content": message});
+            chatHistory.push({"role": "assistant", "content": data.answer});
+        } else {
+            showToast('Error: ' + data.error, 'error');
+        }
+    } catch(err) {
+        if(document.getElementById('chat-loading')) chatWindow.removeChild(loadingDiv);
+        showToast('Connection error.', 'error');
+    }
+};
+
+window.solveDoubt = async function() {
+    const input = document.getElementById('doubt-input');
+    const resultDiv = document.getElementById('doubt-result');
+    if(!input || !resultDiv) return;
+
+    const question = input.value.trim();
+    if(!question) return;
+
+    resultDiv.style.display = 'block';
+    resultDiv.innerText = 'Thinking...';
+
+    try {
+        const res = await fetch('/api/ai/doubt_solver', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ question: question })
+        });
+        const data = await res.json();
+
+        if(data.success) {
+            resultDiv.innerText = data.answer;
+        } else {
+            resultDiv.innerText = 'Error: ' + data.error;
+            showToast(data.error, 'error');
+        }
+    } catch(err) {
+        resultDiv.innerText = 'Connection error.';
+        showToast('Connection error.', 'error');
+    }
+};
+
+// --- TEACHER AI LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const btnAttendance = document.getElementById('btn-attendance-insight');
+    if(btnAttendance) {
+        btnAttendance.addEventListener('click', async () => {
+            const resultDiv = document.getElementById('attendance-insight-result');
+            resultDiv.innerText = "Analyzing attendance data... This may take a moment.";
+            try {
+                const res = await fetch('/api/ai/attendance_insight', { method: 'POST' });
+                const data = await res.json();
+                if(data.success) {
+                    resultDiv.innerText = data.insight;
+                } else {
+                    resultDiv.innerText = "Error: " + data.error;
+                    showToast(data.error, 'error');
+                }
+            } catch(err) {
+                resultDiv.innerText = "Connection error.";
+                showToast("Connection error.", 'error');
+            }
+        });
+    }
+
+    const btnVideo = document.getElementById('btn-video-summary');
+    if(btnVideo) {
+        btnVideo.addEventListener('click', async () => {
+            const topicInput = document.getElementById('video-topic-input');
+            const resultDiv = document.getElementById('video-summary-result');
+            const topic = topicInput.value.trim();
+            if(!topic) {
+                showToast("Please enter a topic", "warning");
+                return;
+            }
+            resultDiv.innerText = "Generating summary...";
+            try {
+                const res = await fetch('/api/ai/video_summary', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({topic: topic})
+                });
+                const data = await res.json();
+                if(data.success) {
+                    resultDiv.innerText = data.summary;
+                } else {
+                    resultDiv.innerText = "Error: " + data.error;
+                    showToast(data.error, 'error');
+                }
+            } catch(err) {
+                resultDiv.innerText = "Connection error.";
+                showToast("Connection error.", 'error');
+            }
+        });
+    }
+
+    const btnQuiz = document.getElementById('btn-quiz-generator');
+    if(btnQuiz) {
+        btnQuiz.addEventListener('click', async () => {
+            const subInput = document.getElementById('quiz-subject-input');
+            const topInput = document.getElementById('quiz-topic-input');
+            const resultDiv = document.getElementById('quiz-generator-result');
+            const subject = subInput.value.trim();
+            const topic = topInput.value.trim();
+            if(!subject || !topic) {
+                showToast("Please enter subject and topic", "warning");
+                return;
+            }
+            resultDiv.innerText = "Generating 5 MCQs...";
+            try {
+                const res = await fetch('/api/ai/quiz_generator', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({subject: subject, topic: topic})
+                });
+                const data = await res.json();
+                if(data.success) {
+                    resultDiv.innerText = data.quiz;
+                } else {
+                    resultDiv.innerText = "Error: " + data.error;
+                    showToast(data.error, 'error');
+                }
+            } catch(err) {
+                resultDiv.innerText = "Connection error.";
+                showToast("Connection error.", 'error');
+            }
+        });
+    }
+});
