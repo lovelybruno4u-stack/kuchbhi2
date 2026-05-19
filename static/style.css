@@ -667,3 +667,49 @@ body.focus-mode {
 .focus-toggle-btn:hover {
     transform: scale(1.05);
 }
+
+/* AI Chatbot Styles */
+#chat-window {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) #f1f5f9;
+}
+#chat-window::-webkit-scrollbar {
+    width: 6px;
+}
+#chat-window::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+#chat-window::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+.chat-message {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.ai-message {
+    background: linear-gradient(135deg, var(--primary), #4338ca) !important;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* AI Tools Cards Extensions */
+#attendance-insight-result,
+#video-summary-result,
+#quiz-generator-result {
+    background: rgba(241, 245, 249, 0.7);
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    backdrop-filter: blur(5px);
+    color: var(--text-dark);
+    line-height: 1.6;
+}

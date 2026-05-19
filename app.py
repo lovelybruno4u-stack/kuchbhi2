@@ -367,8 +367,12 @@ def login_required(role=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_role' not in session:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Unauthorized'}), 401
                 return redirect(url_for('login'))
             if role and session['user_role'] != role:
+                if request.path.startswith('/api/'):
+                    return jsonify({'success': False, 'error': 'Forbidden'}), 403
                 return redirect(url_for('login'))
             return f(*args, **kwargs)
         return decorated_function
@@ -1633,3 +1637,207 @@ def teacher_quiz_scores():
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)
+
+
+
+# ==========================================
+# AI Endpoints
+# ==========================================
+from openai import OpenAI
+
+def get_openai_client():
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        return None
+    try:
+        return OpenAI(api_key=api_key)
+    except Exception as e:
+        print("OpenAI Error:", e)
+        return None
+
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def api_ai_doubt_solver():
+    data = request.json
+    question = data.get('question')
+    if not question:
+        return jsonify({'success': False, 'error': 'Question is required'}), 400
+
+    client = get_openai_client()
+    if not client:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Explain this concept in very simple words for a school student. If it is a math question, give a step-by-step solution."},
+                {"role": "user", "content": question}
+            ]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        print("Doubt Solver Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/chatbot', methods=['POST'])
+@login_required(role='student')
+def api_ai_chatbot():
+    data = request.json
+    message = data.get('message')
+    history = data.get('history', [])
+
+    if not message:
+        return jsonify({'success': False, 'error': 'Message is required'}), 400
+
+    client = get_openai_client()
+    if not client:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    messages = [{"role": "system", "content": "You are a friendly AI study chatbot acting like a tutor for school students. Answer questions about concepts, exam preparation, and study tips. Be encouraging."}]
+
+    for msg in history:
+        messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+
+    messages.append({"role": "user", "content": message})
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        print("Chatbot Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+@app.route('/api/ai/attendance_insight', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_attendance_insight():
+    try:
+        attendance_data = get_data('attendance')
+        students = get_data('students')
+
+        # Structure raw data
+        student_map = {str(s.get('id')): s.get('name', 'Unknown') for s in students}
+        attendance_summary = {}
+        for row in attendance_data:
+            sid = str(row.get('student_id'))
+            status = str(row.get('status', '')).lower()
+            if sid not in attendance_summary:
+                attendance_summary[sid] = {'present': 0, 'absent': 0, 'name': student_map.get(sid, 'Unknown')}
+            if status == 'present':
+                attendance_summary[sid]['present'] += 1
+            elif status == 'absent':
+                attendance_summary[sid]['absent'] += 1
+
+        client = get_openai_client()
+        if not client:
+            return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+        raw_data_str = json.dumps(attendance_summary)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Analyze attendance data and provide insights. Specify which students are irregular, calculate overall attendance percentage, and suggest actionable steps for the teacher."},
+                {"role": "user", "content": f"Here is the raw attendance data: {raw_data_str}"}
+            ]
+        )
+        return jsonify({'success': True, 'insight': response.choices[0].message.content})
+    except Exception as e:
+        print("Attendance Insight Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_video_summary():
+    data = request.json
+    topic = data.get('topic')
+    if not topic:
+        return jsonify({'success': False, 'error': 'Topic is required'}), 400
+
+    client = get_openai_client()
+    if not client:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Generate summary notes for revision. Provide a summary and key points."},
+                {"role": "user", "content": f"Topic: {topic}"}
+            ]
+        )
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        print("Video Summary Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/quiz_generator', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_quiz_generator():
+    data = request.json
+    subject = data.get('subject')
+    topic = data.get('topic')
+
+    if not subject or not topic:
+        return jsonify({'success': False, 'error': 'Subject and topic are required'}), 400
+
+    client = get_openai_client()
+    if not client:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Generate 5 MCQ questions with answers based on the subject and topic provided. Format the output clearly so it can be easily copied and pasted."},
+                {"role": "user", "content": f"Subject: {subject}, Topic: {topic}"}
+            ]
+        )
+        return jsonify({'success': True, 'quiz': response.choices[0].message.content})
+    except Exception as e:
+        print("Quiz Generator Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_announcement():
+    data = request.json
+    prompt = data.get('prompt')
+    if not prompt:
+        return jsonify({'success': False, 'error': 'Prompt is required'}), 400
+
+    client = get_openai_client()
+    if not client:
+        return jsonify({'success': False, 'error': 'OpenAI API key not configured'}), 500
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Write a professional coaching class announcement based on the user's prompt."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return jsonify({'success': True, 'announcement': response.choices[0].message.content})
+    except Exception as e:
+        print("Announcement Error:", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
+
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('student/chatbot.html')

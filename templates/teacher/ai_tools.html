@@ -1,0 +1,32 @@
+{% extends 'teacher/base.html' %}
+{% block title %}AI Tools | Ashwathama Classes{% endblock %}
+{% block header %}AI Tools{% endblock %}
+{% block content %}
+
+<div class="cards-grid">
+    <div class="card" style="padding:20px;">
+        <h3><i class="fas fa-clipboard-check" style="color:var(--primary)"></i> Attendance Analyzer</h3>
+        <p>Get AI insights on student attendance patterns.</p>
+        <button id="btn-attendance-insight" class="btn btn-primary" style="margin-top:10px;">Analyze Now</button>
+        <div id="attendance-insight-result" style="margin-top:15px; font-size:0.9rem; white-space:pre-wrap;"></div>
+    </div>
+
+    <div class="card" style="padding:20px;">
+        <h3><i class="fas fa-video" style="color:var(--primary)"></i> Video Summarizer</h3>
+        <p>Generate summary notes for revision.</p>
+        <input type="text" id="video-topic-input" class="form-control" placeholder="Enter video topic..." style="margin-top:10px;">
+        <button id="btn-video-summary" class="btn btn-primary" style="margin-top:10px;">Generate Summary</button>
+        <div id="video-summary-result" style="margin-top:15px; font-size:0.9rem; white-space:pre-wrap;"></div>
+    </div>
+
+    <div class="card" style="padding:20px;">
+        <h3><i class="fas fa-question-circle" style="color:var(--primary)"></i> Quiz Generator</h3>
+        <p>Generate 5 MCQs for any subject and topic.</p>
+        <input type="text" id="quiz-subject-input" class="form-control" placeholder="Subject..." style="margin-top:10px;">
+        <input type="text" id="quiz-topic-input" class="form-control" placeholder="Topic..." style="margin-top:10px;">
+        <button id="btn-quiz-generator" class="btn btn-primary" style="margin-top:10px;">Generate Quiz</button>
+        <div id="quiz-generator-result" style="margin-top:15px; font-size:0.9rem; white-space:pre-wrap;"></div>
+    </div>
+</div>
+
+{% endblock %}
