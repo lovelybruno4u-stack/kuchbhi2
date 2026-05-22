@@ -1,0 +1,164 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Attendance Analyzer -->
+    <div class="glass-card" style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-primary);"><i class="fas fa-chart-pie" style="color: var(--primary-color);"></i> Attendance Analyzer</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">Automatically analyze attendance data to identify irregular students and get actionable insights.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" style="width: 100%;"><i class="fas fa-magic"></i> Generate Insights</button>
+        <div id="attendance-result" style="margin-top: 20px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary-color); white-space: pre-wrap; font-size: 0.95rem; color: var(--text-primary); max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Video Summarizer -->
+    <div class="glass-card" style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-primary);"><i class="fas fa-video" style="color: var(--primary-color);"></i> Video Summarizer</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">Generate quick summary notes and key points for a specific class topic.</p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="Enter class topic (e.g., 'Newton's Laws of Motion')">
+        </div>
+        <button class="btn btn-primary" onclick="summarizeVideo()" style="width: 100%;"><i class="fas fa-magic"></i> Generate Summary</button>
+        <div id="video-result" style="margin-top: 20px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary-color); white-space: pre-wrap; font-size: 0.95rem; color: var(--text-primary); max-height: 300px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="padding: 24px; grid-column: 1 / -1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="color: var(--text-primary);"><i class="fas fa-brain" style="color: var(--primary-color);"></i> AI Quiz Generator</h3>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">Generate 5 multiple choice questions instantly for any subject and topic.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group">
+                <input type="text" id="quiz-subject" class="form-control" placeholder="Subject (e.g., Physics)">
+            </div>
+            <div class="form-group">
+                <input type="text" id="quiz-topic" class="form-control" placeholder="Topic (e.g., Kinematics)">
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" style="width: 100%; margin-top: 10px;"><i class="fas fa-magic"></i> Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 20px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary-color); overflow-y: auto;"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function analyzeAttendance() {
+    const btn = event.currentTarget;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+        const data = await response.json();
+
+        if (data.success) {
+            const resDiv = document.getElementById('attendance-result');
+            resDiv.style.display = 'block';
+            resDiv.innerText = data.insight;
+            showToast('Analysis complete!', 'success');
+        } else {
+            showToast(data.error || 'Failed to analyze attendance.', 'error');
+        }
+    } catch (e) {
+        showToast('An error occurred.', 'error');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Insights';
+        btn.disabled = false;
+    }
+}
+
+async function summarizeVideo() {
+    const topic = document.getElementById('video-topic').value;
+    if (!topic) {
+        showToast('Please enter a topic', 'warning');
+        return;
+    }
+
+    const btn = event.currentTarget;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/video_summary', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const resDiv = document.getElementById('video-result');
+            resDiv.style.display = 'block';
+            resDiv.innerText = data.summary;
+            showToast('Summary generated!', 'success');
+        } else {
+            showToast(data.error || 'Failed to generate summary.', 'error');
+        }
+    } catch (e) {
+        showToast('An error occurred.', 'error');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Summary';
+        btn.disabled = false;
+    }
+}
+
+async function generateQuiz() {
+    const subject = document.getElementById('quiz-subject').value;
+    const topic = document.getElementById('quiz-topic').value;
+
+    if (!subject || !topic) {
+        showToast('Please enter both subject and topic', 'warning');
+        return;
+    }
+
+    const btn = event.currentTarget;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({subject: subject, topic: topic})
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const resDiv = document.getElementById('quiz-result');
+            resDiv.style.display = 'block';
+            let html = '<h4>Generated Quiz:</h4><ol>';
+            data.quiz.forEach(q => {
+                html += `<li style="margin-bottom: 10px;"><strong>${q.question}</strong><ul>`;
+                q.options.forEach(opt => {
+                    if (opt === q.answer) {
+                        html += `<li><span style="color: var(--success); font-weight: bold;">${opt} (Correct)</span></li>`;
+                    } else {
+                        html += `<li>${opt}</li>`;
+                    }
+                });
+                html += `</ul></li>`;
+            });
+            html += '</ol>';
+            resDiv.innerHTML = html;
+            showToast('Quiz generated!', 'success');
+        } else {
+            showToast(data.error || 'Failed to generate quiz.', 'error');
+        }
+    } catch (e) {
+        showToast('An error occurred.', 'error');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate Quiz';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
