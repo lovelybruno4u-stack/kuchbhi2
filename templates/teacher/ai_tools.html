@@ -1,0 +1,128 @@
+{% extends 'teacher/base.html' %}
+{% block page_title %}AI Tools Dashboard{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 20px;">
+    <h2>AI-Powered Tools</h2>
+    <p class="text-secondary">Leverage the power of artificial intelligence to automate tasks, generate content, and analyze data.</p>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+
+    <!-- AI Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-pie text-primary"></i> Attendance Analyzer</h3>
+        <p class="text-secondary" style="margin-bottom: 15px;">Identify irregular students and get actionable insights.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" id="btn-analyze-attendance" style="width: 100%;">
+            <i class="fas fa-magic"></i> Generate Insights
+        </button>
+        <div id="result-attendance" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-video text-primary"></i> Video Summarizer</h3>
+        <p class="text-secondary" style="margin-bottom: 15px;">Generate key points and revision notes for a topic.</p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="Enter video topic/title">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoSummary()" id="btn-video-summary" style="width: 100%;">
+            <i class="fas fa-magic"></i> Generate Summary
+        </button>
+        <div id="result-video-summary" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Quiz Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-question-circle text-primary"></i> Quiz Generator</h3>
+        <p class="text-secondary" style="margin-bottom: 15px;">Automatically generate 5 MCQs for any subject and topic.</p>
+        <div class="form-group">
+            <select id="quiz-subject" class="form-control" style="margin-bottom: 10px;">
+                <option value="">Select Subject</option>
+                {% for sub in subjects %}
+                    <option value="{{ sub.subject_name }}">{{ sub.subject_name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Enter specific topic (e.g. Thermodynamics)">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" id="btn-quiz" style="width: 100%;">
+            <i class="fas fa-magic"></i> Generate MCQs
+        </button>
+        <div id="result-quiz" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Announcement Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-bullhorn text-primary"></i> Announcement Writer</h3>
+        <p class="text-secondary" style="margin-bottom: 15px;">Write professional coaching class announcements.</p>
+        <div class="form-group">
+            <input type="text" id="announcement-topic" class="form-control" placeholder="E.g., Holiday tomorrow for Diwali">
+        </div>
+        <button class="btn btn-primary" onclick="generateAnnouncement()" id="btn-announcement" style="width: 100%;">
+            <i class="fas fa-magic"></i> Draft Announcement
+        </button>
+        <div id="result-announcement" style="margin-top: 15px; display: none; padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function apiCall(url, data, btnId, resultId) {
+        const btn = document.getElementById(btnId);
+        const resultDiv = document.getElementById(resultId);
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                resultDiv.innerText = result.result;
+                resultDiv.style.display = 'block';
+                showToast('AI Task Completed Successfully!', 'success');
+            } else {
+                showToast(result.error || 'Failed to generate response.', 'error');
+            }
+        } catch (error) {
+            showToast('An error occurred during the API call.', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function analyzeAttendance() {
+        apiCall('/api/ai/attendance', {}, 'btn-analyze-attendance', 'result-attendance');
+    }
+
+    function generateVideoSummary() {
+        const topic = document.getElementById('video-topic').value;
+        if (!topic) return showToast('Please enter a video topic.', 'warning');
+        apiCall('/api/ai/video_summary', { topic }, 'btn-video-summary', 'result-video-summary');
+    }
+
+    function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        if (!subject || !topic) return showToast('Please select a subject and enter a topic.', 'warning');
+        apiCall('/api/ai/quiz', { subject, topic }, 'btn-quiz', 'result-quiz');
+    }
+
+    function generateAnnouncement() {
+        const topic = document.getElementById('announcement-topic').value;
+        if (!topic) return showToast('Please enter an announcement topic.', 'warning');
+        apiCall('/api/ai/announcement', { topic }, 'btn-announcement', 'result-announcement');
+    }
+</script>
+{% endblock %}
