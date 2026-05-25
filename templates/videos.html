@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block page_title %}Daily Class Videos{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom: 2rem;">
+    <h3>Add New Video</h3>
+    <div class="grid-3" style="margin-top: 1rem;">
+        <div class="form-group"><label class="form-label">Date</label><input type="date" id="vDate" class="form-control"></div>
+        <div class="form-group">
+            <label class="form-label">Subject</label>
+            <select id="vSubject" class="form-control"></select>
+        </div>
+        <div class="form-group"><label class="form-label">Google Drive Link</label><input type="text" id="vLink" class="form-control"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addVideo()">Upload Video</button>
+</div>
+
+<div class="card">
+    <h3>Video Library</h3>
+    <div class="table-container" style="margin-top: 1rem;">
+        <table>
+            <thead><tr><th>Date</th><th>Subject</th><th>Link</th></tr></thead>
+            <tbody id="videosBody"></tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    document.getElementById('vDate').valueAsDate = new Date();
+
+    async function loadSubjects() {
+        const subjects = await apiCall('/api/subjects');
+        const sel = document.getElementById('vSubject');
+        sel.innerHTML = '';
+        if(subjects) {
+            subjects.forEach(s => {
+                sel.innerHTML += `<option value="${s.subject_name}">${s.subject_name}</option>`;
+            });
+        }
+    }
+
+    async function loadVideos() {
+        const videos = await apiCall('/api/videos');
+        const tbody = document.getElementById('videosBody');
+        tbody.innerHTML = '';
+        if(videos) {
+            videos.forEach(v => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${v.date}</td>
+                        <td>${v.subject}</td>
+                        <td><a href="${v.drive_link}" target="_blank" class="btn btn-outline" style="padding: 0.25rem 0.5rem;"><i class="fa-solid fa-external-link-alt"></i> View</a></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    async function addVideo() {
+        const data = {
+            date: document.getElementById('vDate').value,
+            subject: document.getElementById('vSubject').value,
+            drive_link: document.getElementById('vLink').value
+        };
+        const res = await apiCall('/api/videos', 'POST', data);
+        if(res && res.success) {
+            showModal('Success', 'Video added!');
+            document.getElementById('vLink').value = '';
+            loadVideos();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { loadSubjects(); loadVideos(); });
+</script>
+{% endblock %}

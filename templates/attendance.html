@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block page_title %}Attendance System{% endblock %}
+{% block content %}
+
+<div class="grid-2">
+    <!-- Marking Attendance -->
+    <div class="card">
+        <h3>Mark Attendance</h3>
+        <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Date</label>
+            <input type="date" id="attDate" class="form-control">
+        </div>
+        <div class="table-container" style="margin-top: 1rem;">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Status</th></tr></thead>
+                <tbody id="attBody"></tbody>
+            </table>
+        </div>
+        <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="saveAttendance()">Save Attendance</button>
+    </div>
+
+    <!-- AI Insights -->
+    <div class="card glassmorphism">
+        <h3 style="color: var(--primary);"><i class="fa-solid fa-sparkles"></i> AI Attendance Insights</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Let AI analyze your attendance sheets to find irregular students.</p>
+        <button class="btn btn-outline" style="margin-top: 1rem; width: 100%;" onclick="analyzeAttendance()">Generate Report</button>
+        <div id="aiResponse" class="ai-response-box" style="display: none; white-space: pre-wrap;"></div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    document.getElementById('attDate').valueAsDate = new Date();
+
+    async function loadStudentsForAttendance() {
+        const students = await apiCall('/api/students');
+        const tbody = document.getElementById('attBody');
+        tbody.innerHTML = '';
+        if(students) {
+            students.forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.name}</td>
+                        <td>
+                            <select class="form-control status-select" data-id="${s.id}">
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    async function saveAttendance() {
+        const date = document.getElementById('attDate').value;
+        const selects = document.querySelectorAll('.status-select');
+        const records = [];
+        selects.forEach(sel => {
+            records.push({ student_id: sel.getAttribute('data-id'), status: sel.value });
+        });
+
+        const res = await apiCall('/api/attendance', 'POST', { date: date, records: records });
+        if(res && res.success) showModal('Success', 'Attendance saved successfully.');
+    }
+
+    async function analyzeAttendance() {
+        const res = await apiCall('/api/ai/attendance', 'POST', {});
+        if(res && res.success) {
+            const box = document.getElementById('aiResponse');
+            box.style.display = 'block';
+            box.innerText = res.answer;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStudentsForAttendance);
+</script>
+{% endblock %}

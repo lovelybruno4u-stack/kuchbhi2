@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block page_title %}Teacher Dashboard{% endblock %}
+{% block content %}
+
+<div class="grid-3" style="margin-bottom: 2rem;">
+    <div class="card glassmorphism">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem;">Total Students</h3>
+        <p id="statTotalStudents" style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">--</p>
+    </div>
+    <div class="card glassmorphism">
+        <h3 style="color: var(--text-muted); font-size: 0.9rem;">Today's Attendance</h3>
+        <p id="statTodayAttendance" style="font-size: 2.5rem; font-weight: 700; color: var(--secondary);">--</p>
+    </div>
+    <div class="card glassmorphism" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white;">
+        <h3 style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">AI Assistant Status</h3>
+        <p style="font-size: 1.5rem; font-weight: 600; margin-top: 0.5rem;"><i class="fa-solid fa-check-circle"></i> Online</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Quick Actions</h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem;">
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fa-solid fa-user-plus"></i> Add New Student</a>
+            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fa-solid fa-clipboard-check"></i> Mark Attendance</a>
+            <a href="{{ url_for('teacher_announcements') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fa-solid fa-bullhorn"></i> Send Announcement</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const stats = await apiCall('/api/stats');
+        if(stats) {
+            document.getElementById('statTotalStudents').innerText = stats.total_students;
+            document.getElementById('statTodayAttendance').innerText = stats.today_present;
+        }
+    });
+</script>
+{% endblock %}

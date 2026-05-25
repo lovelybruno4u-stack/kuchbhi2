@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block page_title %}My Attendance{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="sAttBody"></tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadAtt() {
+        const att = await apiCall('/api/attendance');
+        const tbody = document.getElementById('sAttBody');
+        tbody.innerHTML = '';
+        if(att) {
+            att.reverse().forEach(a => {
+                const color = a.status === 'Present' ? 'var(--secondary)' : 'var(--danger)';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${a.date}</td>
+                        <td style="color: ${color}; font-weight: 600;">${a.status}</td>
+                    </tr>
+                `;
+            });
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadAtt);
+</script>
+{% endblock %}

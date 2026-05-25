@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block page_title %}AI Study Chatbot & Doubt Solver{% endblock %}
+{% block content %}
+
+<div class="grid-2">
+    <!-- Doubt Solver -->
+    <div class="card glassmorphism">
+        <h3 style="color: var(--primary);"><i class="fa-solid fa-brain"></i> AI Doubt Solver</h3>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Ask any concept or math problem.</p>
+
+        <div class="form-group">
+            <textarea id="doubtText" class="form-control" rows="3" placeholder="e.g. What is mitochondria? or Solve 2x + 5 = 15"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="solveDoubt()">Ask AI</button>
+
+        <div id="doubtRes" class="ai-response-box" style="display: none; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+
+    <!-- Chatbot -->
+    <div class="card glassmorphism" style="display: flex; flex-direction: column; height: 500px;">
+        <h3 style="color: var(--accent);"><i class="fa-solid fa-comments"></i> Study Buddy</h3>
+
+        <div id="chatWindow" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--bg-main); border-radius: 0.5rem; margin: 1rem 0; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="align-self: flex-start; background: white; padding: 0.75rem 1rem; border-radius: 1rem 1rem 1rem 0; max-width: 80%; box-shadow: var(--shadow-sm);">
+                Hi {{ session.get('student_name') }}! I'm your AI Study Buddy. How can I help you today?
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="chatInput" class="form-control" placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendChat()">
+            <button class="btn btn-primary" style="background-color: var(--accent);" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function solveDoubt() {
+        const q = document.getElementById('doubtText').value;
+        if(!q) return;
+        const res = await apiCall('/api/ai/doubt', 'POST', { question: q });
+        if(res && res.success) {
+            const box = document.getElementById('doubtRes');
+            box.style.display = 'block';
+            box.innerText = res.answer;
+        }
+    }
+
+    async function sendChat() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value;
+        if(!msg) return;
+
+        const win = document.getElementById('chatWindow');
+
+        // Add user msg
+        win.innerHTML += `<div style="align-self: flex-end; background: var(--accent); color: white; padding: 0.75rem 1rem; border-radius: 1rem 1rem 0 1rem; max-width: 80%; box-shadow: var(--shadow-sm);">${msg}</div>`;
+        input.value = '';
+        win.scrollTop = win.scrollHeight;
+
+        const res = await apiCall('/api/ai/chat', 'POST', { message: msg });
+        if(res && res.success) {
+            win.innerHTML += `<div style="align-self: flex-start; background: white; padding: 0.75rem 1rem; border-radius: 1rem 1rem 1rem 0; max-width: 80%; box-shadow: var(--shadow-sm);">${res.answer}</div>`;
+            win.scrollTop = win.scrollHeight;
+        }
+    }
+</script>
+{% endblock %}

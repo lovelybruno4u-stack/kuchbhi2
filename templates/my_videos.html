@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block page_title %}My Class Videos{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Date</th><th>Subject</th><th>Watch Link</th></tr></thead>
+            <tbody id="sVidBody"></tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadVideos() {
+        const videos = await apiCall('/api/videos');
+        const tbody = document.getElementById('sVidBody');
+        tbody.innerHTML = '';
+        if(videos) {
+            // Newest first
+            videos.reverse().forEach(v => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${v.date}</td>
+                        <td>${v.subject}</td>
+                        <td><a href="${v.drive_link}" target="_blank" class="btn btn-primary"><i class="fa-solid fa-play"></i> Watch Video</a></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadVideos);
+</script>
+{% endblock %}

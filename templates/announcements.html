@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block page_title %}Announcements{% endblock %}
+{% block content %}
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Post Announcement</h3>
+        <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Message</label>
+            <textarea id="annMessage" class="form-control" rows="5"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="postAnnouncement()">Post</button>
+
+        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border);">
+
+        <h4 style="color: var(--accent);"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Generator</h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Let AI write the announcement for you.</p>
+        <div class="form-group">
+            <input type="text" id="aiContext" class="form-control" placeholder='e.g. "holiday tomorrow due to rain"'>
+        </div>
+        <button class="btn btn-outline" onclick="generateAIAnnouncement()">Generate with AI</button>
+    </div>
+
+    <div class="card">
+        <h3>Recent Announcements</h3>
+        <div id="annList" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;"></div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadAnn() {
+        const list = await apiCall('/api/announcements');
+        const container = document.getElementById('annList');
+        container.innerHTML = '';
+        if(list) {
+            // Reverse to show newest first
+            list.reverse().forEach(a => {
+                container.innerHTML += `
+                    <div style="padding: 1rem; border-left: 3px solid var(--primary); background: var(--bg-main); border-radius: 0 0.5rem 0.5rem 0;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">${a.date}</div>
+                        <div>${a.message}</div>
+                    </div>
+                `;
+            });
+        }
+    }
+
+    async function postAnnouncement() {
+        const msg = document.getElementById('annMessage').value;
+        if(!msg) return;
+        const res = await apiCall('/api/announcements', 'POST', { message: msg });
+        if(res && res.success) {
+            document.getElementById('annMessage').value = '';
+            loadAnn();
+        }
+    }
+
+    async function generateAIAnnouncement() {
+        const context = document.getElementById('aiContext').value;
+        if(!context) return showModal('Error', 'Provide context first');
+
+        const res = await apiCall('/api/ai/announcement', 'POST', { context: context });
+        if(res && res.success) {
+            document.getElementById('annMessage').value = res.answer;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadAnn);
+</script>
+{% endblock %}

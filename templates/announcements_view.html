@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block page_title %}Class Announcements{% endblock %}
+{% block content %}
+
+<div class="card">
+    <div id="annList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadAnn() {
+        const list = await apiCall('/api/announcements');
+        const container = document.getElementById('annList');
+        container.innerHTML = '';
+        if(list && list.length > 0) {
+            list.reverse().forEach(a => {
+                container.innerHTML += `
+                    <div style="padding: 1.5rem; border-left: 4px solid var(--secondary); background: var(--bg-main); border-radius: 0 0.5rem 0.5rem 0;">
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;"><i class="fa-regular fa-calendar"></i> ${a.date}</div>
+                        <div style="font-size: 1.05rem; line-height: 1.5;">${a.message}</div>
+                    </div>
+                `;
+            });
+        } else {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No announcements yet.</p>';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadAnn);
+</script>
+{% endblock %}
