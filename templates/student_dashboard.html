@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block page_title %}Student Dashboard{% endblock %}
+{% block content %}
+
+<div class="card glassmorphism" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; margin-bottom: 2rem;">
+    <h2>Welcome back, {{ session.get('student_name') }}!</h2>
+    <p style="margin-top: 0.5rem; color: rgba(255,255,255,0.8);">Ready to learn something new today?</p>
+</div>
+
+<div class="grid-3">
+    <a href="{{ url_for('student_videos') }}" class="card glassmorphism" style="text-align: center; display: block; transition: all 0.3s;">
+        <i class="fa-solid fa-play" style="font-size: 2rem; color: var(--primary); margin-bottom: 1rem;"></i>
+        <h3>Today's Video</h3>
+    </a>
+    <a href="{{ url_for('student_chatbot') }}" class="card glassmorphism" style="text-align: center; display: block; border: 2px solid var(--accent);">
+        <i class="fa-solid fa-sparkles" style="font-size: 2rem; color: var(--accent); margin-bottom: 1rem;"></i>
+        <h3>AI Study Buddy</h3>
+    </a>
+    <a href="{{ url_for('student_announcements') }}" class="card glassmorphism" style="text-align: center; display: block;">
+        <i class="fa-solid fa-bell" style="font-size: 2rem; color: var(--secondary); margin-bottom: 1rem;"></i>
+        <h3>Announcements</h3>
+    </a>
+</div>
+
+{% endblock %}

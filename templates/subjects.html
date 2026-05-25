@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block page_title %}Subjects Management{% endblock %}
+{% block content %}
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Add Subject</h3>
+        <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Subject Name</label>
+            <input type="text" id="subName" class="form-control" placeholder="e.g. Mathematics">
+        </div>
+        <button class="btn btn-primary" onclick="addSubject()">Add Subject</button>
+    </div>
+
+    <div class="card">
+        <h3>Subject List</h3>
+        <div class="table-container" style="margin-top: 1rem;">
+            <table>
+                <thead><tr><th>Subject</th><th>Action</th></tr></thead>
+                <tbody id="subBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+    async function loadSubjects() {
+        const subjects = await apiCall('/api/subjects');
+        const tbody = document.getElementById('subBody');
+        tbody.innerHTML = '';
+        if(subjects) {
+            subjects.forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.subject_name}</td>
+                        <td><button class="btn btn-danger" onclick="deleteSubject('${s.subject_name}')"><i class="fa-solid fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    async function addSubject() {
+        const name = document.getElementById('subName').value;
+        if(!name) return;
+        const res = await apiCall('/api/subjects', 'POST', { subject_name: name });
+        if(res && res.success) {
+            document.getElementById('subName').value = '';
+            loadSubjects();
+        }
+    }
+
+    async function deleteSubject(name) {
+        if(confirm('Delete subject?')) {
+            const res = await apiCall(`/api/subjects/${name}`, 'DELETE');
+            if(res && res.success) loadSubjects();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSubjects);
+</script>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASWATHAMA CLASSES</title>
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>ASWATHAMA</span>
+            </div>
+            <button class="mobile-toggle" id="mobile-toggle"><i class="fa-solid fa-bars"></i></button>
+        </div>
+
+        <nav class="sidebar-nav">
+            {% if session.get('user_role') == 'teacher' %}
+                <div class="nav-label">TEACHER MENU</div>
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-item {% if request.path == '/teacher' %}active{% endif %}">
+                    <i class="fa-solid fa-house"></i> <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('teacher_students') }}" class="nav-item {% if request.path == '/teacher/students' %}active{% endif %}">
+                    <i class="fa-solid fa-users"></i> <span>Students</span>
+                </a>
+                <a href="{{ url_for('teacher_attendance') }}" class="nav-item {% if request.path == '/teacher/attendance' %}active{% endif %}">
+                    <i class="fa-solid fa-calendar-check"></i> <span>Attendance</span>
+                </a>
+                <a href="{{ url_for('teacher_videos') }}" class="nav-item {% if request.path == '/teacher/videos' %}active{% endif %}">
+                    <i class="fa-solid fa-video"></i> <span>Daily Videos</span>
+                </a>
+                <a href="{{ url_for('teacher_subjects') }}" class="nav-item {% if request.path == '/teacher/subjects' %}active{% endif %}">
+                    <i class="fa-solid fa-book"></i> <span>Subjects</span>
+                </a>
+                <a href="{{ url_for('teacher_announcements') }}" class="nav-item {% if request.path == '/teacher/announcements' %}active{% endif %}">
+                    <i class="fa-solid fa-bullhorn"></i> <span>Announcements</span>
+                </a>
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-item {% if request.path == '/teacher/ai-tools' %}active{% endif %}">
+                    <i class="fa-solid fa-robot"></i> <span>AI Tools</span>
+                </a>
+            {% elif session.get('user_role') == 'student' %}
+                <div class="nav-label">STUDENT MENU</div>
+                <a href="{{ url_for('student_dashboard') }}" class="nav-item {% if request.path == '/student' %}active{% endif %}">
+                    <i class="fa-solid fa-house"></i> <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('student_videos') }}" class="nav-item {% if request.path == '/student/videos' %}active{% endif %}">
+                    <i class="fa-solid fa-play"></i> <span>My Videos</span>
+                </a>
+                <a href="{{ url_for('student_attendance') }}" class="nav-item {% if request.path == '/student/attendance' %}active{% endif %}">
+                    <i class="fa-solid fa-clipboard-user"></i> <span>Attendance</span>
+                </a>
+                <a href="{{ url_for('student_announcements') }}" class="nav-item {% if request.path == '/student/announcements' %}active{% endif %}">
+                    <i class="fa-solid fa-bell"></i> <span>Announcements</span>
+                </a>
+                <a href="{{ url_for('student_chatbot') }}" class="nav-item ai-highlight {% if request.path == '/student/chatbot' %}active{% endif %}">
+                    <i class="fa-solid fa-sparkles"></i> <span>Study Chatbot</span>
+                </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ session.get('student_name', 'Teacher Admin') }}</span>
+                    <span class="user-role">{{ session.get('user_role', 'guest') | capitalize }}</span>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <header class="top-header">
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+        </header>
+
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Global Custom Modal Structure -->
+    <div class="modal-overlay" id="globalModal" style="display: none;">
+        <div class="modal-card glassmorphism">
+            <div class="modal-header">
+                <h3 id="modalTitle">Notice</h3>
+                <button class="close-modal" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content injected here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
