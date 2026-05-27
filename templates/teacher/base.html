@@ -133,6 +133,11 @@
                 </a>
             </li>
 
+                    <li class="nav-item">
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link {% if request.path == url_for('teacher_ai_tools') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Tools
+                </a>
+            </li>
         </ul>
         <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 10px;">
             <button id="sidebar-install-btn" class="btn btn-outline" style="width: 100%; display: none; text-align: left; justify-content: flex-start; padding: 10px 15px; border-radius: 8px;">

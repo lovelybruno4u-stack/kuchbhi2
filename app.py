@@ -8,7 +8,16 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # Load environment variables
+
+# Load environment variables
 load_dotenv()
+
+import httpx
+from openai import OpenAI
+client = OpenAI(
+    api_key=os.getenv('OPENAI_API_KEY'),
+    http_client=httpx.Client(proxies={})
+)
 
 
 from datetime import timedelta
@@ -555,7 +564,7 @@ def logout():
 def teacher_dashboard():
     students = get_data('students')
     videos = get_data('videos')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
 
     current_date = datetime.now().strftime('%Y-%m-%d')
     today_attendance_count = len([a for a in attendance if a.get('date') == current_date and a.get('status') == 'Present'])
@@ -641,7 +650,7 @@ def delete_student(id):
 @login_required(role='teacher')
 def teacher_attendance():
     students = get_data('students')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
     current_date = datetime.now().strftime('%Y-%m-%d')
 
     # Calculate today's absentees
@@ -796,6 +805,11 @@ def delete_subject(id):
     flash('Subject deleted!', 'success')
     return redirect(url_for('teacher_subjects'))
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
 @app.route('/teacher/announcements')
 @login_required(role='teacher')
 def teacher_announcements():
@@ -828,6 +842,144 @@ def delete_announcement(id):
 
 # --- API Endpoints for AI Features (Teacher) ---
 
+@app.route('/api/ai/attendance', methods=['GET', 'POST'])
+@login_required(role='teacher')
+@rate_limit
+def ai_attendance_analysis():
+    try:
+        attendance_data = get_data('attendance')
+        students = get_data('students')
+
+        if not attendance_data or not students:
+            return jsonify({'success': False, 'error': 'Insufficient data for analysis'})
+
+        # Structure raw data for the AI
+        student_map = {str(s.get('id')): s.get('name') for s in students}
+        attendance_summary = {}
+
+        for a in attendance_data:
+            sid = str(a.get('student_id'))
+            status = str(a.get('status'))
+            if sid not in attendance_summary:
+                attendance_summary[sid] = {'name': student_map.get(sid, 'Unknown'), 'present': 0, 'absent': 0, 'total': 0}
+
+            attendance_summary[sid]['total'] += 1
+            if status == '1' or status.lower() == 'present':
+                attendance_summary[sid]['present'] += 1
+            else:
+                attendance_summary[sid]['absent'] += 1
+
+        # Calculate percentages
+        for sid, data in attendance_summary.items():
+            if data['total'] > 0:
+                data['percentage'] = round((data['present'] / data['total']) * 100, 2)
+            else:
+                data['percentage'] = 0
+
+        system_prompt = "Analyze attendance data and provide insights. Identify which students are irregular, calculate their attendance percentage, and suggest actionable steps for the teacher to improve attendance. Format the response clearly."
+
+        # We pass the structured raw dictionary to the AI
+        raw_data_str = str(attendance_summary)
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Here is the raw attendance data: {raw_data_str}"}
+            ]
+        )
+
+        analysis = response.choices[0].message.content
+        return jsonify({'success': True, 'analysis': analysis})
+    except Exception as e:
+        print(f"AI Attendance Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to analyze attendance. Please try again.'}), 500
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+@rate_limit
+def ai_video_summary():
+    try:
+        data = request.json
+        topic = data.get('topic')
+
+        if not topic:
+            return jsonify({'success': False, 'error': 'Video topic is required'})
+
+        system_prompt = "Generate summary notes for revision based on the provided video topic. Include a brief summary, key points, and actionable revision notes suitable for students."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"The video topic is: {topic}"}
+            ]
+        )
+
+        summary = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        print(f"AI Video Summary Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate summary. Please try again.'}), 500
+
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+@rate_limit
+def ai_quiz_generator():
+    try:
+        data = request.json
+        subject = data.get('subject')
+        topic = data.get('topic')
+
+        if not subject or not topic:
+            return jsonify({'success': False, 'error': 'Subject and topic are required'})
+
+        system_prompt = "Generate 5 MCQ questions with answers. Format the output clearly so each question is followed by its 4 options and then the correct answer."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Generate questions for Subject: {subject}, Topic: {topic}"}
+            ]
+        )
+
+        quiz = response.choices[0].message.content
+        return jsonify({'success': True, 'quiz': quiz})
+    except Exception as e:
+        print(f"AI Quiz Generator Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate quiz. Please try again.'}), 500
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+@rate_limit
+def ai_announcement():
+    try:
+        data = request.json
+        prompt = data.get('prompt')
+
+        if not prompt:
+            return jsonify({'success': False, 'error': 'Prompt is required'})
+
+        system_prompt = "Write a professional coaching class announcement. Ensure the tone is professional, clear, and informative."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        announcement = response.choices[0].message.content
+        return jsonify({'success': True, 'announcement': announcement})
+    except Exception as e:
+        print(f"AI Announcement Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate announcement. Please try again.'}), 500
+
+
+
 
 
 
@@ -854,9 +1006,9 @@ def old_student_my_videos():
 def old_student_attendance_view():
     return render_template('student/attendance_view.html')
 
-@app.route('/old_student_chatbot')
+@app.route('/student/chatbot', endpoint='student_chatbot')
 @login_required(role='student')
-def old_student_chatbot():
+def student_chatbot():
     return render_template('student/chatbot.html')
 
 @app.route('/old_student_announcements')
@@ -972,7 +1124,7 @@ def student_dashboard():
     student_class = next((s.get('class') for s in students_data if str(s.get('id')) == str(student_id)), '')
 
     # Safely fetch attendance and calculate rate
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
     if attendance_data:
         unique_dates = set([a.get('date') for a in attendance_data if a.get('date')])
         total = len(unique_dates) if len(unique_dates) > 0 else 1
@@ -1071,7 +1223,7 @@ def student_attendance_view():
     student_id = session.get('student_id')
 
     # Use Attendance_V2
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
 
     if attendance_data:
         attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
@@ -1108,6 +1260,61 @@ def student_announcements_view():
 
 
 # --- API Endpoints for AI Features (Student) ---
+
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+@rate_limit
+def ai_doubt_solver():
+    try:
+        data = request.json
+        question = data.get('question')
+
+        if not question:
+            return jsonify({'success': False, 'error': 'Question is required'})
+
+        system_prompt = "Explain this concept in very simple words for a school student. If it's a math question, give a step by step solution."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
+            ]
+        )
+
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        print(f"AI Doubt Solver Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate explanation. Please try again.'}), 500
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required(role='student')
+@rate_limit
+def ai_chat():
+    try:
+        data = request.json
+        message = data.get('message')
+
+        if not message:
+            return jsonify({'success': False, 'error': 'Message is required'})
+
+        system_prompt = "You are a friendly and helpful study chatbot for a coaching class. You can help students with concept doubts, exam preparation, and study tips. Be encouraging, concise, and use student-friendly language."
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ]
+        )
+
+        reply = response.choices[0].message.content
+        return jsonify({'success': True, 'reply': reply})
+    except Exception as e:
+        print(f"AI Chat Error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to get chat response. Please try again.'}), 500
+
 
 
 
@@ -1285,7 +1492,7 @@ def student_profile():
         flash("Profile not found.", "error")
         return redirect(url_for('student_dashboard'))
 
-    attendance_data = get_data('ATTENDANCE_V2')
+    attendance_data = get_data('attendance')
     attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
 
     total_classes = len(attendance)

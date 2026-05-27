@@ -1,85 +1,69 @@
-# Ashwathama Classes
+# ASWATHAMA CLASSES
 
-A complete AI-powered web platform for educational coaching classes. Features role-based access for Teachers and Students, integrated with Google Sheets as a database, and powered by OpenAI for various educational AI tools.
-
-## Tech Stack
-* **Backend:** Flask (Python)
-* **Database:** Google Sheets API (via `gspread` & Service Accounts)
-* **AI:** OpenAI ChatGPT API (`gpt-4o-mini`)
-* **Frontend:** HTML, CSS, JS (Glassmorphism, Responsive SaaS UI)
-
-## Features
-**Teacher (Admin)**
-* Dashboard Analytics
-* Student Management (CRUD)
-* Attendance Tracking
-* Video Library Management
-* Announcements System
-* AI Tools: Quiz Generator, Attendance Analyzer, Video Summarizer
-
-**Student (User)**
-* Personal Dashboard
-* View Attendance & Announcements
-* Watch Class Recordings
-* AI Doubt Solver
-* AI Study Chatbot
-
----
+ASWATHAMA CLASSES is a complete AI-powered web platform built with Flask, Google Sheets API, and OpenAI's ChatGPT API. It features a modern SaaS UI and separate dashboards for Teachers (Admin) and Students.
 
 ## Setup Guide
 
-### 1. Automatic Google Sheet Creation
-The application will automatically create a Google Sheet Database for you when it first starts!
-It will create all the required tabs and share it to your email address. You just need to provide your `ADMIN_EMAIL` in the environment variables so you get edit access.
+### 1. How to create a Google Sheet
+- Create a new Google Sheet on your Google Drive.
+- Create the following sheets exactly as named:
+  - `students`: id, name, class, roll, phone, email, parent, password
+  - `attendance`: date, student_id, status
+  - `videos`: id, date, subject, drive_link
+  - `subjects`: id, subject_name
+  - `announcements`: id, date, message, important
+  - `quiz`: id, date, subject, question, option1, option2, option3, option4, answer, start_time, end_time, score_expiry
+  - `quiz_scores_V3`: quiz_id, student_id, student_name, score, percentage, timestamp
+  - `materials`: id, title, subject, description, drive_link
+  - `schedule`: id, date, subject, start_time, end_time, note
+  - `student_profiles`: student_id, extra_notes, last_active_date
+  - `video_completion_V3`: date, student_id, subject, video_id, completed
+  - `gamification_V3`: student_id, points, badges
+  - `leaderboard_cache_V3`: student_id, points, rank
+  - `ATTENDANCE_V2`: student_id, student_name, class, date, status, last_updated
+  - `DPP_V2`: id, title, subject, class, description, file_url, date_uploaded
+  - `DPP_Status_V3`: dpp_id, student_id, status
+  - `TASKS_V2`: id, title, description, subject, class, due_date, created_date
+  - `Task_Status_V3`: task_id, student_id, status
+  - `Student_Metrics_V3`: student_id, xp, level, streak_days, last_active_date, reputation_score, trusted_devices
 
-### 2. How to Enable Sheets API & Get Credentials
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project.
-3. Go to "APIs & Services" > "Library". Search for **Google Sheets API** and enable it.
-4. Search for **Google Drive API** and enable it as well.
-5. Go to "APIs & Services" > "Credentials".
-6. Click "Create Credentials" > "Service Account". Fill in details and create.
-7. Click on the created service account > "Keys" tab > "Add Key" > "Create new key" (JSON).
-8. This will download a `.json` file to your computer.
-9. **Important:** Open your Service Account details, copy the email address provided. Go back to your Google Sheet, click "Share" in the top right, and share the sheet as an "Editor" with that service account email.
+### 2. How to enable Sheets API
+- Go to the [Google Cloud Console](https://console.cloud.google.com/).
+- Create a new project.
+- Go to "APIs & Services" > "Library".
+- Search for "Google Sheets API" and enable it.
+- Go to "Credentials" and click "Create Credentials" > "Service Account".
+- Fill in the details and create the account.
+- Once created, go to the "Keys" tab for the service account, click "Add Key" > "Create new key", and choose JSON.
+- Download the JSON file.
+- **IMPORTANT**: Share your Google Sheet with the email address of the service account you just created, and give it "Editor" access.
 
-### 3. Where to place JSON Key
-Rename the downloaded file to `credentials.json` and place it in the root folder of this project (next to `app.py`).
+### 3. Where to place the JSON key
+- Rename the downloaded JSON file to `credentials.json` (or `CREDENTIALS.JSON`).
+- Place it in the root directory of this project.
 
-### 4. Where to place OpenAI API Key
-1. Go to [OpenAI Platform](https://platform.openai.com/).
-2. Generate an API Key.
-3. Open the `.env` file in the root directory (create it if it doesn't exist) and add:
-   ```env
-   OPENAI_API_KEY=your_openai_key_here
-   SPREADSHEET_ID=your_spreadsheet_id_from_step_1
-   SECRET_KEY=your_random_flask_secret_key
-   ```
+### 4. Where to place the OpenAI API key
+- Create a `.env` file in the root directory of this project.
+- Add your OpenAI API key to the `.env` file like this:
+  `OPENAI_API_KEY=your_openai_api_key_here`
+- Also add your spreadsheet ID to the `.env` file:
+  `SPREADSHEET_ID=your_google_sheet_id_here`
+- Optional: add `SECRET_KEY=your_flask_secret_key`
 
 ### 5. How to run Flask locally
-1. Ensure Python 3.8+ is installed.
-2. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the app:
-   ```bash
-   python app.py
-   ```
-4. Visit `http://127.0.0.1:5000` in your browser.
+- Ensure you have Python installed.
+- Install dependencies: `pip install -r requirements.txt`
+- Run the app: `gunicorn app:app --bind 127.0.0.1:5000` or `python app.py`
 
-### 6. How to Deploy on Render
-1. Push this code to a GitHub repository. (Make sure `credentials.json` and `.env` are listed in `.gitignore` if making public! For private repo, Render provides secrets management).
-2. Go to [Render.com](https://render.com) and sign in.
-3. Click "New" > "Web Service".
-4. Connect your GitHub repository.
-5. Use the following settings:
-   * **Environment:** Python
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `gunicorn app:app`
-6. Go to "Advanced" -> "Environment Variables" and add:
-   * `OPENAI_API_KEY`
-   * `SPREADSHEET_ID`
-   * `SECRET_KEY`
-7. For the `credentials.json`, either upload it securely as a "Secret File" in Render, OR base64 encode it and set it as an env variable to decode at runtime.
-8. Click "Create Web Service".
+### 6. How to deploy on Render
+- Create an account on [Render](https://render.com/).
+- Click "New +" and select "Web Service".
+- Connect your GitHub repository containing this code.
+- Set the Build Command to `pip install -r requirements.txt`
+- Set the Start Command to `gunicorn app:app`
+- In the "Environment" section, add the following variables:
+  - `OPENAI_API_KEY`: Your OpenAI API key
+  - `SPREADSHEET_ID`: Your Google Sheet ID
+  - `SECRET_KEY`: A random secret key for Flask sessions
+  - `GOOGLE_CREDENTIALS`: Paste the entire contents of your `credentials.json` file here. (The code is set up to read from this environment variable if it exists).
+- Deploy!
