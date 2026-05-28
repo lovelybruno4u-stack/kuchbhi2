@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Classes & Videos{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary" onclick="showModal('addVideoModal')">
+    <i class="fas fa-plus"></i> Add Video Link
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="dashboard-grid" id="videosGrid">
+        <!-- Videos will be loaded here -->
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="loading-spinner" style="border-top-color: var(--primary-color);"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Video Modal -->
+<div class="modal-overlay" id="addVideoModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Video Link</h2>
+            <button class="modal-close" onclick="hideModal('addVideoModal')">&times;</button>
+        </div>
+        <form id="addVideoForm" onsubmit="handleAddVideo(event)">
+            <div class="form-group">
+                <label class="form-label">Date</label>
+                <input type="date" id="v_date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject / Topic</label>
+                <input type="text" id="v_subject" class="form-control" placeholder="e.g. Physics - Motion" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Google Drive Link</label>
+                <input type="url" id="v_link" class="form-control" placeholder="https://drive.google.com/..." required>
+            </div>
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('addVideoModal')" style="margin-right: 0.5rem;">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveVideoBtn">Save Video</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('v_date').valueAsDate = new Date();
+
+    async function loadVideos() {
+        const grid = document.getElementById('videosGrid');
+        const videos = await fetchData('/api/videos');
+
+        if (!videos || videos.length === 0) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><i class="fas fa-video-slash"></i><p>No videos uploaded yet.</p></div>';
+            return;
+        }
+
+        // Sort descending by date
+        videos.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        grid.innerHTML = '';
+        videos.forEach(v => {
+            const card = document.createElement('div');
+            card.className = 'glass-card';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.background = '#fff';
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom: 1rem;">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);"><i class="far fa-calendar"></i> ${formatDate(v.date)}</span>
+                </div>
+                <h3 style="margin-bottom: 1rem; color: var(--text-primary); font-size: 1.1rem;">${v.subject}</h3>
+                <a href="${v.drive_link}" target="_blank" class="btn btn-primary" style="margin-top: auto; text-align: center;">
+                    <i class="fas fa-play" style="margin-right: 0.5rem;"></i> Watch Video
+                </a>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    async function handleAddVideo(e) {
+        e.preventDefault();
+        const btn = document.getElementById('saveVideoBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+
+        const data = {
+            date: document.getElementById('v_date').value,
+            subject: document.getElementById('v_subject').value,
+            drive_link: document.getElementById('v_link').value
+        };
+
+        const res = await postData('/api/videos', data);
+        if (res.success) {
+            showToast('Video added successfully!');
+            hideModal('addVideoModal');
+            document.getElementById('addVideoForm').reset();
+            document.getElementById('v_date').valueAsDate = new Date();
+            loadVideos();
+        } else {
+            showToast(res.error || 'Failed to add video', 'error');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Save Video';
+    }
+
+    loadVideos();
+</script>
+{% endblock %}

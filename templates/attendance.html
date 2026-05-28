@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Attendance{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 1rem; align-items: center;">
+    <input type="date" id="attendanceDate" class="form-control" style="width: auto;">
+    <button class="btn btn-primary" onclick="loadAttendance()">Load</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 id="currentDateDisplay">Loading...</h3>
+        <button class="btn btn-secondary" onclick="saveAttendance()" id="saveBtn">
+            <i class="fas fa-save"></i> Save Attendance
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th style="text-align: center;">Status (P/A)</th>
+                </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+                <tr><td colspan="4" class="empty-state"><div class="loading-spinner" style="border-top-color: var(--primary-color);"></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .toggle-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid var(--border-color);
+        background: white;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        min-width: 100px;
+    }
+    .toggle-btn.present {
+        border-color: var(--secondary-color);
+        background: var(--secondary-color);
+        color: white;
+    }
+    .toggle-btn.absent {
+        border-color: var(--danger-color);
+        background: var(--danger-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentStudents = [];
+    let currentAttendance = [];
+
+    // Set today's date
+    document.getElementById('attendanceDate').valueAsDate = new Date();
+
+    async function loadAttendance() {
+        const dateObj = document.getElementById('attendanceDate').value;
+        document.getElementById('currentDateDisplay').innerText = `Attendance for ${dateObj}`;
+        const tbody = document.getElementById('attendanceTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+
+        // Fetch students and attendance
+        const [students, attendance] = await Promise.all([
+            fetchData('/api/students'),
+            fetchData(`/api/attendance?date=${dateObj}`)
+        ]);
+
+        currentStudents = students || [];
+        currentAttendance = attendance || [];
+
+        if (currentStudents.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-users"></i><p>No students found. Add students first.</p></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        currentStudents.forEach(s => {
+            // Find if already marked
+            const existing = currentAttendance.find(a => String(a.student_id) === String(s.id));
+            let status = existing ? existing.status : 'Present'; // Default present
+            let btnClass = status.toLowerCase() === 'present' ? 'present' : 'absent';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.roll || '-'}</td>
+                <td style="font-weight: 500;">${s.name || '-'}</td>
+                <td>${s.class || '-'}</td>
+                <td style="text-align: center;">
+                    <button class="toggle-btn ${btnClass}" data-sid="${s.id}" onclick="toggleStatus(this)">
+                        ${status.toUpperCase()}
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleStatus(btn) {
+        if (btn.classList.contains('present')) {
+            btn.classList.remove('present');
+            btn.classList.add('absent');
+            btn.innerText = 'ABSENT';
+        } else {
+            btn.classList.remove('absent');
+            btn.classList.add('present');
+            btn.innerText = 'PRESENT';
+        }
+    }
+
+    async function saveAttendance() {
+        const dateObj = document.getElementById('attendanceDate').value;
+        const btns = document.querySelectorAll('.toggle-btn');
+        const records = [];
+
+        btns.forEach(btn => {
+            records.push({
+                student_id: btn.getAttribute('data-sid'),
+                status: btn.classList.contains('present') ? 'Present' : 'Absent'
+            });
+        });
+
+        const btn = document.getElementById('saveBtn');
+        btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
+        btn.disabled = true;
+
+        const res = await postData('/api/attendance', {
+            date: dateObj,
+            records: records
+        });
+
+        if (res.success) {
+            showToast('Attendance saved successfully!');
+        } else {
+            showToast('Failed to save attendance', 'error');
+        }
+
+        btn.innerHTML = '<i class="fas fa-save"></i> Save Attendance';
+        btn.disabled = false;
+    }
+
+    // Initial load
+    loadAttendance();
+</script>
+{% endblock %}
