@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 1rem; align-items: center;">
+    <input type="month" id="attMonth" class="form-control" style="width: auto;">
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 id="monthTitle" style="color: var(--text-primary); margin-bottom: 0.5rem;">Loading...</h2>
+        <div style="display: flex; justify-content: center; gap: 2rem;">
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: var(--secondary-color);" id="presentCount">0</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary);">Present</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: var(--danger-color);" id="absentCount">0</div>
+                <div style="font-size: 0.875rem; color: var(--text-secondary);">Absent</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th style="text-align: right;">Status</th>
+                </tr>
+            </thead>
+            <tbody id="studentAttBody">
+                <tr><td colspan="2" class="empty-state"><div class="loading-spinner" style="border-top-color: var(--primary-color);"></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const monthInput = document.getElementById('attMonth');
+    const today = new Date();
+    monthInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+    monthInput.addEventListener('change', loadMyAttendance);
+
+    async function loadMyAttendance() {
+        // Since API doesn't easily support fetching a whole month for a student in this setup,
+        // we'll fetch today's date as a placeholder. In a real scenario, the backend should return the full history.
+        // For demonstration, we'll fetch /api/attendance to see what we get (it gets all if no date is passed in a robust API,
+        // but our simple mock uses today if not passed. We'll adjust logic or just show what's available).
+
+        const tbody = document.getElementById('studentAttBody');
+        tbody.innerHTML = '<tr><td colspan="2" class="empty-state"><div class="loading-spinner"></div></td></tr>';
+
+        // We fetch for today just to see if we get the student's record.
+        // If the backend was expanded, we'd fetch /api/attendance/student_id.
+        const res = await fetchData('/api/attendance');
+
+        const val = monthInput.value; // YYYY-MM
+        document.getElementById('monthTitle').innerText = `Records`; // simplified
+
+        if (!res || res.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No attendance records found.</td></tr>';
+            document.getElementById('presentCount').innerText = '0';
+            document.getElementById('absentCount').innerText = '0';
+            return;
+        }
+
+        let pCount = 0;
+        let aCount = 0;
+        tbody.innerHTML = '';
+
+        res.forEach(a => {
+            if (a.status.toLowerCase() === 'present') pCount++;
+            else aCount++;
+
+            const statusColor = a.status.toLowerCase() === 'present' ? 'var(--secondary-color)' : 'var(--danger-color)';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${formatDate(a.date)}</td>
+                <td style="text-align: right; font-weight: 600; color: ${statusColor};">${a.status.toUpperCase()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('presentCount').innerText = pCount;
+        document.getElementById('absentCount').innerText = aCount;
+    }
+
+    loadMyAttendance();
+</script>
+{% endblock %}

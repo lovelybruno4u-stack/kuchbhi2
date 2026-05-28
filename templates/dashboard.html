@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <h3><i class="fas fa-users text-primary"></i> Total Students</h3>
+        <div class="value">{{ total_students }}</div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <h3><i class="fas fa-calendar-check text-secondary"></i> Today's Attendance</h3>
+        <div class="value" style="color: var(--secondary-color)">{{ today_attendance }}</div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <h3><i class="fas fa-video text-primary"></i> Classes This Week</h3>
+        <div class="value" style="color: #8b5cf6">0</div>
+    </div>
+</div>
+
+<div class="glass-card" style="margin-top: 2rem;">
+    <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ url_for('students_page') }}" class="btn btn-secondary">
+            <i class="fas fa-user-plus" style="margin-right: 0.5rem;"></i> Add Student
+        </a>
+        <a href="{{ url_for('attendance_page') }}" class="btn btn-primary">
+            <i class="fas fa-check-square" style="margin-right: 0.5rem;"></i> Mark Attendance
+        </a>
+        <a href="{{ url_for('announcements_page') }}" class="btn btn-secondary" style="background: #fef3c7; color: #b45309;">
+            <i class="fas fa-bullhorn" style="margin-right: 0.5rem;"></i> New Announcement
+        </a>
+    </div>
+</div>
+{% endblock %}

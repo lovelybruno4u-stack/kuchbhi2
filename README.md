@@ -1,85 +1,59 @@
-# Ashwathama Classes
+# ASWATHAMA CLASSES - EdTech Platform
 
-A complete AI-powered web platform for educational coaching classes. Features role-based access for Teachers and Students, integrated with Google Sheets as a database, and powered by OpenAI for various educational AI tools.
-
-## Tech Stack
-* **Backend:** Flask (Python)
-* **Database:** Google Sheets API (via `gspread` & Service Accounts)
-* **AI:** OpenAI ChatGPT API (`gpt-4o-mini`)
-* **Frontend:** HTML, CSS, JS (Glassmorphism, Responsive SaaS UI)
-
-## Features
-**Teacher (Admin)**
-* Dashboard Analytics
-* Student Management (CRUD)
-* Attendance Tracking
-* Video Library Management
-* Announcements System
-* AI Tools: Quiz Generator, Attendance Analyzer, Video Summarizer
-
-**Student (User)**
-* Personal Dashboard
-* View Attendance & Announcements
-* Watch Class Recordings
-* AI Doubt Solver
-* AI Study Chatbot
-
----
+An AI-powered web platform for ASWATHAMA CLASSES built using Flask, Google Sheets API, and OpenAI's ChatGPT API.
 
 ## Setup Guide
 
-### 1. Automatic Google Sheet Creation
-The application will automatically create a Google Sheet Database for you when it first starts!
-It will create all the required tabs and share it to your email address. You just need to provide your `ADMIN_EMAIL` in the environment variables so you get edit access.
+### 1. How to create a Google Sheet
+Create a new Google Sheet and create the following sheets EXACTLY with these names and headers in row 1:
+- **students**: `id`, `name`, `class`, `roll`, `phone`, `email`, `parent`
+- **attendance**: `date`, `student_id`, `status`
+- **videos**: `date`, `subject`, `drive_link`
+- **subjects**: `subject_name`
+- **announcements**: `date`, `message`
 
-### 2. How to Enable Sheets API & Get Credentials
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project.
-3. Go to "APIs & Services" > "Library". Search for **Google Sheets API** and enable it.
-4. Search for **Google Drive API** and enable it as well.
-5. Go to "APIs & Services" > "Credentials".
-6. Click "Create Credentials" > "Service Account". Fill in details and create.
-7. Click on the created service account > "Keys" tab > "Add Key" > "Create new key" (JSON).
-8. This will download a `.json` file to your computer.
-9. **Important:** Open your Service Account details, copy the email address provided. Go back to your Google Sheet, click "Share" in the top right, and share the sheet as an "Editor" with that service account email.
+### 2. How to enable Sheets API
+- Go to the [Google Cloud Console](https://console.cloud.google.com/).
+- Create a new project.
+- Navigate to "APIs & Services" > "Library".
+- Search for "Google Sheets API" and enable it.
+- Go to "Credentials" > "Create Credentials" > "Service Account".
+- Create a service account, navigate to "Keys", and create a new JSON key. This will download a JSON file.
+- Open your Google Sheet, click "Share", and add the `client_email` found in your service account JSON file as an Editor.
 
-### 3. Where to place JSON Key
-Rename the downloaded file to `credentials.json` and place it in the root folder of this project (next to `app.py`).
+### 3. Where to place the JSON key
+Rename the downloaded JSON key file to `CREDENTIALS.JSON` and place it in the root directory of this project. (Do NOT commit this file to public repositories).
 
-### 4. Where to place OpenAI API Key
-1. Go to [OpenAI Platform](https://platform.openai.com/).
-2. Generate an API Key.
-3. Open the `.env` file in the root directory (create it if it doesn't exist) and add:
-   ```env
-   OPENAI_API_KEY=your_openai_key_here
-   SPREADSHEET_ID=your_spreadsheet_id_from_step_1
-   SECRET_KEY=your_random_flask_secret_key
-   ```
+### 4. Where to place the OpenAI API key
+Create a file named `.env` in the root directory of the project and add your OpenAI API key:
+```
+OPENAI_API_KEY=your_openai_api_key_here
+FLASK_SECRET_KEY=your_secure_random_secret_key
+```
 
 ### 5. How to run Flask locally
-1. Ensure Python 3.8+ is installed.
-2. Install requirements:
+1. Ensure you have Python installed.
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the app:
+3. Run the Flask application:
    ```bash
    python app.py
+   # or with Gunicorn:
+   # gunicorn app:app --bind 127.0.0.1:5000
    ```
-4. Visit `http://127.0.0.1:5000` in your browser.
+4. Access the app at `http://127.0.0.1:5000`.
 
-### 6. How to Deploy on Render
-1. Push this code to a GitHub repository. (Make sure `credentials.json` and `.env` are listed in `.gitignore` if making public! For private repo, Render provides secrets management).
-2. Go to [Render.com](https://render.com) and sign in.
-3. Click "New" > "Web Service".
-4. Connect your GitHub repository.
-5. Use the following settings:
-   * **Environment:** Python
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `gunicorn app:app`
-6. Go to "Advanced" -> "Environment Variables" and add:
-   * `OPENAI_API_KEY`
-   * `SPREADSHEET_ID`
-   * `SECRET_KEY`
-7. For the `credentials.json`, either upload it securely as a "Secret File" in Render, OR base64 encode it and set it as an env variable to decode at runtime.
+### 6. How to deploy on Render
+1. Push your code to a GitHub repository (do NOT push `CREDENTIALS.JSON` or `.env`).
+2. Go to [Render](https://render.com/) and create a new "Web Service".
+3. Connect your GitHub repository.
+4. Set the Environment to "Python".
+5. Set the Build Command to `pip install -r requirements.txt`.
+6. Set the Start Command to `gunicorn app:app`.
+7. Under "Environment Variables", add:
+   - `OPENAI_API_KEY`: your OpenAI API key
+   - `FLASK_SECRET_KEY`: a secure random string
+   - Since you can't easily upload `CREDENTIALS.JSON` as a file on Render free tier natively without custom steps, you might need to use an environment variable containing the base64 encoded JSON, or use a secure file upload. Render's "Secret Files" feature is perfect for `CREDENTIALS.JSON`. Create a Secret File named `CREDENTIALS.JSON` and paste the raw JSON contents inside.
 8. Click "Create Web Service".

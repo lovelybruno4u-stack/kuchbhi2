@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome, {{ user_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <a href="{{ url_for('my_videos_page') }}" style="text-decoration: none;">
+        <div class="glass-card stat-card" style="align-items: center; text-align: center;">
+            <i class="fas fa-play-circle text-primary" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h3>Today's Classes</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Watch your latest video lectures</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('chatbot_page') }}" style="text-decoration: none;">
+        <div class="glass-card stat-card" style="align-items: center; text-align: center;">
+            <i class="fas fa-robot text-secondary" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h3>AI Tutor</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Ask doubts and get instant help</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('student_announcements_page') }}" style="text-decoration: none;">
+        <div class="glass-card stat-card" style="align-items: center; text-align: center;">
+            <i class="fas fa-bell text-primary" style="font-size: 3rem; margin-bottom: 1rem; color: #f59e0b;"></i>
+            <h3>Announcements</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Check latest updates from teachers</p>
+        </div>
+    </a>
+</div>
+
+<div class="glass-card" style="margin-top: 2rem; max-width: 800px;">
+    <h3 style="margin-bottom: 1rem;"><i class="fas fa-bolt text-primary"></i> Quick Doubt Solver</h3>
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input type="text" id="quickDoubtInput" class="form-control" placeholder="Ask a quick concept doubt or math problem...">
+        <button class="btn btn-primary" onclick="solveQuickDoubt()" id="quickDoubtBtn">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+    <div id="quickDoubtRes" style="display: none; background: #f9fafb; padding: 1rem; border-radius: var(--radius-md); border-left: 4px solid var(--primary-color); white-space: pre-wrap;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function solveQuickDoubt() {
+        const input = document.getElementById('quickDoubtInput');
+        const q = input.value.trim();
+        if(!q) return;
+
+        const btn = document.getElementById('quickDoubtBtn');
+        const resDiv = document.getElementById('quickDoubtRes');
+
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+        btn.disabled = true;
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = 'Thinking...';
+
+        const res = await postData('/api/ai/doubt', { question: q });
+
+        if (res.answer) {
+            resDiv.innerHTML = res.answer;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${res.error || 'Failed'}</span>`;
+        }
+
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        btn.disabled = false;
+        input.value = '';
+    }
+</script>
+{% endblock %}

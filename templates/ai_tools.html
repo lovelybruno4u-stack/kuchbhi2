@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tools for Teachers{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-line text-primary"></i> Attendance Analysis</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+            Get AI insights on student regularity and trends.
+        </p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" id="btnAnalyze" style="width: 100%;">
+            Analyze Now
+        </button>
+        <div id="attendanceRes" style="margin-top: 1rem; font-size: 0.9rem; white-space: pre-wrap; display: none; background: #f9fafb; padding: 1rem; border-radius: var(--radius-md);"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-file-alt text-primary"></i> Generate Notes</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+            Generate quick revision notes for a topic.
+        </p>
+        <input type="text" id="v_topic" class="form-control" placeholder="Enter video topic" style="margin-bottom: 0.5rem;">
+        <button class="btn btn-primary" onclick="generateNotes()" id="btnNotes" style="width: 100%;">
+            Generate
+        </button>
+        <div id="notesRes" style="margin-top: 1rem; font-size: 0.9rem; white-space: pre-wrap; display: none; background: #f9fafb; padding: 1rem; border-radius: var(--radius-md);"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="grid-column: 1 / -1; max-width: 600px;">
+        <h3><i class="fas fa-question-circle text-primary"></i> Quiz Generator</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">
+            Generate 5 MCQs for a specific subject and topic.
+        </p>
+        <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;">
+            <input type="text" id="q_subject" class="form-control" placeholder="Subject">
+            <input type="text" id="q_topic" class="form-control" placeholder="Topic">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" id="btnQuiz" style="width: 100%;">
+            Generate Quiz
+        </button>
+        <div id="quizRes" style="margin-top: 1rem; font-size: 0.9rem; white-space: pre-wrap; display: none; background: #f9fafb; padding: 1rem; border-radius: var(--radius-md);"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function analyzeAttendance() {
+        const btn = document.getElementById('btnAnalyze');
+        const resDiv = document.getElementById('attendanceRes');
+
+        btn.innerHTML = '<div class="loading-spinner"></div> Analyzing...';
+        btn.disabled = true;
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = 'Analyzing...';
+
+        const res = await fetchData('/api/ai/attendance');
+
+        if (res.analysis) {
+            resDiv.innerHTML = res.analysis;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${res.error || 'Failed to analyze'}</span>`;
+        }
+
+        btn.innerHTML = 'Analyze Now';
+        btn.disabled = false;
+    }
+
+    async function generateNotes() {
+        const topic = document.getElementById('v_topic').value;
+        if(!topic) return showToast('Enter a topic first', 'error');
+
+        const btn = document.getElementById('btnNotes');
+        const resDiv = document.getElementById('notesRes');
+
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+        btn.disabled = true;
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = 'Generating...';
+
+        const res = await postData('/api/ai/video_summary', { topic });
+
+        if (res.summary) {
+            resDiv.innerHTML = res.summary;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${res.error || 'Failed'}</span>`;
+        }
+
+        btn.innerHTML = 'Generate';
+        btn.disabled = false;
+    }
+
+    async function generateQuiz() {
+        const subject = document.getElementById('q_subject').value;
+        const topic = document.getElementById('q_topic').value;
+        if(!subject || !topic) return showToast('Enter subject and topic', 'error');
+
+        const btn = document.getElementById('btnQuiz');
+        const resDiv = document.getElementById('quizRes');
+
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+        btn.disabled = true;
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = 'Generating...';
+
+        const res = await postData('/api/ai/quiz', { subject, topic });
+
+        if (res.quiz) {
+            resDiv.innerHTML = res.quiz;
+        } else {
+            resDiv.innerHTML = `<span style="color:red">Error: ${res.error || 'Failed'}</span>`;
+        }
+
+        btn.innerHTML = 'Generate Quiz';
+        btn.disabled = false;
+    }
+</script>
+{% endblock %}

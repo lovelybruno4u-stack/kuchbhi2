@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary" onclick="showModal('addSubjectModal')">
+    <i class="fas fa-plus"></i> Add Subject
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+    <ul id="subjectsList" style="list-style: none; padding: 0;">
+        <li class="empty-state"><div class="loading-spinner" style="border-top-color: var(--primary-color);"></div></li>
+    </ul>
+</div>
+
+<!-- Subject Modal -->
+<div class="modal-overlay" id="addSubjectModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="subjectModalTitle">Add Subject</h2>
+            <button class="modal-close" onclick="hideModal('addSubjectModal')">&times;</button>
+        </div>
+        <form id="addSubjectForm" onsubmit="handleAddSubject(event)">
+            <input type="hidden" id="old_subj_name">
+            <div class="form-group">
+                <label class="form-label">Subject Name</label>
+                <input type="text" id="subj_name" class="form-control" required>
+            </div>
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('addSubjectModal')" style="margin-right: 0.5rem;">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveSubjectBtn">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadSubjects() {
+        const list = document.getElementById('subjectsList');
+        const subjects = await fetchData('/api/subjects');
+
+        if (!subjects || subjects.length === 0) {
+            list.innerHTML = '<li class="empty-state"><i class="fas fa-book-open"></i><p>No subjects added yet.</p></li>';
+            return;
+        }
+
+        list.innerHTML = '';
+        subjects.forEach(s => {
+            const li = document.createElement('li');
+            li.style.padding = '1rem';
+            li.style.borderBottom = '1px solid var(--border-color)';
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.alignItems = 'center';
+
+            li.innerHTML = `
+                <span style="font-weight: 500; font-size: 1.1rem;">${s.subject_name}</span>
+                <div>
+                    <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; margin-right: 0.2rem;" onclick="openEditSubjectModal('${s.subject_name}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-danger" style="padding: 0.4rem 0.8rem;" onclick="deleteSubject('${s.subject_name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function openEditSubjectModal(name) {
+        document.getElementById('subjectModalTitle').innerText = 'Edit Subject';
+        document.getElementById('old_subj_name').value = name;
+        document.getElementById('subj_name').value = name;
+        showModal('addSubjectModal');
+    }
+
+    async function handleAddSubject(e) {
+        e.preventDefault();
+        const btn = document.getElementById('saveSubjectBtn');
+        btn.disabled = true;
+
+        const old_name = document.getElementById('old_subj_name').value;
+        const new_name = document.getElementById('subj_name').value;
+
+        const data = {
+            subject_name: new_name
+        };
+
+        let res;
+        if (old_name) {
+            res = await fetch(`/api/subjects/${encodeURIComponent(old_name)}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(r => r.json());
+        } else {
+            res = await postData('/api/subjects', data);
+        }
+
+        if (res.success) {
+            showToast(old_name ? 'Subject updated' : 'Subject added');
+            hideModal('addSubjectModal');
+            document.getElementById('addSubjectForm').reset();
+            document.getElementById('old_subj_name').value = '';
+            document.getElementById('subjectModalTitle').innerText = 'Add Subject';
+            loadSubjects();
+        } else {
+            showToast(res.error || 'Failed to save', 'error');
+        }
+
+        btn.disabled = false;
+    }
+
+    async function deleteSubject(name) {
+        if(confirm(`Delete subject ${name}?`)) {
+            const res = await deleteData(`/api/subjects/${encodeURIComponent(name)}`);
+            if(res.success) {
+                showToast('Deleted');
+                loadSubjects();
+            }
+        }
+    }
+
+    loadSubjects();
+</script>
+{% endblock %}

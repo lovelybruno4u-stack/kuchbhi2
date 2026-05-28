@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASWATHAMA CLASSES</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <i class="fas fa-graduation-cap"></i> ASWATHAMA
+            </div>
+
+            <nav class="sidebar-nav">
+                {% if session.get('user_role') == 'teacher' %}
+                    <a href="{{ url_for('teacher_dashboard') }}" class="nav-item">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('students_page') }}" class="nav-item">
+                        <i class="fas fa-users"></i> Students
+                    </a>
+                    <a href="{{ url_for('attendance_page') }}" class="nav-item">
+                        <i class="fas fa-clipboard-check"></i> Attendance
+                    </a>
+                    <a href="{{ url_for('videos_page') }}" class="nav-item">
+                        <i class="fas fa-video"></i> Videos
+                    </a>
+                    <a href="{{ url_for('subjects_page') }}" class="nav-item">
+                        <i class="fas fa-book"></i> Subjects
+                    </a>
+                    <a href="{{ url_for('announcements_page') }}" class="nav-item">
+                        <i class="fas fa-bullhorn"></i> Announcements
+                    </a>
+                    <a href="{{ url_for('ai_tools_page') }}" class="nav-item">
+                        <i class="fas fa-robot"></i> AI Tools
+                    </a>
+                {% elif session.get('user_role') == 'student' %}
+                    <a href="{{ url_for('student_dashboard') }}" class="nav-item">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    <a href="{{ url_for('my_videos_page') }}" class="nav-item">
+                        <i class="fas fa-play-circle"></i> My Videos
+                    </a>
+                    <a href="{{ url_for('student_attendance_page') }}" class="nav-item">
+                        <i class="fas fa-calendar-check"></i> My Attendance
+                    </a>
+                    <a href="{{ url_for('chatbot_page') }}" class="nav-item">
+                        <i class="fas fa-comments"></i> AI Tutor
+                    </a>
+                    <a href="{{ url_for('student_announcements_page') }}" class="nav-item">
+                        <i class="fas fa-bell"></i> Announcements
+                    </a>
+                {% endif %}
+            </nav>
+
+            <a href="{{ url_for('logout') }}" class="nav-item logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">{% block title %}Dashboard{% endblock %}</h1>
+                {% block header_actions %}{% endblock %}
+            </div>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

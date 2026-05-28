@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}AI Study Tutor{% endblock %}
+
+{% block content %}
+<div class="glass-card chat-container" style="max-width: 800px; margin: 0 auto; height: 70vh;">
+    <div class="chat-history" id="chatHistory">
+        <div class="chat-message message-ai">
+            Hi! I'm your AI Study Tutor. Ask me any concept doubts, exam preparation strategies, or study tips!
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <input type="text" id="chatInput" class="form-control" placeholder="Type your message here..." onkeypress="handleEnter(event)">
+        <button class="btn btn-primary" onclick="sendMessage()" id="sendBtn">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let chatHistoryArr = [];
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        const historyDiv = document.getElementById('chatHistory');
+
+        // Append user msg
+        const userDiv = document.createElement('div');
+        userDiv.className = 'chat-message message-user';
+        userDiv.innerText = msg;
+        historyDiv.appendChild(userDiv);
+
+        input.value = '';
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+
+        const btn = document.getElementById('sendBtn');
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+        btn.disabled = true;
+
+        // Append to local history format for API
+        const payload = {
+            message: msg,
+            history: chatHistoryArr
+        };
+
+        const res = await postData('/api/ai/chat', payload);
+
+        // Append AI res
+        const aiDiv = document.createElement('div');
+        aiDiv.className = 'chat-message message-ai';
+
+        if (res.reply) {
+            aiDiv.innerText = res.reply;
+            chatHistoryArr.push({role: "user", content: msg});
+            chatHistoryArr.push({role: "assistant", content: res.reply});
+        } else {
+            aiDiv.innerHTML = `<span style="color:red">Error: ${res.error || 'Connection failed'}</span>`;
+        }
+
+        historyDiv.appendChild(aiDiv);
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        btn.disabled = false;
+        input.focus();
+    }
+</script>
+{% endblock %}

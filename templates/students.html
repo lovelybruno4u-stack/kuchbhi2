@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Students Management{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 1rem;">
+    <input type="text" id="searchInput" class="form-control" placeholder="Search students..." onkeyup="searchStudents()" style="min-width: 250px;">
+    <button class="btn btn-primary" onclick="openAddStudentModal()">
+        <i class="fas fa-plus"></i> Add Student
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Parent Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="studentsTableBody">
+                <tr><td colspan="7" class="empty-state"><div class="loading-spinner" style="border-top-color: var(--primary-color);"></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Student Modal -->
+<div class="modal-overlay" id="addStudentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="studentModalTitle">Add New Student</h2>
+            <button class="modal-close" onclick="hideModal('addStudentModal')">&times;</button>
+        </div>
+        <form id="addStudentForm" onsubmit="handleAddStudent(event)">
+            <input type="hidden" id="s_id">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" id="s_name" class="form-control" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Class</label>
+                    <input type="text" id="s_class" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Roll Number</label>
+                    <input type="text" id="s_roll" class="form-control" required>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Phone</label>
+                    <input type="text" id="s_phone" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="s_email" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Parent Name</label>
+                <input type="text" id="s_parent" class="form-control" required>
+            </div>
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('addStudentModal')" style="margin-right: 0.5rem;">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="saveStudentBtn">Save Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allStudents = [];
+
+    async function loadStudents() {
+        const tbody = document.getElementById('studentsTableBody');
+        allStudents = await fetchData('/api/students') || [];
+        renderTable(allStudents);
+    }
+
+    function renderTable(students) {
+        const tbody = document.getElementById('studentsTableBody');
+
+        if (!students || students.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fas fa-users"></i><p>No students found.</p></td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        students.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.roll || '-'}</td>
+                <td style="font-weight: 500;">${s.name || '-'}</td>
+                <td>${s.class || '-'}</td>
+                <td>${s.phone || '-'}</td>
+                <td>${s.email || '-'}</td>
+                <td>${s.parent || '-'}</td>
+                <td>
+                    <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; margin-right: 0.2rem;" onclick="openEditStudentModal('${s.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-danger" style="padding: 0.4rem 0.8rem;" onclick="deleteStudent('${s.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function searchStudents() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allStudents.filter(s =>
+            (s.name && s.name.toLowerCase().includes(query)) ||
+            (s.roll && String(s.roll).toLowerCase().includes(query)) ||
+            (s.class && String(s.class).toLowerCase().includes(query)) ||
+            (s.email && s.email.toLowerCase().includes(query)) ||
+            (s.phone && String(s.phone).toLowerCase().includes(query))
+        );
+        renderTable(filtered);
+    }
+
+    function openAddStudentModal() {
+        document.getElementById('studentModalTitle').innerText = 'Add New Student';
+        document.getElementById('addStudentForm').reset();
+        document.getElementById('s_id').value = '';
+        showModal('addStudentModal');
+    }
+
+    function openEditStudentModal(id) {
+        const s = allStudents.find(student => student.id === id);
+        if(!s) return;
+
+        document.getElementById('studentModalTitle').innerText = 'Edit Student';
+        document.getElementById('s_id').value = s.id;
+        document.getElementById('s_name').value = s.name || '';
+        document.getElementById('s_class').value = s.class || '';
+        document.getElementById('s_roll').value = s.roll || '';
+        document.getElementById('s_phone').value = s.phone || '';
+        document.getElementById('s_email').value = s.email || '';
+        document.getElementById('s_parent').value = s.parent || '';
+
+        showModal('addStudentModal');
+    }
+
+    async function handleAddStudent(e) {
+        e.preventDefault();
+        const btn = document.getElementById('saveStudentBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner"></div>';
+
+        const s_id = document.getElementById('s_id').value;
+        const data = {
+            name: document.getElementById('s_name').value,
+            class: document.getElementById('s_class').value,
+            roll: document.getElementById('s_roll').value,
+            phone: document.getElementById('s_phone').value,
+            email: document.getElementById('s_email').value,
+            parent: document.getElementById('s_parent').value
+        };
+
+        let res;
+        if (s_id) {
+            res = await fetch(`/api/students/${s_id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(r => r.json());
+        } else {
+            res = await postData('/api/students', data);
+        }
+
+        if (res.success) {
+            showToast(s_id ? 'Student updated successfully!' : 'Student added successfully!');
+            hideModal('addStudentModal');
+            document.getElementById('addStudentForm').reset();
+            loadStudents();
+        } else {
+            showToast(res.error || 'Failed to save student', 'error');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Save Student';
+    }
+
+    async function deleteStudent(id) {
+        if(confirm('Are you sure you want to delete this student?')) {
+            const res = await deleteData(`/api/students/${id}`);
+            if(res.success) {
+                showToast('Student deleted');
+                loadStudents();
+            }
+        }
+    }
+
+    // Load on start
+    loadStudents();
+</script>
+{% endblock %}
