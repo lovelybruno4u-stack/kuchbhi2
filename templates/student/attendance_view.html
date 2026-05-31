@@ -1,64 +1,78 @@
-{% extends 'student/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}My Attendance{% endblock %}
-{% block page_title %}Attendance Record{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
 
 {% block content %}
-<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
-    <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);">Summary</h3>
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0;">
-            <div style="width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--success); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 15px;">
-                {{ "%.0f"|format(attendance_percentage) }}%
-            </div>
-            <p style="color: var(--text-secondary);">Overall Attendance</p>
-        </div>
-        <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span>Total Classes:</span> <strong>{{ total_classes }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--success);">
-                <span>Present:</span> <strong>{{ present_count }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; color: var(--danger);">
-                <span>Absent:</span> <strong>{{ absent_count }}</strong>
-            </div>
-        </div>
+<div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="glass-card" style="text-align: center;">
+        <h3 class="text-secondary text-sm">Total Classes</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color);" id="att-total">-</p>
     </div>
-
-    <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);">Recent Records</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in attendance_records %}
-                    <tr>
-                        <td>{{ record.date }}</td>
-                        <td>
-                            {% if record.status == 'Present' %}
-                            <span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">Present</span>
-                            {% else %}
-                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">Absent</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not attendance_records %}
-                    <tr>
-                        <td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-                            No attendance records found.
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+    <div class="glass-card" style="text-align: center;">
+        <h3 class="text-secondary text-sm">Attendance %</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--secondary-color);" id="att-perc">-</p>
     </div>
 </div>
+
+<div class="glass-card">
+    <h3>Attendance History</h3>
+    <div class="table-container">
+        <table id="s-att-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    async function loadAttendance() {
+        const res = await apiCall('/api/attendance');
+        if (res && res.success) {
+            const data = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            let presentCount = 0;
+            const tbody = document.querySelector('#s-att-table tbody');
+            tbody.innerHTML = '';
+
+            data.forEach(r => {
+                if(r.status.toLowerCase() === 'present') presentCount++;
+                const tr = document.createElement('tr');
+                const badgeColor = r.status.toLowerCase() === 'present' ? 'var(--secondary-color)' : 'var(--danger)';
+                tr.innerHTML = `
+                    <td>${r.date}</td>
+                    <td><span style="background: ${badgeColor}; color: white; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem;">${r.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('att-total').textContent = data.length;
+            const perc = data.length > 0 ? Math.round((presentCount / data.length) * 100) : 0;
+            document.getElementById('att-perc').textContent = perc + '%';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadAttendance);
+</script>
 {% endblock %}

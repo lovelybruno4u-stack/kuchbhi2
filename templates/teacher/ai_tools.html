@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block page_title %}AI Teacher Tools{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-2 gap-4">
+    <!-- Attendance Insights -->
+    <div class="glass-card flex" style="flex-direction: column;">
+        <h3><i class="fas fa-chart-pie" style="color: var(--primary-color);"></i> Attendance Analysis</h3>
+        <p class="text-secondary mt-1 text-sm mb-4">Analyze attendance data to find irregular students and get action suggestions.</p>
+        <button id="btn-att-analysis" class="btn btn-primary mt-auto">Run Analysis</button>
+        <div id="res-att" class="mt-4 p-4 hidden" style="background: rgba(255,255,255,0.7); border-radius: var(--radius-md); white-space: pre-wrap; font-size: 0.9rem; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card flex" style="flex-direction: column;">
+        <h3><i class="fas fa-file-alt" style="color: var(--secondary-color);"></i> Video Summary Generator</h3>
+        <p class="text-secondary mt-1 text-sm mb-2">Generate revision notes and key points for a topic.</p>
+        <input type="text" id="vid-topic" class="form-control mb-2" placeholder="Enter video topic...">
+        <button id="btn-vid-summary" class="btn btn-primary mt-auto">Generate Summary</button>
+        <div id="res-vid" class="mt-4 p-4 hidden" style="background: rgba(255,255,255,0.7); border-radius: var(--radius-md); white-space: pre-wrap; font-size: 0.9rem; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card flex" style="flex-direction: column; grid-column: span 2;">
+        <h3><i class="fas fa-question-circle" style="color: #f59e0b;"></i> Quiz Generator</h3>
+        <p class="text-secondary mt-1 text-sm mb-2">Create a 5 MCQ quiz instantly.</p>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+            <input type="text" id="quiz-sub" class="form-control" placeholder="Subject (e.g. Science)">
+            <input type="text" id="quiz-top" class="form-control" placeholder="Topic (e.g. Photosynthesis)">
+        </div>
+        <button id="btn-quiz" class="btn btn-primary">Generate Quiz</button>
+        <div id="res-quiz" class="mt-4 p-4 hidden" style="background: rgba(255,255,255,0.7); border-radius: var(--radius-md); white-space: pre-wrap; font-size: 0.9rem; border: 1px solid var(--border-color); max-height: 300px; overflow-y: auto;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    function toggleLoading(btn, isLoading, originalText) {
+        if(isLoading) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader" style="width: 16px; height: 16px; border-width: 2px;"></span>';
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // Attendance
+    document.getElementById('btn-att-analysis').addEventListener('click', async (e) => {
+        const resDiv = document.getElementById('res-att');
+        toggleLoading(e.target, true, 'Run Analysis');
+        resDiv.classList.add('hidden');
+
+        const res = await apiCall('/api/ai/attendance', 'POST', {});
+
+        toggleLoading(e.target, false, 'Run Analysis');
+        if (res && res.success) {
+            resDiv.textContent = res.analysis;
+            resDiv.classList.remove('hidden');
+        } else {
+            modal.show('Error', res?.error || 'Analysis failed', true);
+        }
+    });
+
+    // Video
+    document.getElementById('btn-vid-summary').addEventListener('click', async (e) => {
+        const topic = document.getElementById('vid-topic').value;
+        if(!topic) return modal.show('Notice', 'Enter a topic first.');
+
+        const resDiv = document.getElementById('res-vid');
+        toggleLoading(e.target, true, 'Generate Summary');
+        resDiv.classList.add('hidden');
+
+        const res = await apiCall('/api/ai/video_summary', 'POST', {topic});
+
+        toggleLoading(e.target, false, 'Generate Summary');
+        if (res && res.success) {
+            resDiv.textContent = res.summary;
+            resDiv.classList.remove('hidden');
+        } else {
+            modal.show('Error', res?.error || 'Failed', true);
+        }
+    });
+
+    // Quiz
+    document.getElementById('btn-quiz').addEventListener('click', async (e) => {
+        const subject = document.getElementById('quiz-sub').value;
+        const topic = document.getElementById('quiz-top').value;
+        if(!subject || !topic) return modal.show('Notice', 'Enter subject and topic.');
+
+        const resDiv = document.getElementById('res-quiz');
+        toggleLoading(e.target, true, 'Generate Quiz');
+        resDiv.classList.add('hidden');
+
+        const res = await apiCall('/api/ai/quiz', 'POST', {subject, topic});
+
+        toggleLoading(e.target, false, 'Generate Quiz');
+        if (res && res.success) {
+            resDiv.textContent = res.quiz;
+            resDiv.classList.remove('hidden');
+        } else {
+            modal.show('Error', res?.error || 'Failed', true);
+        }
+    });
+</script>
+{% endblock %}

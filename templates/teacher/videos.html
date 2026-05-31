@@ -1,75 +1,103 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Videos{% endblock %}
-{% block page_title %}Video Library{% endblock %}
+{% block page_title %}Daily Class Video System{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="color: var(--text-primary);"><i class="fas fa-video" style="color: var(--primary-color);"></i> Uploaded Videos</h3>
-        <button class="btn btn-primary" data-modal-target="#add-video-modal">
-            <i class="fas fa-cloud-upload-alt"></i> Upload New Video
-        </button>
-    </div>
-
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-        {% for video in videos %}
-        <div class="glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-            <div style="background-color: #f3f4f6; height: 160px; display: flex; align-items: center; justify-content: center; position: relative;">
-                <i class="fab fa-google-drive" style="font-size: 3rem; color: #34a853;"></i>
-                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
-                    {{ video.date }}
-                </div>
-            </div>
-            <div style="padding: 20px;">
-                <h4 style="margin-bottom: 8px; font-size: 1.1rem; color: var(--text-primary);">{{ video.subject }}</h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    Class lecture recording. Students can review this material.
-                </p>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <a href="{{ video.drive_link }}" target="_blank" class="btn btn-outline" style="padding: 8px 12px; font-size: 0.85rem;"><i class="fas fa-external-link-alt"></i> Open Link</a>
-                    <form action="{{ url_for('delete_video', id=video.id) }}" method="POST" onsubmit="return confirm('Delete this video?');">
-                        <button type="submit" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.85rem;"><i class="fas fa-trash"></i></button>
-                    </form>
-                </div>
-            </div>
+<div class="glass-card mb-4">
+    <h3>Add New Video</h3>
+    <form id="add-video-form" class="grid grid-cols-3 gap-2 mt-2">
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="v-date" class="form-control" required>
         </div>
-        {% endfor %}
-        {% if not videos %}
-        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
-            <i class="fas fa-film" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
-            <p>No videos uploaded yet.</p>
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="v-subject" class="form-control" required placeholder="e.g. Mathematics">
         </div>
-        {% endif %}
-    </div>
+        <div class="form-group" style="grid-column: span 3;">
+            <label>Google Drive Link</label>
+            <input type="url" id="v-link" class="form-control" required placeholder="https://drive.google.com/...">
+        </div>
+        <div class="form-group" style="grid-column: span 3;">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Video</button>
+        </div>
+    </form>
 </div>
 
-<!-- Add Video Modal -->
-<div class="modal-overlay" id="add-video-modal">
-    <div class="modal-content glass-card">
-        <div class="modal-header">
-            <h3><i class="fas fa-cloud-upload-alt" style="color: var(--primary-color);"></i> Upload Video Link</h3>
-            <button class="close-btn" data-close-button>&times;</button>
-        </div>
-        <form action="{{ url_for('add_video') }}" method="POST">
-            <div class="form-group">
-                <label>Date</label>
-                <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
-            </div>
-            <div class="form-group">
-                <label>Subject / Topic</label>
-                <input type="text" name="subject" class="form-control" placeholder="e.g. Physics - Chapter 1" required>
-            </div>
-            <div class="form-group">
-                <label>Google Drive Video Link</label>
-                <input type="url" name="drive_link" class="form-control" placeholder="https://drive.google.com/file/d/..." required>
-                <small style="color: var(--text-secondary); font-size: 0.8rem; display: block; margin-top: 5px;">Make sure the link sharing is set to 'Anyone with the link'</small>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
-                <button type="submit" class="btn btn-primary" onclick="showLoading()">Save Video</button>
-            </div>
-        </form>
+<div class="glass-card">
+    <h3>Past Videos</h3>
+    <div class="table-container">
+        <table id="videos-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    document.getElementById('v-date').valueAsDate = new Date();
+
+    async function loadVideos() {
+        const res = await apiCall('/api/videos');
+        if (res && res.success) {
+            const tbody = document.querySelector('#videos-table tbody');
+            tbody.innerHTML = '';
+            // Sort by date descending
+            const data = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+            data.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHTML(v.date)}</td>
+                    <td>${escapeHTML(v.subject)}</td>
+                    <td><a href="${escapeHTML(v.drive_link)}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">View <i class="fas fa-external-link-alt"></i></a></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    document.getElementById('add-video-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            date: document.getElementById('v-date').value,
+            subject: document.getElementById('v-subject').value,
+            drive_link: document.getElementById('v-link').value
+        };
+        const res = await apiCall('/api/videos', 'POST', data);
+        if (res && res.success) {
+            modal.show('Success', 'Video link saved successfully');
+            document.getElementById('v-subject').value = '';
+            document.getElementById('v-link').value = '';
+            loadVideos();
+        } else {
+            modal.show('Error', 'Failed to save video', true);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadVideos);
+</script>
 {% endblock %}

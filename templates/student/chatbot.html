@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block page_title %}AI Tutor & Doubt Solver{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-3 gap-4 h-full">
+
+    <!-- Quick Doubt Solver -->
+    <div class="glass-card" style="grid-column: span 1; height: 60vh; display: flex; flex-direction: column;">
+        <h3><i class="fas fa-bolt" style="color: #f59e0b;"></i> Quick Doubt</h3>
+        <p class="text-secondary text-sm mt-1 mb-4">Get a simple, student-friendly explanation or step-by-step math solution.</p>
+
+        <textarea id="doubt-input" class="form-control" rows="4" placeholder="Type your concept or math question here..."></textarea>
+        <button id="btn-doubt" class="btn btn-secondary mt-2 w-full"><i class="fas fa-magic"></i> Solve Doubt</button>
+
+        <div id="doubt-res" class="mt-4 flex-1" style="overflow-y: auto; font-size: 0.9rem; padding: 1rem; background: rgba(255,255,255,0.5); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <span class="text-secondary" style="font-style: italic;">Answer will appear here...</span>
+        </div>
+    </div>
+
+    <!-- Conversational Chatbot -->
+    <div class="glass-card" style="grid-column: span 2; height: 60vh; display: flex; flex-direction: column;">
+        <div class="flex justify-between items-center mb-2">
+            <h3><i class="fas fa-robot" style="color: var(--primary-color);"></i> Study Assistant</h3>
+            <button class="btn btn-sm" id="clear-chat" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;"><i class="fas fa-trash"></i> Clear</button>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <div class="chat-msg ai">Hello! I am your AI Study Tutor. Ask me about exam preparation, study tips, or any concepts you are struggling with.</div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="form-control" placeholder="Message your AI tutor..." onkeypress="if(event.key === 'Enter') sendChat()">
+            <button id="btn-chat" class="btn btn-primary" onclick="sendChat()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    // Doubt Solver
+    document.getElementById('btn-doubt').addEventListener('click', async (e) => {
+        const input = document.getElementById('doubt-input').value;
+        if(!input) return modal.show('Notice', 'Please type a question.');
+
+        const btn = e.target;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loader" style="width: 16px; height: 16px; border-width: 2px;"></span>';
+
+        const resDiv = document.getElementById('doubt-res');
+        resDiv.innerHTML = '<span class="loader"></span> Thinking...';
+
+        const res = await apiCall('/api/ai/doubt', 'POST', {question: input});
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-magic"></i> Solve Doubt';
+
+        if (res && res.success) {
+            resDiv.innerHTML = res.answer.replace(/\n/g, '<br>');
+        } else {
+            resDiv.innerHTML = `<span style="color: var(--danger);">${res?.error || 'Failed to resolve.'}</span>`;
+        }
+    });
+
+    // Chatbot
+    let chatHistory = [];
+    const chatContainer = document.getElementById('chat-messages');
+
+    function appendMessage(role, content) {
+        const div = document.createElement('div');
+        div.className = `chat-msg ${role}`;
+        div.innerHTML = content.replace(/\n/g, '<br>');
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    async function sendChat() {
+        const inputEl = document.getElementById('chat-input');
+        const msg = inputEl.value.trim();
+        if(!msg) return;
+
+        inputEl.value = '';
+        appendMessage('user', msg);
+
+        const btn = document.getElementById('btn-chat');
+        btn.disabled = true;
+
+        // Show typing indicator
+        const typingId = 'typing-' + Date.now();
+        const typingDiv = document.createElement('div');
+        typingDiv.id = typingId;
+        typingDiv.className = `chat-msg ai`;
+        typingDiv.innerHTML = '<span class="loader" style="width: 14px; height: 14px; border-width: 2px; border-top-color: var(--text-secondary);"></span>';
+        chatContainer.appendChild(typingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        const res = await apiCall('/api/ai/chat', 'POST', { message: msg, history: chatHistory });
+
+        document.getElementById(typingId).remove();
+        btn.disabled = false;
+
+        if (res && res.success) {
+            appendMessage('ai', res.answer);
+            chatHistory.push({role: 'user', content: msg});
+            chatHistory.push({role: 'assistant', content: res.answer});
+            // Keep history manageable
+            if(chatHistory.length > 10) chatHistory = chatHistory.slice(chatHistory.length - 10);
+        } else {
+            appendMessage('ai', '<span style="color: var(--danger);">Sorry, I encountered an error.</span>');
+        }
+    }
+
+    document.getElementById('clear-chat').addEventListener('click', () => {
+        chatHistory = [];
+        chatContainer.innerHTML = '<div class="chat-msg ai">Hello! I am your AI Study Tutor. Ask me about exam preparation, study tips, or any concepts you are struggling with.</div>';
+    });
+</script>
+{% endblock %}

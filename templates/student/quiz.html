@@ -100,6 +100,20 @@
 </div>
 
 <script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
     // Live Leaderboard Polling
     function fetchLiveLeaderboard() {
         const quizId = document.getElementById('leaderboard-quiz-select')?.value || '';

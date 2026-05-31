@@ -1,132 +1,227 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Students{% endblock %}
-{% block page_title %}Student Management{% endblock %}
+{% block page_title %}Student Management
+<div id="edit-student-modal" class="modal-overlay hidden">
+    <div class="modal-content glass-card" style="max-width: 500px; width: 90%;">
+        <h3>Edit Student</h3>
+        <form id="edit-student-form" class="grid grid-cols-2 gap-2 mt-2 text-left">
+            <input type="hidden" id="e-id">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="e-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Class</label>
+                <input type="text" id="e-class" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Roll Number</label>
+                <input type="text" id="e-roll" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="e-phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="e-email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Parent Name</label>
+                <input type="text" id="e-parent" class="form-control" required>
+            </div>
+            <div class="form-group flex justify-between mt-4" style="grid-column: span 2;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-student-modal').classList.add('hidden')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <input type="text" id="search-input" class="form-control" placeholder="Search by name or roll number..." style="width: 300px;">
+<div class="glass-card mb-4">
+    <h3>Add New Student</h3>
+    <form id="add-student-form" class="grid grid-cols-3 gap-2 mt-2">
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="s-name" class="form-control" required>
         </div>
-        <button class="btn btn-primary" data-modal-target="#add-student-modal">
-            <i class="fas fa-plus"></i> Add Student
-        </button>
-    </div>
+        <div class="form-group">
+            <label>Class</label>
+            <input type="text" id="s-class" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Roll Number</label>
+            <input type="text" id="s-roll" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="s-phone" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="s-email" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Parent Name</label>
+            <input type="text" id="s-parent" class="form-control" required>
+        </div>
+        <div class="form-group" style="grid-column: span 3;">
+            <button type="submit" class="btn btn-primary">Add Student</button>
+        </div>
+    </form>
+</div>
 
+<div class="glass-card">
+    <div class="flex justify-between items-center mb-2">
+        <h3>Student List</h3>
+        <input type="text" id="search-student" class="form-control" style="width: 250px;" placeholder="Search student...">
+    </div>
     <div class="table-container">
-        <table>
+        <table id="students-table">
             <thead>
                 <tr>
-                    <th>Roll No</th>
                     <th>Name</th>
                     <th>Class</th>
+                    <th>Roll No</th>
                     <th>Phone</th>
                     <th>Email</th>
-                    <th>Parent Name</th>
-                    <th>Password</th>
+                    <th>Parent</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {% for student in students %}
-                <tr>
-                    <td>{{ student.roll }}</td>
-                    <td style="font-weight: 500;">{{ student.name }}</td>
-                    <td>{{ student.class }}</td>
-                    <td>{{ student.phone }}</td>
-                    <td>{{ student.email }}</td>
-                    <td>{{ student.parent }}</td>
-                    <td><span style='background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem;'>{{ student.password }}</span></td>
-                    <td>
-                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-edit"></i> Edit</button>
-                        <form action="{{ url_for('delete_student', id=student.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this student?');">
-                            <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not students %}
-                <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-                        <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; color: #d1d5db;"></i>
-                        No students found. Add a new student to get started.
-                    </td>
-                </tr>
-                {% endif %}
+                <!-- Populated via JS -->
             </tbody>
         </table>
-    </div>
-</div>
-
-<!-- Add Student Modal -->
-<div class="modal-overlay" id="add-student-modal">
-    <div class="modal-content glass-card">
-        <div class="modal-header">
-            <h3><i class="fas fa-user-plus" style="color: var(--primary-color);"></i> Add New Student</h3>
-            <button class="close-btn" data-close-button>&times;</button>
-        </div>
-        <form action="{{ url_for('add_student') }}" method="POST">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" name="name" class="form-control" required>
-            </div>
-            <div style="display: flex; gap: 15px;">
-                <div class="form-group" style="flex: 1;">
-                    <label>Class/Grade</label>
-                    <input type="text" name="student_class" class="form-control" required>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                    <label>Roll Number</label>
-                    <input type="text" name="roll" class="form-control" required>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" name="phone" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Parent's Name</label>
-                <input type="text" name="parent" class="form-control">
-            </div>
-            <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
-                <label style="color: var(--primary-color);"><i class="fas fa-key"></i> Student Password</label>
-                <input type="text" name="password" class="form-control" placeholder="Set initial password for student login" required>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
-                <button type="submit" class="btn btn-primary" onclick="showLoading()">Save Student</button>
-            </div>
-        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Simple client-side search
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const filter = this.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
 
-            rows.forEach(row => {
-                if (row.cells.length > 1) { // Skip empty state row
-                    const name = row.cells[1].textContent.toLowerCase();
-                    const roll = row.cells[0].textContent.toLowerCase();
-                    if (name.includes(filter) || roll.includes(filter)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                }
-            });
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    let allStudents = [];
+
+    async function loadStudents() {
+        const res = await apiCall('/api/students');
+        if (res && res.success) {
+            allStudents = res.data;
+            renderStudents(allStudents);
+        }
+    }
+
+    function renderStudents(data) {
+        const tbody = document.querySelector('#students-table tbody');
+        tbody.innerHTML = '';
+        data.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escapeHTML(s.name)}</td>
+                <td>${escapeHTML(s.class)}</td>
+                <td>${escapeHTML(s.roll)}</td>
+                <td>${escapeHTML(s.phone)}</td>
+                <td>${escapeHTML(s.email)}</td>
+                <td>${escapeHTML(s.parent)}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
     }
+
+    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('s-name').value,
+            class: document.getElementById('s-class').value,
+            roll: document.getElementById('s-roll').value,
+            phone: document.getElementById('s-phone').value,
+            email: document.getElementById('s-email').value,
+            parent: document.getElementById('s-parent').value
+        };
+        const res = await apiCall('/api/students', 'POST', data);
+        if (res && res.success) {
+            modal.show('Success', 'Student added successfully');
+            e.target.reset();
+            loadStudents();
+        } else {
+            modal.show('Error', res.message || 'Failed to add student', true);
+        }
+    });
+
+    document.getElementById('search-student').addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase();
+        const filtered = allStudents.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            s.roll.toString().includes(q) ||
+            s.class.toLowerCase().includes(q)
+        );
+        renderStudents(filtered);
+    });
+
+    async function deleteStudent(id) {
+        if(confirm("Are you sure? Note: Native confirm used minimally, custom modal for alerts.")) {
+            const res = await apiCall(`/api/students/${id}`, 'DELETE');
+            if(res && res.success) {
+                loadStudents();
+            } else {
+                modal.show('Error', 'Failed to delete', true);
+            }
+        }
+    }
+
+
+    function openEditStudent(id) {
+        const s = allStudents.find(x => x.id === id);
+        if(!s) return;
+        document.getElementById('e-id').value = s.id;
+        document.getElementById('e-name').value = s.name;
+        document.getElementById('e-class').value = s.class;
+        document.getElementById('e-roll').value = s.roll;
+        document.getElementById('e-phone').value = s.phone;
+        document.getElementById('e-email').value = s.email;
+        document.getElementById('e-parent').value = s.parent;
+        document.getElementById('edit-student-modal').classList.remove('hidden');
+    }
+
+    document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('e-id').value;
+        const data = {
+            name: document.getElementById('e-name').value,
+            class: document.getElementById('e-class').value,
+            roll: document.getElementById('e-roll').value,
+            phone: document.getElementById('e-phone').value,
+            email: document.getElementById('e-email').value,
+            parent: document.getElementById('e-parent').value
+        };
+        const res = await apiCall(`/api/students/${id}`, 'PUT', data);
+        if (res && res.success) {
+            document.getElementById('edit-student-modal').classList.add('hidden');
+            modal.show('Success', 'Student updated successfully');
+            loadStudents();
+        } else {
+            modal.show('Error', res.message || 'Failed to update student', true);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadStudents);
 </script>
 {% endblock %}

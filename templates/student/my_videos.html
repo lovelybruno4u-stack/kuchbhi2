@@ -1,86 +1,87 @@
-{% extends 'student/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}My Videos{% endblock %}
-{% block page_title %}Class Recordings{% endblock %}
+{% block page_title %}My Videos{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="margin-bottom: 24px;">
-    <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-play-circle" style="color: var(--primary-color);"></i> Recent Lectures</h3>
-
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-        {% for video in videos %}
-        <div class="glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-            <div style="background-color: #f3f4f6; height: 160px; display: flex; align-items: center; justify-content: center; position: relative;">
-                <i class="fab fa-youtube" style="font-size: 3rem; color: #ff0000;"></i>
-                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
-                    {{ video.date }}
-                </div>
-                {% if video.subject in completed_video_subjects %}
-                <div style="position: absolute; top: 10px; right: 10px; background: var(--success); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                    <i class="fas fa-check-circle"></i> Completed
-                </div>
-                {% endif %}
-            </div>
-            <div style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1;">
-                <h4 style="margin-bottom: 8px; font-size: 1.1rem; color: var(--text-primary);">{{ video.subject }}</h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px; flex-grow: 1;">
-                    Review this lecture to clear your concepts and earn points!
-                </p>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <a href="{{ video.drive_link }}" target="_blank" class="btn btn-outline" style="width: 100%;"><i class="fas fa-external-link-alt"></i> Watch Video</a>
-                    {% if video.subject not in completed_video_subjects %}
-                    <button class="btn btn-primary complete-btn" data-video-id="{{ video.id }}" data-subject="{{ video.subject }}" data-date="{{ video.date }}" style="width: 100%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="fas fa-check"></i> Mark as Completed</button>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-        {% if not videos %}
-        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
-            <i class="fas fa-film" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
-            <p>No class recordings available yet.</p>
-        </div>
-        {% endif %}
+<div class="glass-card mb-4">
+    <h3>Today's Video</h3>
+    <div id="today-video" class="mt-2 p-4" style="background: rgba(255,255,255,0.5); border-radius: var(--radius-md); text-align: center;">
+        <span class="loader"></span>
     </div>
 </div>
 
+<div class="glass-card">
+    <h3>Past Videos</h3>
+    <div class="table-container">
+        <table id="s-videos-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-document.querySelectorAll('.complete-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        if (!confirm("Wait... are you absolutely sure you watched the whole thing? Be truthful! 🤨 The system knows... just kidding, but your conscience does!")) {
-            return;
-        }
 
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        this.disabled = true;
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
 
-        const videoId = this.dataset.videoId;
-        const subject = this.dataset.subject;
-        const videoDate = this.dataset.date;
+    async function loadVideos() {
+        const res = await apiCall('/api/videos');
+        if (res && res.success) {
+            const data = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const todayStr = new Date().toISOString().split('T')[0];
 
-        try {
-            const response = await fetch('/api/student/mark_video_complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ video_id: videoId, subject: subject, video_date: videoDate })
-            });
-            const data = await response.json();
+            const todayVidContainer = document.getElementById('today-video');
+            const todayVids = data.filter(v => v.date === todayStr);
 
-            if (data.success) {
-                showToast(`Video marked completed! You earned +${data.points_earned} points!`);
-                location.reload();
+            if (todayVids.length > 0) {
+                todayVidContainer.innerHTML = '';
+                todayVids.forEach(v => {
+                    todayVidContainer.innerHTML += `
+                        <div class="mb-2">
+                            <span style="font-weight: 500;">${escapeHTML(v.subject)}</span>
+                            <a href="${escapeHTML(v.drive_link)}" target="_blank" class="btn btn-primary" style="margin-left: 1rem;"><i class="fas fa-play"></i> Watch Now</a>
+                        </div>
+                    `;
+                });
             } else {
-                showToast('Error saving completion.');
-                this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
-                this.disabled = false;
+                todayVidContainer.innerHTML = '<p class="text-secondary">No videos posted for today yet.</p>';
             }
-        } catch (e) {
-            console.error(e);
-            showToast('Network error.');
-            this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
-            this.disabled = false;
+
+            const tbody = document.querySelector('#s-videos-table tbody');
+            tbody.innerHTML = '';
+            const pastVids = data.filter(v => v.date !== todayStr);
+            pastVids.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHTML(v.date)}</td>
+                    <td>${escapeHTML(v.subject)}</td>
+                    <td><a href="${escapeHTML(v.drive_link)}" target="_blank" class="btn btn-secondary btn-sm"><i class="fas fa-external-link-alt"></i> View</a></td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
-    });
-});
+    }
+    document.addEventListener('DOMContentLoaded', loadVideos);
 </script>
 {% endblock %}
