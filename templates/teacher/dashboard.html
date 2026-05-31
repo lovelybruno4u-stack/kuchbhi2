@@ -1,66 +1,72 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Dashboard{% endblock %}
-{% block page_title %}Overview{% endblock %}
+{% block page_title %}Teacher Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard-grid">
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-            <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Students</h3>
-            <p>{{ stats.total_students }}</p>
-        </div>
+<div class="grid grid-cols-4 gap-2 mb-4">
+    <div class="glass-card">
+        <h3><i class="fas fa-users" style="color: var(--primary-color)"></i> Total Students</h3>
+        <p class="mt-1" style="font-size: 1.5rem; font-weight: bold;" id="dash-students">Loading...</p>
     </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-calendar-check"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Today's Present</h3>
-            <p>{{ stats.today_attendance }}</p>
-        </div>
+    <div class="glass-card">
+        <h3><i class="fas fa-calendar-check" style="color: var(--secondary-color)"></i> Today's Attendance</h3>
+        <p class="mt-1" style="font-size: 1.5rem; font-weight: bold;" id="dash-attendance">Loading...</p>
     </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">
-            <i class="fas fa-user-minus"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Lowest Attendance</h3>
-            <p style="font-size: 1.1rem;">{{ stats.lowest_attendance }}</p>
-        </div>
+    <div class="glass-card">
+        <h3><i class="fas fa-video" style="color: #f59e0b"></i> Total Videos</h3>
+        <p class="mt-1" style="font-size: 1.5rem; font-weight: bold;" id="dash-videos">Loading...</p>
     </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-user-plus"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Highest Attendance</h3>
-            <p style="font-size: 1.1rem;">{{ stats.highest_attendance }}</p>
-        </div>
-    </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-            <i class="fas fa-video"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Latest Video</h3>
-            <p style="font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{{ stats.latest_video }}</p>
-        </div>
+    <div class="glass-card">
+        <h3><i class="fas fa-bullhorn" style="color: #ec4899"></i> Announcements</h3>
+        <p class="mt-1" style="font-size: 1.5rem; font-weight: bold;" id="dash-announcements">Loading...</p>
     </div>
 </div>
 
-<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+<div class="grid grid-cols-2 gap-2">
     <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-bolt" style="color: var(--warning);"></i> Quick Actions</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="{{ url_for('teacher_students') }}" class="btn btn-primary" style="justify-content: flex-start;"><i class="fas fa-user-plus"></i> Add Student</a>
-            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-clipboard-check"></i> Mark Attendance</a>
-            <a href="{{ url_for('teacher_videos') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-cloud-upload-alt"></i> Upload Video</a>
-            <a href="{{ url_for('teacher_announcements') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-bullhorn"></i> New Announcement</a>
+        <h3>Quick Actions</h3>
+        <div class="mt-2 flex gap-2" style="flex-wrap: wrap;">
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-primary"><i class="fas fa-user-plus"></i> Add Student</a>
+            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-secondary"><i class="fas fa-check"></i> Mark Attendance</a>
+            <a href="{{ url_for('teacher_announcements') }}" class="btn btn-primary"><i class="fas fa-bullhorn"></i> New Announcement</a>
         </div>
     </div>
+    <div class="glass-card">
+        <h3>Recent Activity</h3>
+        <p class="text-secondary mt-1">Dashboard summary initialized.</p>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Fetch stats
+    const [students, videos, announcements] = await Promise.all([
+        apiCall('/api/students'),
+        apiCall('/api/videos'),
+        apiCall('/api/announcements')
+    ]);
+
+    if(students && students.success) document.getElementById('dash-students').textContent = students.data.length;
+    if(videos && videos.success) document.getElementById('dash-videos').textContent = videos.data.length;
+    if(announcements && announcements.success) document.getElementById('dash-announcements').textContent = announcements.data.length;
+
+    document.getElementById('dash-attendance').textContent = "Pending"; // Need today's date filter logic
+});
+</script>
 {% endblock %}

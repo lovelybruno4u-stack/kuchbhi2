@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app-container">
+        {% if session.get('user_role') %}
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Aswathama</h2>
+                    <p class="role-badge">{{ session.get('user_role').capitalize() }}</p>
+                </div>
+                <nav class="sidebar-nav">
+                    {% if session.get('user_role') == 'teacher' %}
+                        <a href="{{ url_for('teacher_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+                        <a href="{{ url_for('teacher_students') }}" class="nav-link"><i class="fas fa-users"></i> Students</a>
+                        <a href="{{ url_for('teacher_attendance') }}" class="nav-link"><i class="fas fa-calendar-check"></i> Attendance</a>
+                        <a href="{{ url_for('teacher_videos') }}" class="nav-link"><i class="fas fa-video"></i> Videos</a>
+                        <a href="{{ url_for('teacher_subjects') }}" class="nav-link"><i class="fas fa-book"></i> Subjects</a>
+                        <a href="{{ url_for('teacher_announcements') }}" class="nav-link"><i class="fas fa-bullhorn"></i> Announcements</a>
+                        <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link"><i class="fas fa-robot"></i> AI Tools</a>
+                    {% elif session.get('user_role') == 'student' %}
+                        <a href="{{ url_for('student_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+                        <a href="{{ url_for('student_my_videos') }}" class="nav-link"><i class="fas fa-video"></i> My Videos</a>
+                        <a href="{{ url_for('student_attendance_view') }}" class="nav-link"><i class="fas fa-calendar-check"></i> Attendance</a>
+                        <a href="{{ url_for('student_chatbot') }}" class="nav-link"><i class="fas fa-comments"></i> AI Tutor</a>
+                        <a href="{{ url_for('student_announcements_view') }}" class="nav-link"><i class="fas fa-bullhorn"></i> Announcements</a>
+                    {% endif %}
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <span class="user-name">{{ session.get('user_name') }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </aside>
+        {% endif %}
+
+        <main class="main-content">
+            <header class="top-navbar">
+                <button class="mobile-toggle" id="mobile-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            </header>
+
+            <div class="content-wrapper">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Custom Modal Structure -->
+    <div id="custom-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-card">
+            <h3 id="modal-title"></h3>
+            <p id="modal-message"></p>
+            <div class="modal-actions">
+                <button id="modal-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

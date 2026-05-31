@@ -61,6 +61,20 @@
 </div>
 
 <script>
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
     document.querySelectorAll('.dpp-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const statusText = this.nextElementSibling;

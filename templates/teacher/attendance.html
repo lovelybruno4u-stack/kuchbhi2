@@ -1,26 +1,18 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Attendance{% endblock %}
-{% block page_title %}Mark Attendance{% endblock %}
+{% block page_title %}Attendance System{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <input type="date" id="attendance-date" class="form-control" style="width: 200px;" value="{{ current_date }}">
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button type="button" onclick="shareAbsentees()" class="btn" style="background-color: #25D366; color: white; border: none;">
-                <i class="fab fa-whatsapp"></i> Share Absentees
-            </button>
-            <button class="btn btn-primary" onclick="saveAttendance()">
-                <i class="fas fa-save"></i> Save Attendance
-            </button>
-        </div>
+<div class="glass-card mb-4">
+    <h3>Mark Daily Attendance</h3>
+    <div class="flex gap-2 mt-2 items-center mb-4">
+        <label for="att-date" style="font-weight: 500;">Select Date:</label>
+        <input type="date" id="att-date" class="form-control" style="width: auto;">
+        <button id="load-att-btn" class="btn btn-secondary">Load Students</button>
     </div>
 
-    <div class="table-container">
-        <table>
+    <div class="table-container" id="att-table-container" style="display: none;">
+        <table id="attendance-table">
             <thead>
                 <tr>
                     <th>Roll No</th>
@@ -30,109 +22,82 @@
                 </tr>
             </thead>
             <tbody>
-                {% for student in students %}
-                <tr>
-                    <td>{{ student.roll }}</td>
-                    <td style="font-weight: 500;">{{ student.name }}</td>
-                    <td>{{ student.class }}</td>
-                    <td>
-                        <div class="attendance-toggle" data-student-id="{{ student.id }}">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" class="attendance-checkbox" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--success);" checked>
-                                <span style="margin-left: 10px; font-weight: 500; color: var(--success);" class="status-text">Present</span>
-                            </label>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not students %}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-                        No students to mark attendance for. Add students first.
-                    </td>
-                </tr>
-                {% endif %}
+                <!-- Populated via JS -->
             </tbody>
         </table>
+        <div class="mt-4 flex justify-end">
+            <button id="save-att-btn" class="btn btn-primary"><i class="fas fa-save"></i> Save Attendance</button>
+        </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    document.querySelectorAll('.attendance-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const statusText = this.nextElementSibling;
-            if (this.checked) {
-                statusText.textContent = 'Present';
-                statusText.style.color = 'var(--success)';
-            } else {
-                statusText.textContent = 'Absent';
-                statusText.style.color = 'var(--danger)';
-            }
-        });
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    let currentStudents = [];
+
+    // Set today's date
+    document.getElementById('att-date').valueAsDate = new Date();
+
+    document.getElementById('load-att-btn').addEventListener('click', async () => {
+        const res = await apiCall('/api/students');
+        if (res && res.success) {
+            currentStudents = res.data;
+            const tbody = document.querySelector('#attendance-table tbody');
+            tbody.innerHTML = '';
+
+            // Note: In a real app we'd fetch existing attendance for the date and pre-fill.
+            currentStudents.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${escapeHTML(s.roll)}</td>
+                    <td>${escapeHTML(s.name)}</td>
+                    <td>${escapeHTML(s.class)}</td>
+                    <td>
+                        <select class="form-control att-status" data-sid="${s.id}">
+                            <option value="Present">Present</option>
+                            <option value="Absent">Absent</option>
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('att-table-container').style.display = 'block';
+        }
     });
 
-    function shareAbsentees() {
-        const date = document.getElementById('attendance-date').value;
-        const absentees = [];
+    document.getElementById('save-att-btn').addEventListener('click', async () => {
+        const date = document.getElementById('att-date').value;
+        const selects = document.querySelectorAll('.att-status');
+        const records = [];
 
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            if(row.cells.length > 1) { // Skip empty state row
-                const name = row.cells[1].textContent.trim();
-                const checkbox = row.querySelector('.attendance-checkbox');
-                if (checkbox && !checkbox.checked) {
-                    absentees.push(name);
-                }
-            }
+        selects.forEach(sel => {
+            records.push({
+                student_id: sel.getAttribute('data-sid'),
+                status: sel.value
+            });
         });
 
-        let text = "Ashwathama Classes:\n\nToday's Absentees (" + date + "):\n";
-        if (absentees.length > 0) {
-            absentees.forEach((name, idx) => {
-                text += (idx + 1) + ". " + name + "\n";
-            });
+        const res = await apiCall('/api/attendance', 'POST', { date, records });
+        if (res && res.success) {
+            modal.show('Success', 'Attendance saved to Google Sheets successfully.');
         } else {
-            text += "No absentees today!\n";
+            modal.show('Error', res.message || 'Failed to save attendance', true);
         }
-
-        const url = "https://wa.me/?text=" + encodeURIComponent(text);
-        window.open(url, '_blank');
-    }
-
-    async function saveAttendance() {
-        showLoading();
-        const date = document.getElementById('attendance-date').value;
-        const attendanceData = [];
-
-        document.querySelectorAll('.attendance-toggle').forEach(toggle => {
-            const studentId = toggle.getAttribute('data-student-id');
-            const isPresent = toggle.querySelector('.attendance-checkbox').checked;
-            attendanceData.push({
-                student_id: studentId,
-                status: isPresent ? 'Present' : 'Absent'
-            });
-        });
-
-        try {
-            const response = await fetch('/api/teacher/attendance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ date: date, records: attendanceData })
-            });
-
-            if (response.ok) {
-                showToast('Attendance saved successfully!');
-            } else {
-                showToast('Failed to save attendance. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error saving attendance:', error);
-            showToast('An error occurred.');
-        } finally {
-            hideLoading();
-        }
-    }
+    });
 </script>
 {% endblock %}
