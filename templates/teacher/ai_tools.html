@@ -1,0 +1,175 @@
+{% extends "teacher/base.html" %}
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Educational Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
+
+    <!-- AI Attendance Analysis -->
+    <div class="card glass-card">
+        <h3><i class="fas fa-chart-bar text-primary"></i> AI Attendance Analysis</h3>
+        <p class="text-secondary" style="margin-bottom: 15px; font-size: 0.9rem;">Analyze recent attendance data to find irregular students and get actionable insights.</p>
+        <button id="btn-analyze-attendance" class="btn btn-primary" style="width: 100%;">
+            <i class="fas fa-magic"></i> Generate Insights
+        </button>
+        <div id="attendance-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- AI Quiz Generator -->
+    <div class="card glass-card">
+        <h3><i class="fas fa-brain text-success"></i> AI Quiz Generator</h3>
+        <p class="text-secondary" style="margin-bottom: 15px; font-size: 0.9rem;">Quickly generate 5 MCQ questions for any subject and topic.</p>
+        <div class="form-group">
+            <input type="text" id="quiz-subject" class="form-control" placeholder="Subject (e.g. Physics)" style="margin-bottom: 10px;">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Topic (e.g. Thermodynamics)">
+        </div>
+        <button id="btn-generate-quiz" class="btn btn-success" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-bolt"></i> Generate Quiz
+        </button>
+        <div id="quiz-result" style="margin-top: 15px; display: none; background: #f0fdf4; padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid #bbf7d0;"></div>
+    </div>
+
+    <!-- AI Announcement Writer -->
+    <div class="card glass-card">
+        <h3><i class="fas fa-bullhorn text-warning"></i> AI Announcement Writer</h3>
+        <p class="text-secondary" style="margin-bottom: 15px; font-size: 0.9rem;">Draft professional announcements effortlessly.</p>
+        <div class="form-group">
+            <textarea id="announcement-topic" class="form-control" rows="2" placeholder="What is the announcement about? (e.g. Holiday tomorrow due to heavy rain)"></textarea>
+        </div>
+        <button id="btn-generate-announcement" class="btn btn-warning" style="width: 100%; margin-top: 10px; color: white;">
+            <i class="fas fa-pen-fancy"></i> Draft Announcement
+        </button>
+        <div id="announcement-result" style="margin-top: 15px; display: none; background: #fffbeb; padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid #fef3c7;"></div>
+    </div>
+
+    <!-- AI Video Summarizer -->
+    <div class="card glass-card">
+        <h3><i class="fas fa-video text-danger"></i> AI Video Summarizer</h3>
+        <p class="text-secondary" style="margin-bottom: 15px; font-size: 0.9rem;">Generate quick revision notes based on a class topic.</p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="Class Topic (e.g. Introduction to Cell Biology)">
+        </div>
+        <button id="btn-generate-summary" class="btn btn-danger" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-file-alt"></i> Generate Notes
+        </button>
+        <div id="summary-result" style="margin-top: 15px; display: none; background: #fef2f2; padding: 15px; border-radius: 8px; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid #fecaca;"></div>
+    </div>
+
+</div>
+
+<!-- Result Modal -->
+<div id="ai-modal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2 id="modal-title">AI Result</h2>
+            <span class="close-modal" onclick="closeAiModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+            <div id="modal-content" style="white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem;"></div>
+        </div>
+        <div class="modal-footer" style="margin-top: 20px; text-align: right;">
+            <button class="btn btn-primary" onclick="copyAiResult()">
+                <i class="fas fa-copy"></i> Copy to Clipboard
+            </button>
+            <button class="btn btn-secondary" onclick="closeAiModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showGlobalLoader() {
+        document.getElementById('global-loader').style.display = 'flex';
+    }
+
+    function hideGlobalLoader() {
+        document.getElementById('global-loader').style.display = 'none';
+    }
+
+    function showAiResult(title, content, targetElementId) {
+        // Show inline
+        const el = document.getElementById(targetElementId);
+        if(el) {
+            el.innerHTML = content;
+            el.style.display = 'block';
+        }
+
+        // Show in Modal
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-content').innerText = content;
+        document.getElementById('ai-modal').style.display = 'flex';
+        showToast(title + ' Generated!', 'success');
+    }
+
+    function closeAiModal() {
+        document.getElementById('ai-modal').style.display = 'none';
+    }
+
+    function copyAiResult() {
+        const text = document.getElementById('modal-content').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!', 'success');
+        }).catch(err => {
+            showToast('Failed to copy', 'error');
+        });
+    }
+
+    // Call API Helper
+    async function callAiApi(endpoint, payload, title, targetElementId) {
+        showGlobalLoader();
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showAiResult(title, data.result, targetElementId);
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        } catch (error) {
+            showToast('Connection error. Please try again.', 'error');
+            console.error(error);
+        } finally {
+            hideGlobalLoader();
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('btn-analyze-attendance').addEventListener('click', () => {
+        callAiApi('/api/ai/attendance', {}, 'Attendance Insights', 'attendance-result');
+    });
+
+    document.getElementById('btn-generate-quiz').addEventListener('click', () => {
+        const subject = document.getElementById('quiz-subject').value.trim();
+        const topic = document.getElementById('quiz-topic').value.trim();
+        if (!subject || !topic) {
+            showToast('Please enter both subject and topic.', 'warning');
+            return;
+        }
+        callAiApi('/api/ai/quiz', { subject, topic }, 'Quiz Generated', 'quiz-result');
+    });
+
+    document.getElementById('btn-generate-announcement').addEventListener('click', () => {
+        const topic = document.getElementById('announcement-topic').value.trim();
+        if (!topic) {
+            showToast('Please enter what the announcement is about.', 'warning');
+            return;
+        }
+        callAiApi('/api/ai/announcement', { topic }, 'Draft Announcement', 'announcement-result');
+    });
+
+    document.getElementById('btn-generate-summary').addEventListener('click', () => {
+        const topic = document.getElementById('video-topic').value.trim();
+        if (!topic) {
+            showToast('Please enter the class topic.', 'warning');
+            return;
+        }
+        callAiApi('/api/ai/summary', { topic }, 'Revision Notes', 'summary-result');
+    });
+</script>
+{% endblock %}

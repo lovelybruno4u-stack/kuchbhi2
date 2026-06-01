@@ -1,0 +1,7 @@
+[2026-06-01 02:57:45 +0000] [121496] [INFO] Worker (pid:121753) was sent SIGTERM!
+[2026-06-01 02:57:45 +0000] [121496] [INFO] Shutting down: Master
+[2026-06-01 02:57:45 +0000] [187523] [INFO] Starting gunicorn 26.0.0
+[2026-06-01 02:57:45 +0000] [187523] [INFO] Listening at: http://127.0.0.1:5000 (187523)
+[2026-06-01 02:57:45 +0000] [187523] [INFO] Using worker: sync
+[2026-06-01 02:57:45 +0000] [187799] [INFO] Booting worker with pid: 187799
+[2026-06-01 02:57:45 +0000] [187523] [INFO] Control socket listening at /home/jules/.gunicorn/gunicorn.ctl
