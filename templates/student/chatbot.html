@@ -1,0 +1,138 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Assistant{% endblock %}
+{% block page_title %}AI Study Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr;">
+
+    <!-- Chat Interface -->
+    <div class="glass-card" style="display: flex; flex-direction: column; height: 600px;">
+        <div style="padding: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0;"><i class="fas fa-robot" style="color: var(--primary-color);"></i> AI Tutor & Doubt Solver</h3>
+            <span style="font-size: 0.8rem; color: var(--text-secondary); background: rgba(0,0,0,0.05); padding: 4px 10px; border-radius: 12px;">Powered by AI</span>
+        </div>
+
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+            <div style="align-self: flex-start; max-width: 80%; background: var(--bg-color); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+                <p style="margin: 0; color: var(--text-primary); font-size: 0.95rem;">Hello! I'm your AI tutor. You can ask me to solve a specific doubt, or chat with me for study tips and exam preparation. How can I help you today?</p>
+            </div>
+        </div>
+
+        <div style="padding: 20px; border-top: 1px solid rgba(0,0,0,0.05);">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="chat-input" class="form-control" placeholder="Type your message or doubt here..." style="flex: 1; border-radius: 24px;" onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button class="btn btn-primary" onclick="sendMessage()" style="border-radius: 24px; width: 48px; height: 48px; padding: 0; display: flex; justify-content: center; align-items: center;" title="Send Message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button class="btn btn-outline" onclick="solveDoubt()" style="border-radius: 24px; padding: 0 20px;" title="Solve Specific Doubt">
+                    <i class="fas fa-bolt"></i> Solve Doubt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let chatHistory = [];
+
+    function appendMessage(sender, text) {
+        const messagesDiv = document.getElementById('chat-messages');
+        const msgDiv = document.createElement('div');
+
+        if(sender === 'user') {
+            msgDiv.style.cssText = "align-self: flex-end; max-width: 80%; background: var(--primary-color); color: white; padding: 12px 16px; border-radius: 16px; border-top-right-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);";
+            msgDiv.innerHTML = `<p style="margin: 0; font-size: 0.95rem;">${text}</p>`;
+        } else if (sender === 'ai') {
+            msgDiv.style.cssText = "align-self: flex-start; max-width: 80%; background: var(--bg-color); padding: 12px 16px; border-radius: 16px; border-top-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);";
+            // Convert simple markdown or newlines if necessary, keep it safe
+            const formattedText = text.replace(/\n/g, '<br>');
+            msgDiv.innerHTML = `<p style="margin: 0; color: var(--text-primary); font-size: 0.95rem;">${formattedText}</p>`;
+        } else {
+             // typing indicator
+             msgDiv.id = 'typing-indicator';
+             msgDiv.style.cssText = "align-self: flex-start; background: transparent; padding: 10px; color: var(--text-secondary);";
+             msgDiv.innerHTML = `<i class="fas fa-ellipsis-h fa-fade"></i> AI is thinking...`;
+        }
+
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if(indicator) indicator.remove();
+    }
+
+    async function sendMessage() {
+        const inputField = document.getElementById('chat-input');
+        const text = inputField.value.trim();
+        if(!text) return;
+
+        inputField.value = '';
+        appendMessage('user', text);
+        chatHistory.push({ role: 'user', content: text });
+
+        appendMessage('system', ''); // Typing...
+
+        try {
+            const response = await fetch('/api/ai/chatbot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: chatHistory })
+            });
+            const data = await response.json();
+
+            removeTypingIndicator();
+
+            if (data.success) {
+                appendMessage('ai', data.answer);
+                chatHistory.push({ role: 'assistant', content: data.answer });
+            } else {
+                appendMessage('ai', "Error: " + data.error);
+            }
+        } catch (e) {
+            removeTypingIndicator();
+            appendMessage('ai', "Failed to connect to AI server.");
+        }
+    }
+
+    async function solveDoubt() {
+        const inputField = document.getElementById('chat-input');
+        const text = inputField.value.trim();
+        if(!text) {
+             alert('Please type your doubt first.');
+             return;
+        }
+
+        inputField.value = '';
+        appendMessage('user', `[Doubt]: ${text}`);
+        appendMessage('system', ''); // Typing...
+
+        try {
+            const response = await fetch('/api/ai/doubt_solver', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: text })
+            });
+            const data = await response.json();
+
+            removeTypingIndicator();
+
+            if (data.success) {
+                appendMessage('ai', data.answer);
+                // We don't necessarily push doubt solver interactions into the chat history for context, but we can.
+                chatHistory.push({ role: 'user', content: `[Doubt]: ${text}` });
+                chatHistory.push({ role: 'assistant', content: data.answer });
+            } else {
+                appendMessage('ai', "Error: " + data.error);
+            }
+        } catch (e) {
+            removeTypingIndicator();
+            appendMessage('ai', "Failed to connect to AI server.");
+        }
+    }
+</script>
+{% endblock %}
