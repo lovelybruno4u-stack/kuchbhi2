@@ -11,6 +11,12 @@ from datetime import datetime
 load_dotenv()
 
 
+from openai import OpenAI
+import os
+
+openai_api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=openai_api_key) if openai_api_key else None
+
 from datetime import timedelta
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key_for_dev')
@@ -796,6 +802,11 @@ def delete_subject(id):
     flash('Subject deleted!', 'success')
     return redirect(url_for('teacher_subjects'))
 
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
 @app.route('/teacher/announcements')
 @login_required(role='teacher')
 def teacher_announcements():
@@ -827,16 +838,147 @@ def delete_announcement(id):
 
 
 # --- API Endpoints for AI Features (Teacher) ---
+@app.route('/api/ai/attendance', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
 
+    data = request.json
+    attendance_data = data.get('attendance_data')
 
+    if attendance_data == "Fetch from DB in backend or pass here.":
+        # Fetch actual attendance data if placeholder was passed
+        raw_attendance = get_data('ATTENDANCE_V2')
+        students = get_data('students')
+        student_map = {str(s.get('id')): s.get('name', 'Unknown') for s in students}
 
+        # Build simple dict mapping name -> present count
+        from collections import defaultdict
+        student_counts = defaultdict(int)
+        for a in raw_attendance:
+            sid = str(a.get('student_id'))
+            name = student_map.get(sid, 'Unknown')
+            if str(a.get('status')) in ['1', 'Present']:
+                student_counts[name] += 1
 
+        attendance_data = dict(student_counts)
 
+    if not attendance_data:
+        return jsonify({'success': False, 'error': 'Attendance data is required.'}), 400
 
+    prompt = "Analyze attendance data and provide insights. Which students are irregular? What is the overall attendance percentage? Suggest actions."
 
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": str(attendance_data)}
+            ]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def ai_video_summary():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
 
+    data = request.json
+    topic = data.get('topic')
 
+    if not topic:
+        return jsonify({'success': False, 'error': 'Video topic is required.'}), 400
+
+    prompt = "Generate summary notes for revision for the following video topic. Include summary and key points."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": topic}
+            ]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
+
+    data = request.json
+    subject = data.get('subject')
+    topic = data.get('topic')
+
+    if not subject or not topic:
+        return jsonify({'success': False, 'error': 'Subject and topic are required.'}), 400
+
+    prompt = "Generate 5 MCQ questions with answers for the given subject and topic. Return the result strictly in valid JSON array format, where each object has 'question', 'option1', 'option2', 'option3', 'option4', and 'answer'. Do not wrap the JSON in Markdown code blocks like ```json."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Subject: {subject}\nTopic: {topic}"}
+            ]
+        )
+
+        answer = response.choices[0].message.content.strip()
+        # Clean up in case it contains markdown formatting
+        if answer.startswith("```json"):
+            answer = answer[7:]
+        if answer.startswith("```"):
+            answer = answer[3:]
+        if answer.endswith("```"):
+            answer = answer[:-3]
+
+        try:
+            questions = json.loads(answer)
+            return jsonify({'success': True, 'questions': questions})
+        except json.JSONDecodeError:
+            # e.pos tells you where valid JSON ended
+            # data = json.loads(text[:e.pos])
+            return jsonify({'success': False, 'error': 'AI did not return valid JSON format.'}), 500
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
+
+    data = request.json
+    prompt_text = data.get('prompt')
+
+    if not prompt_text:
+        return jsonify({'success': False, 'error': 'Prompt is required.'}), 400
+
+    prompt = "Write a professional coaching class announcement."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": prompt_text}
+            ]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'announcement': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # --- Student Routes (Stubs for now) ---
 @app.route('/old_student_dashboard')
@@ -854,9 +996,9 @@ def old_student_my_videos():
 def old_student_attendance_view():
     return render_template('student/attendance_view.html')
 
-@app.route('/old_student_chatbot')
+@app.route('/student/chatbot')
 @login_required(role='student')
-def old_student_chatbot():
+def student_chatbot():
     return render_template('student/chatbot.html')
 
 @app.route('/old_student_announcements')
@@ -1108,9 +1250,61 @@ def student_announcements_view():
 
 
 # --- API Endpoints for AI Features (Student) ---
+@app.route('/api/ai/doubt_solver', methods=['POST'])
+@login_required(role='student')
+def ai_doubt_solver():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
 
+    data = request.json
+    question = data.get('question')
 
+    if not question:
+        return jsonify({'success': False, 'error': 'Question is required.'}), 400
 
+    prompt = "Explain this concept in very simple words for a school student. If it's a math question, give a step-by-step solution."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": question}
+            ]
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/chatbot', methods=['POST'])
+@login_required(role='student')
+def ai_chatbot():
+    if not client:
+        return jsonify({'success': False, 'error': 'AI features are not configured.'}), 500
+
+    data = request.json
+    messages = data.get('messages', [])
+
+    if not messages:
+        return jsonify({'success': False, 'error': 'Messages are required.'}), 400
+
+    system_prompt = "You are a friendly tutor. Help the student with concept doubts, exam preparation, and study tips in simple, encouraging language."
+
+    api_messages = [{"role": "system", "content": system_prompt}]
+
+    for msg in messages:
+        api_messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=api_messages
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # --- Materials Routes ---
