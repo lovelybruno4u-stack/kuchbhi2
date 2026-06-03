@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tools for Teachers{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>AI Teacher Tools</h1>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Attendance Insights -->
+    <div class="glass-card">
+        <h2><i class="fa-solid fa-chart-pie text-primary"></i> Attendance Analysis</h2>
+        <p class="text-muted mb-3">Analyze student attendance patterns using AI.</p>
+        <button id="btn-analyze-att" class="btn btn-primary mb-3">Generate Insights</button>
+        <div id="res-analyze-att" class="hidden" style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card">
+        <h2><i class="fa-solid fa-file-lines text-primary"></i> Video Summary & Notes</h2>
+        <p class="text-muted mb-3">Generate revision notes based on a class topic.</p>
+        <div class="form-group">
+            <input type="text" id="vs-topic" class="form-control" placeholder="Enter topic (e.g. Newton's Laws)">
+        </div>
+        <button id="btn-video-summary" class="btn btn-primary mb-3">Generate Notes</button>
+        <div id="res-video-summary" class="hidden" style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card" style="grid-column: 1 / -1;">
+        <h2><i class="fa-solid fa-clipboard-question text-primary"></i> MCQ Quiz Generator</h2>
+        <p class="text-muted mb-3">Instantly create a 5-question multiple choice quiz.</p>
+        <div class="dashboard-grid mb-3">
+            <div class="form-group mb-0">
+                <input type="text" id="q-subject" class="form-control" placeholder="Subject (e.g. Science)">
+            </div>
+            <div class="form-group mb-0">
+                <input type="text" id="q-topic" class="form-control" placeholder="Topic (e.g. Solar System)">
+            </div>
+            <button id="btn-quiz-gen" class="btn btn-primary" style="align-self: end;">Generate Quiz</button>
+        </div>
+        <div id="res-quiz-gen" class="hidden" style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Attendance
+    document.getElementById('btn-analyze-att').addEventListener('click', async (e) => {
+        const btn = e.target;
+        btn.innerHTML = '<div class="loader"></div> Processing...';
+        btn.disabled = true;
+        const resDiv = document.getElementById('res-analyze-att');
+        resDiv.classList.add('hidden');
+
+        try {
+            const data = await apiCall('/api/ai/attendance', 'POST', {});
+            resDiv.innerHTML = data.analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            resDiv.classList.remove('hidden');
+        } catch (err) {} finally {
+            btn.innerHTML = 'Generate Insights';
+            btn.disabled = false;
+        }
+    });
+
+    // Video Summary
+    document.getElementById('btn-video-summary').addEventListener('click', async (e) => {
+        const topic = document.getElementById('vs-topic').value;
+        if(!topic) return showModal('Error', 'Please enter a topic');
+
+        const btn = e.target;
+        btn.innerHTML = '<div class="loader"></div> Generating...';
+        btn.disabled = true;
+        const resDiv = document.getElementById('res-video-summary');
+        resDiv.classList.add('hidden');
+
+        try {
+            const data = await apiCall('/api/ai/video-summary', 'POST', { topic });
+            resDiv.innerHTML = data.summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            resDiv.classList.remove('hidden');
+        } catch (err) {} finally {
+            btn.innerHTML = 'Generate Notes';
+            btn.disabled = false;
+        }
+    });
+
+    // Quiz Gen
+    document.getElementById('btn-quiz-gen').addEventListener('click', async (e) => {
+        const subject = document.getElementById('q-subject').value;
+        const topic = document.getElementById('q-topic').value;
+        if(!subject || !topic) return showModal('Error', 'Please enter subject and topic');
+
+        const btn = e.target;
+        btn.innerHTML = '<div class="loader"></div> Generating...';
+        btn.disabled = true;
+        const resDiv = document.getElementById('res-quiz-gen');
+        resDiv.classList.add('hidden');
+
+        try {
+            const data = await apiCall('/api/ai/quiz', 'POST', { subject, topic });
+            let parsed = typeof data.quiz === 'string' ? JSON.parse(data.quiz) : data.quiz;
+            let questions = parsed.questions || parsed; // Handle different json structures slightly
+
+            let html = '<h3>Generated Quiz</h3><ol style="padding-left: 20px;">';
+            if(Array.isArray(questions)) {
+                questions.forEach(q => {
+                    html += `<li class="mb-3"><strong>${q.question}</strong><ul style="list-style:type:lower-alpha; padding-left: 20px; margin-top:5px;">`;
+                    q.options.forEach(opt => {
+                        let isAnswer = opt === q.answer;
+                        html += `<li style="${isAnswer ? 'color: var(--secondary-color); font-weight: bold;' : ''}">${opt} ${isAnswer ? '✓' : ''}</li>`;
+                    });
+                    html += `</ul></li>`;
+                });
+            } else {
+                html += '<li>Format error</li>';
+            }
+            html += '</ol>';
+
+            resDiv.innerHTML = html;
+            resDiv.classList.remove('hidden');
+        } catch (err) {
+            console.error(err);
+            showModal('Error', 'Failed to parse AI response. Check console.');
+        } finally {
+            btn.innerHTML = 'Generate Quiz';
+            btn.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

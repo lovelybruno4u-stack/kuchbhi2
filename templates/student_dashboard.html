@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Welcome, {{ session.get('user_name') }}!</h1>
+</div>
+
+<div class="dashboard-grid">
+    <div class="glass-card stat-card" style="cursor: pointer;" onclick="window.location.href='{{ url_for('my_videos_page') }}'">
+        <div class="stat-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);"><i class="fa-solid fa-video"></i></div>
+        <div class="stat-details">
+            <h3>Class Videos</h3>
+            <p>View Past Classes</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card" style="cursor: pointer;" onclick="window.location.href='{{ url_for('attendance_view_page') }}'">
+        <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-calendar-check"></i></div>
+        <div class="stat-details">
+            <h3>My Attendance</h3>
+            <p>Track Record</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card" style="cursor: pointer;" onclick="window.location.href='{{ url_for('chatbot_page') }}'">
+        <div class="stat-icon" style="color: #6366f1; background: rgba(99, 102, 241, 0.1);"><i class="fa-solid fa-robot"></i></div>
+        <div class="stat-details">
+            <h3>AI Tutor</h3>
+            <p>Get Help Now</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card mb-4">
+    <h2><i class="fa-solid fa-bolt text-primary"></i> Quick Doubt Solver</h2>
+    <p class="text-muted mb-3">Stuck on a concept? Ask the AI for a simple explanation!</p>
+    <div class="form-group flex-between gap-2">
+        <input type="text" id="quick-doubt-input" class="form-control" placeholder="Ask your question here...">
+        <button id="quick-doubt-btn" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
+    <div id="quick-doubt-res" class="hidden mt-3" style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 8px; white-space: pre-wrap;"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('quick-doubt-btn').addEventListener('click', async (e) => {
+        const question = document.getElementById('quick-doubt-input').value;
+        if(!question) return;
+
+        const btn = document.getElementById('quick-doubt-btn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px;"></div>';
+        btn.disabled = true;
+
+        const resDiv = document.getElementById('quick-doubt-res');
+        resDiv.classList.add('hidden');
+
+        try {
+            const data = await apiCall('/api/ai/doubt', 'POST', { question });
+            resDiv.innerHTML = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            resDiv.classList.remove('hidden');
+        } catch(err) {} finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

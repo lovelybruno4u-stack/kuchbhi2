@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tutor{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1><i class="fa-solid fa-robot text-primary"></i> AI Study Chatbot</h1>
+</div>
+
+<div class="glass-card p-0" style="padding: 0;">
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg msg-ai">
+                Hello! I am your AI Study Tutor. Ask me any concept doubts, questions about exam preparation, or study tips!
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type your question here...">
+            <button class="btn btn-primary" id="chat-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let chatHistory = [];
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if(!text) return;
+
+        const messagesDiv = document.getElementById('chat-messages');
+        const btn = document.getElementById('chat-send-btn');
+
+        // Add user message
+        messagesDiv.innerHTML += `<div class="chat-msg msg-user">${text}</div>`;
+        input.value = '';
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Disable input
+        input.disabled = true;
+        btn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px;"></div>';
+        btn.disabled = true;
+
+        try {
+            const data = await apiCall('/api/ai/chat', 'POST', { message: text, history: chatHistory });
+            const reply = data.reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Add AI response
+            messagesDiv.innerHTML += `<div class="chat-msg msg-ai">${reply}</div>`;
+
+            // Update history
+            chatHistory.push({ role: 'user', content: text });
+            chatHistory.push({ role: 'assistant', content: data.reply });
+        } catch(err) {
+            messagesDiv.innerHTML += `<div class="chat-msg msg-ai text-danger">Sorry, an error occurred.</div>`;
+        } finally {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            input.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            btn.disabled = false;
+            input.focus();
+        }
+    }
+
+    document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') sendMessage();
+    });
+</script>
+{% endblock %}

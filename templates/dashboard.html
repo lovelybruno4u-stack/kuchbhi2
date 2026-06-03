@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Dashboard Overview</h1>
+</div>
+
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-details">
+            <h3>Total Students</h3>
+            <p>{{ students|length }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);"><i class="fa-solid fa-user-check"></i></div>
+        <div class="stat-details">
+            <h3>Attendance Records</h3>
+            <p>{{ attendance|length }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);"><i class="fa-solid fa-video"></i></div>
+        <div class="stat-details">
+            <h3>Total Videos</h3>
+            <p>{{ videos|length }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <h2>Recent Activity</h2>
+    <p class="text-muted">Welcome to the Aswathama Classes management dashboard. Use the sidebar to navigate through the modules.</p>
+</div>
+{% endblock %}
