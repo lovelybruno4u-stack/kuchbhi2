@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Announcements</h1>
+    <button class="btn btn-primary" onclick="document.getElementById('add-ann-form').classList.toggle('hidden')">
+        <i class="fa-solid fa-plus"></i> New Announcement
+    </button>
+</div>
+
+<div id="add-ann-form" class="glass-card mb-4 hidden">
+    <h2>Create Announcement</h2>
+    <div class="dashboard-grid mb-3" style="align-items: end;">
+        <div class="form-group mb-0">
+            <label>AI Generator Topic (Optional)</label>
+            <input type="text" id="ai_topic" class="form-control" placeholder="e.g. Holiday tomorrow due to rain">
+        </div>
+        <button type="button" class="btn btn-primary" id="ai-gen-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI</button>
+    </div>
+
+    <form id="ann-form">
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="a_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Message</label>
+            <textarea id="a_message" class="form-control" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-secondary">Post Announcement</button>
+    </form>
+</div>
+
+<div class="dashboard-grid" id="ann-container">
+    <div style="grid-column: 1 / -1;" class="text-center text-muted">Loading...</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('a_date').valueAsDate = new Date();
+
+    document.getElementById('ai-gen-btn').addEventListener('click', async () => {
+        const topic = document.getElementById('ai_topic').value;
+        if (!topic) {
+            showModal('Error', 'Please enter a topic for the AI to generate.');
+            return;
+        }
+
+        const btn = document.getElementById('ai-gen-btn');
+        btn.innerHTML = '<div class="loader" style="width: 16px; height: 16px; border-width: 2px;"></div> Generating...';
+        btn.disabled = true;
+
+        try {
+            const data = await apiCall('/api/ai/announcement', 'POST', { topic });
+            document.getElementById('a_message').value = data.announcement;
+        } catch (e) {
+            // Error handled by apiCall
+        } finally {
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate with AI';
+            btn.disabled = false;
+        }
+    });
+
+    async function loadAnnouncements() {
+        try {
+            const data = await apiCall('/api/announcements');
+            const container = document.getElementById('ann-container');
+            container.innerHTML = '';
+
+            if(data.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1 / -1;" class="glass-card text-center text-muted">No announcements found.</div>';
+                return;
+            }
+
+            // Reverse so newest is first
+            data.reverse().forEach(a => {
+                container.innerHTML += `
+                    <div class="glass-card">
+                        <div class="flex-between mb-3">
+                            <span class="text-muted"><i class="fa-regular fa-calendar"></i> ${a.date}</span>
+                            <button class="btn btn-danger" style="padding: 5px 10px;" onclick="deleteAnnouncement('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        <p style="white-space: pre-wrap;">${a.message}</p>
+                    </div>
+                `;
+            });
+        } catch (e) {}
+    }
+
+    async function deleteAnnouncement(id) {
+        if(confirm('Are you sure?')) {
+            await apiCall('/api/announcements/' + id, 'DELETE');
+            loadAnnouncements();
+        }
+    }
+
+    document.getElementById('ann-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            date: document.getElementById('a_date').value,
+            message: document.getElementById('a_message').value
+        };
+        await apiCall('/api/announcements', 'POST', payload);
+        document.getElementById('ann-form').reset();
+        document.getElementById('a_date').valueAsDate = new Date();
+        document.getElementById('add-ann-form').classList.add('hidden');
+        loadAnnouncements();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadAnnouncements);
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Aswathama Classes{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    {% if session.get('user_role') %}
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">Aswathama</div>
+        <ul class="nav-links">
+            {% if session.get('user_role') == 'teacher' %}
+            <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fa-solid fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('students_page') }}"><i class="fa-solid fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('attendance_page') }}"><i class="fa-solid fa-clipboard-user"></i> Attendance</a></li>
+            <li><a href="{{ url_for('videos_page') }}"><i class="fa-solid fa-video"></i> Videos</a></li>
+            <li><a href="{{ url_for('subjects_page') }}"><i class="fa-solid fa-book"></i> Subjects</a></li>
+            <li><a href="{{ url_for('announcements_page') }}"><i class="fa-solid fa-bullhorn"></i> Announcements</a></li>
+            <li><a href="{{ url_for('ai_tools_page') }}"><i class="fa-solid fa-robot"></i> AI Tools</a></li>
+            {% else %}
+            <li><a href="{{ url_for('student_dashboard') }}"><i class="fa-solid fa-house"></i> Home</a></li>
+            <li><a href="{{ url_for('my_videos_page') }}"><i class="fa-solid fa-video"></i> My Videos</a></li>
+            <li><a href="{{ url_for('attendance_view_page') }}"><i class="fa-solid fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('chatbot_page') }}"><i class="fa-solid fa-comments"></i> AI Tutor</a></li>
+            <li><a href="{{ url_for('announcements_view_page') }}"><i class="fa-solid fa-bell"></i> Announcements</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <div class="main-content">
+        <header class="top-navbar">
+            <button class="mobile-toggle" id="mobile-toggle"><i class="fa-solid fa-bars"></i></button>
+            <div style="flex-grow: 1;"></div>
+            <div class="user-profile">
+                <span><i class="fa-solid fa-user-circle"></i> {{ session.get('user_name', 'User') }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </header>
+
+        <main class="content-wrapper">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+        {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>My Attendance</h1>
+</div>
+
+<div class="glass-card mb-4">
+    <div class="dashboard-grid">
+        <div class="text-center">
+            <h3 class="text-muted">Total Classes</h3>
+            <h2 id="total-classes">-</h2>
+        </div>
+        <div class="text-center">
+            <h3 class="text-muted">Classes Attended</h3>
+            <h2 id="attended-classes" style="color: var(--secondary-color);">-</h2>
+        </div>
+        <div class="text-center">
+            <h3 class="text-muted">Attendance %</h3>
+            <h2 id="attendance-percent" style="color: var(--primary-color);">-</h2>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-container">
+        <table id="my-attendance-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="2" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadMyAttendance() {
+        try {
+            const data = await apiCall('/api/student/attendance');
+            const tbody = document.querySelector('#my-attendance-table tbody');
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center">No attendance records found.</td></tr>';
+                document.getElementById('total-classes').innerText = '0';
+                document.getElementById('attended-classes').innerText = '0';
+                document.getElementById('attendance-percent').innerText = '0%';
+                return;
+            }
+
+            let present = 0;
+            data.reverse().forEach(a => {
+                if (a.status === 'present') present++;
+
+                let badgeClass = a.status === 'present' ? 'background: #d1fae5; color: #065f46;' : 'background: #fee2e2; color: #991b1b;';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${a.date}</td>
+                        <td><span style="padding: 5px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; ${badgeClass}">${a.status}</span></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('total-classes').innerText = data.length;
+            document.getElementById('attended-classes').innerText = present;
+            document.getElementById('attendance-percent').innerText = Math.round((present / data.length) * 100) + '%';
+
+        } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', loadMyAttendance);
+</script>
+{% endblock %}

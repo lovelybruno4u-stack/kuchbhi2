@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Daily Attendance</h1>
+    <div class="form-group mb-0">
+        <input type="date" id="attendance-date" class="form-control">
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-container">
+        <table id="attendance-table">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="4" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-4 text-center">
+        <button id="save-attendance-btn" class="btn btn-primary" style="display:none;"><i class="fa-solid fa-save"></i> Save Attendance</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('attendance-date').valueAsDate = new Date();
+    let currentStudents = [];
+
+    async function loadStudentsForAttendance() {
+        try {
+            const data = await apiCall('/api/students');
+            currentStudents = data;
+            const tbody = document.querySelector('#attendance-table tbody');
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center">No students found. Add students first.</td></tr>';
+                return;
+            }
+
+            document.getElementById('save-attendance-btn').style.display = 'inline-flex';
+
+            data.forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.roll}</td>
+                        <td>${s.name}</td>
+                        <td>${s.class}</td>
+                        <td>
+                            <select class="form-control att-status" data-id="${s.id}" style="width: auto;">
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (e) {}
+    }
+
+    document.getElementById('save-attendance-btn').addEventListener('click', async () => {
+        const date = document.getElementById('attendance-date').value;
+        const selects = document.querySelectorAll('.att-status');
+        const records = [];
+
+        selects.forEach(sel => {
+            records.push({
+                student_id: sel.dataset.id,
+                status: sel.value
+            });
+        });
+
+        await apiCall('/api/attendance', 'POST', { date, records });
+        showModal('Success', 'Attendance saved successfully for ' + date);
+    });
+
+    document.addEventListener('DOMContentLoaded', loadStudentsForAttendance);
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+[2026-06-03 03:09:20 +0000] [636626] [INFO] Starting gunicorn 26.0.0
+[2026-06-03 03:09:20 +0000] [636626] [INFO] Listening at: http://127.0.0.1:5000 (636626)
+[2026-06-03 03:09:20 +0000] [636626] [INFO] Using worker: sync
+[2026-06-03 03:09:20 +0000] [636746] [INFO] Booting worker with pid: 636746
+[2026-06-03 03:09:21 +0000] [636626] [INFO] Control socket listening at /home/jules/.gunicorn/gunicorn.ctl

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Manage Subjects</h1>
+</div>
+
+<div class="dashboard-grid">
+    <div class="glass-card">
+        <h2>Add Subject</h2>
+        <form id="subject-form">
+            <div class="form-group">
+                <label>Subject Name</label>
+                <input type="text" id="sub_name" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-secondary">Add</button>
+        </form>
+    </div>
+
+    <div class="glass-card">
+        <h2>Existing Subjects</h2>
+        <ul id="subjects-list" style="list-style: none; padding: 0;">
+            <li class="text-muted">Loading...</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadSubjects() {
+        try {
+            const data = await apiCall('/api/subjects');
+            const list = document.getElementById('subjects-list');
+            list.innerHTML = '';
+
+            if(data.length === 0) {
+                list.innerHTML = '<li class="text-muted">No subjects found.</li>';
+                return;
+            }
+
+            data.forEach(sub => {
+                list.innerHTML += `
+                    <li style="padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                        <span>${sub.subject_name}</span>
+                        <button class="btn btn-danger" style="padding: 5px 10px;" onclick="deleteSubject('${sub.id}')"><i class="fa-solid fa-trash"></i></button>
+                    </li>
+                `;
+            });
+        } catch (e) {}
+    }
+
+    async function deleteSubject(id) {
+        if(confirm('Are you sure?')) {
+            await apiCall('/api/subjects/' + id, 'DELETE');
+            loadSubjects();
+        }
+    }
+
+    document.getElementById('subject-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            subject_name: document.getElementById('sub_name').value
+        };
+        await apiCall('/api/subjects', 'POST', payload);
+        document.getElementById('subject-form').reset();
+        loadSubjects();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadSubjects);
+</script>
+{% endblock %}

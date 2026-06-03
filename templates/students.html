@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students{% endblock %}
+
+{% block content %}
+<div class="flex-between mb-4">
+    <h1>Manage Students</h1>
+    <button class="btn btn-primary" onclick="document.getElementById('add-student-form').classList.toggle('hidden')">
+        <i class="fa-solid fa-plus"></i> Add Student
+    </button>
+</div>
+
+<div id="add-student-form" class="glass-card mb-4 hidden">
+    <h2>Add New Student</h2>
+    <form id="student-form">
+        <div class="dashboard-grid">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="s_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Class</label>
+                <input type="text" id="s_class" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Roll Number</label>
+                <input type="text" id="s_roll" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="s_phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="s_email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Parent Name</label>
+                <input type="text" id="s_parent" class="form-control" required>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-secondary">Save Student</button>
+    </form>
+</div>
+
+<div class="glass-card">
+    <div class="table-container">
+        <table id="students-table">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="5" class="text-center">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadStudents() {
+        try {
+            const data = await apiCall('/api/students');
+            const tbody = document.querySelector('#students-table tbody');
+            tbody.innerHTML = '';
+
+            if(data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No students found.</td></tr>';
+                return;
+            }
+
+            data.forEach(s => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${s.roll}</td>
+                        <td>${s.name}</td>
+                        <td>${s.class}</td>
+                        <td>${s.phone}</td>
+                        <td>
+                            <button class="btn btn-danger" onclick="deleteStudent('${s.id}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        } catch (e) {}
+    }
+
+    async function deleteStudent(id) {
+        if(confirm('Are you sure?')) {
+            await apiCall('/api/students/' + id, 'DELETE');
+            loadStudents();
+        }
+    }
+
+    document.getElementById('student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('s_name').value,
+            class: document.getElementById('s_class').value,
+            roll: document.getElementById('s_roll').value,
+            phone: document.getElementById('s_phone').value,
+            email: document.getElementById('s_email').value,
+            parent: document.getElementById('s_parent').value
+        };
+        await apiCall('/api/students', 'POST', payload);
+        document.getElementById('student-form').reset();
+        document.getElementById('add-student-form').classList.add('hidden');
+        loadStudents();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadStudents);
+</script>
+{% endblock %}
