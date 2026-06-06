@@ -1,0 +1,102 @@
+{% extends 'teacher/base.html' %}
+
+{% block content %}
+<div class="content-header">
+    <h2><i class="fas fa-magic"></i> AI Tools</h2>
+    <p>Powered by OpenAI to assist with your teaching workflows.</p>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- Quiz Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-question-circle"></i> AI Quiz Generator</h3>
+        <p>Generate 5 MCQs for any subject or topic.</p>
+        <div class="form-group">
+            <label>Topic / Subject</label>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Photosynthesis, Algebra">
+        </div>
+        <button id="btn-gen-quiz" class="btn btn-primary" style="width:100%;"><i class="fas fa-bolt"></i> Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; background: var(--bg-color); padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-line"></i> AI Attendance Analysis</h3>
+        <p>Analyze attendance data and get insights on irregular students.</p>
+        <button id="btn-analyze-attendance" class="btn btn-primary" style="width:100%;"><i class="fas fa-search"></i> Analyze Current Data</button>
+        <div id="attendance-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; background: var(--bg-color); padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-file-video"></i> AI Video Summary</h3>
+        <p>Generate summary notes for revision from a video topic.</p>
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g. Newton's Laws of Motion">
+        </div>
+        <button id="btn-gen-summary" class="btn btn-primary" style="width:100%;"><i class="fas fa-file-alt"></i> Generate Summary</button>
+        <div id="summary-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; background: var(--bg-color); padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Utility to handle fetch and UI updates
+    async function handleAITool(endpoint, payload, btnId, resultId, loadingText) {
+        const btn = document.getElementById(btnId);
+        const resultDiv = document.getElementById(resultId);
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${loadingText}`;
+        btn.disabled = true;
+        resultDiv.style.display = 'none';
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            resultDiv.style.display = 'block';
+            if (data.success) {
+                resultDiv.innerText = data.result || data.reply || data.summary;
+            } else {
+                resultDiv.innerText = 'Error: ' + data.error;
+                resultDiv.style.color = 'red';
+            }
+        } catch (e) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerText = 'Network error or server unavailable.';
+            resultDiv.style.color = 'red';
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Quiz Gen
+    document.getElementById('btn-gen-quiz').addEventListener('click', () => {
+        const topic = document.getElementById('quiz-topic').value;
+        if (!topic) return alert("Please enter a topic.");
+        handleAITool('/api/ai/quiz', { topic }, 'btn-gen-quiz', 'quiz-result', 'Generating...');
+    });
+
+    // Attendance Analysis
+    document.getElementById('btn-analyze-attendance').addEventListener('click', () => {
+        handleAITool('/api/ai/attendance', {}, 'btn-analyze-attendance', 'attendance-result', 'Analyzing...');
+    });
+
+    // Video Summary
+    document.getElementById('btn-gen-summary').addEventListener('click', () => {
+        const topic = document.getElementById('video-topic').value;
+        if (!topic) return alert("Please enter a video topic.");
+        handleAITool('/api/ai/video_summary', { topic }, 'btn-gen-summary', 'summary-result', 'Generating...');
+    });
+});
+</script>
+{% endblock %}
