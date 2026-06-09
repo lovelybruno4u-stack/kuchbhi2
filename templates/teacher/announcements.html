@@ -1,7 +1,71 @@
 {% extends 'teacher/base.html' %}
 
-{% block title %}Announcements{% endblock %}
-{% block page_title %}Class Announcements{% endblock %}
+{% block title %}Announcements
+<script>
+async function generateAIAnnouncement() {
+    const topic = document.getElementById('ai-topic').value;
+    if (!topic) {
+        showToast('Please enter a topic first.', 'error');
+        return;
+    }
+
+    document.getElementById('announcement-message').value = 'Generating...';
+
+    try {
+        const res = await fetch('/api/ai/announcement', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('announcement-message').value = data.message;
+            showToast('Announcement generated successfully!', 'success');
+        } else {
+            document.getElementById('announcement-message').value = '';
+            showToast('Failed to generate announcement: ' + data.error, 'error');
+        }
+    } catch (e) {
+        document.getElementById('announcement-message').value = '';
+        showToast('Network error.', 'error');
+    }
+}
+</script>
+{% endblock %}
+{% block page_title %}Class Announcements
+<script>
+async function generateAIAnnouncement() {
+    const topic = document.getElementById('ai-topic').value;
+    if (!topic) {
+        showToast('Please enter a topic first.', 'error');
+        return;
+    }
+
+    document.getElementById('announcement-message').value = 'Generating...';
+
+    try {
+        const res = await fetch('/api/ai/announcement', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('announcement-message').value = data.message;
+            showToast('Announcement generated successfully!', 'success');
+        } else {
+            document.getElementById('announcement-message').value = '';
+            showToast('Failed to generate announcement: ' + data.error, 'error');
+        }
+    } catch (e) {
+        document.getElementById('announcement-message').value = '';
+        showToast('Network error.', 'error');
+    }
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="glass-card" style="margin-bottom: 24px;">
@@ -53,6 +117,10 @@
                 <label>Date</label>
                 <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
             </div>
+                        <div class="form-group" style="display: flex; gap: 10px;">
+                <input type="text" id="ai-topic" class="form-control" placeholder="Enter topic for AI generation (e.g., holiday tomorrow)" style="flex-grow: 1;">
+                <button type="button" class="btn btn-outline" onclick="generateAIAnnouncement()"><i class="fas fa-magic"></i> AI Write</button>
+            </div>
             <div class="form-group">
                 <label>Message Content</label>
                 <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
@@ -66,4 +134,36 @@
 </div>
 
 
+
+<script>
+async function generateAIAnnouncement() {
+    const topic = document.getElementById('ai-topic').value;
+    if (!topic) {
+        showToast('Please enter a topic first.', 'error');
+        return;
+    }
+
+    document.getElementById('announcement-message').value = 'Generating...';
+
+    try {
+        const res = await fetch('/api/ai/announcement', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic: topic})
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('announcement-message').value = data.message;
+            showToast('Announcement generated successfully!', 'success');
+        } else {
+            document.getElementById('announcement-message').value = '';
+            showToast('Failed to generate announcement: ' + data.error, 'error');
+        }
+    } catch (e) {
+        document.getElementById('announcement-message').value = '';
+        showToast('Network error.', 'error');
+    }
+}
+</script>
 {% endblock %}

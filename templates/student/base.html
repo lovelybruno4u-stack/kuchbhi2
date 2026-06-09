@@ -122,6 +122,11 @@
                     <i class="fas fa-user-graduate"></i> Profile
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ url_for('student_chatbot') }}" class="nav-link {% if request.endpoint == 'student_chatbot' %}active{% endif %}">
+                    <i class="fas fa-comments"></i> AI Study Bot
+                </a>
+            </li>
 
         </ul>
         <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 10px;">

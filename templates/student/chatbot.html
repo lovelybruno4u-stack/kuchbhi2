@@ -1,0 +1,174 @@
+{% extends 'student/base.html' %}
+
+{% block title %}AI Study Bot{% endblock %}
+{% block page_title %}AI Study Companion{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="display: flex; flex-direction: column; height: calc(100vh - 150px); max-height: 800px; padding: 0; overflow: hidden;">
+
+    <!-- Chat Header with Mode Selector -->
+    <div style="padding: 15px 20px; border-bottom: 1px solid #e5e7eb; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6d28d9); display: flex; align-items: center; justify-content: center; color: white;">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">Tutor AI</h3>
+                <span style="font-size: 0.8rem; color: var(--success);"><i class="fas fa-circle" style="font-size: 0.6rem;"></i> Online</span>
+            </div>
+        </div>
+
+        <select id="chat-mode" class="form-control" style="width: auto; margin: 0; padding: 5px 10px; height: auto;">
+            <option value="doubt_solver">🧩 Doubt Solver (Simple Explanations)</option>
+            <option value="study_chatbot">📚 Study Chatbot (General Advice)</option>
+        </select>
+    </div>
+
+    <!-- Chat Messages Area -->
+    <div id="chat-messages" style="flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #fafafa;">
+
+        <!-- Welcome Message -->
+        <div style="display: flex; gap: 10px; max-width: 80%;">
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fas fa-robot" style="color: #64748b;"></i>
+            </div>
+            <div style="background: white; padding: 12px 16px; border-radius: 0 15px 15px 15px; border: 1px solid #e5e7eb; color: var(--text-primary); font-size: 0.95rem; line-height: 1.5; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                Hi there! 👋 I'm your AI Study Companion. You can ask me to explain difficult concepts simply, solve math problems step-by-step, or ask for study tips! How can I help you today?
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chat Input Area -->
+    <div style="padding: 15px 20px; border-top: 1px solid #e5e7eb; background: white;">
+        <form id="chat-form" style="display: flex; gap: 10px; margin: 0;" onsubmit="sendMessage(event)">
+            <input type="text" id="chat-input" class="form-control" placeholder="Ask a question..." style="flex-grow: 1; margin: 0; border-radius: 20px; padding-left: 20px;" autocomplete="off" required>
+            <button type="submit" class="btn btn-primary" style="border-radius: 20px; padding: 0 25px;"><i class="fas fa-paper-plane"></i></button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+function appendMessage(sender, text) {
+    const messagesDiv = document.getElementById('chat-messages');
+    const msgWrapper = document.createElement('div');
+    msgWrapper.style.display = 'flex';
+    msgWrapper.style.gap = '10px';
+    msgWrapper.style.maxWidth = '80%';
+
+    const avatar = document.createElement('div');
+    avatar.style.width = '30px';
+    avatar.style.height = '30px';
+    avatar.style.borderRadius = '50%';
+    avatar.style.display = 'flex';
+    avatar.style.alignItems = 'center';
+    avatar.style.justifyContent = 'center';
+    avatar.style.flexShrink = '0';
+
+    const bubble = document.createElement('div');
+    bubble.style.padding = '12px 16px';
+    bubble.style.fontSize = '0.95rem';
+    bubble.style.lineHeight = '1.5';
+    bubble.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+    bubble.style.whiteSpace = 'pre-wrap';
+
+    // Use textContent to prevent DOM-based XSS
+    bubble.textContent = text;
+
+    if (sender === 'user') {
+        msgWrapper.style.alignSelf = 'flex-end';
+        msgWrapper.style.flexDirection = 'row-reverse';
+
+        avatar.style.background = 'linear-gradient(135deg, #ec4899, #be185d)';
+        avatar.innerHTML = '<i class="fas fa-user" style="color: white; font-size: 0.8rem;"></i>';
+
+        bubble.style.background = 'var(--primary-color)';
+        bubble.style.color = 'white';
+        bubble.style.borderRadius = '15px 0 15px 15px';
+    } else {
+        msgWrapper.style.alignSelf = 'flex-start';
+
+        avatar.style.background = '#e2e8f0';
+        avatar.innerHTML = '<i class="fas fa-robot" style="color: #64748b; font-size: 0.8rem;"></i>';
+
+        bubble.style.background = 'white';
+        bubble.style.color = 'var(--text-primary)';
+        bubble.style.border = '1px solid #e5e7eb';
+        bubble.style.borderRadius = '0 15px 15px 15px';
+    }
+
+    msgWrapper.appendChild(avatar);
+    msgWrapper.appendChild(bubble);
+    messagesDiv.appendChild(msgWrapper);
+
+    // Auto scroll to bottom
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function sendMessage(e) {
+    e.preventDefault();
+
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const mode = document.getElementById('chat-mode').value;
+
+    // Add user message
+    appendMessage('user', message);
+    input.value = '';
+
+    // Show typing indicator
+    const messagesDiv = document.getElementById('chat-messages');
+    const typingId = 'typing-' + Date.now();
+
+    const typingWrapper = document.createElement('div');
+    typingWrapper.id = typingId;
+    typingWrapper.style.display = 'flex';
+    typingWrapper.style.gap = '10px';
+    typingWrapper.style.maxWidth = '80%';
+    typingWrapper.innerHTML = `
+        <div style="width: 30px; height: 30px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fas fa-robot" style="color: #64748b; font-size: 0.8rem;"></i>
+        </div>
+        <div style="background: white; padding: 12px 16px; border-radius: 0 15px 15px 15px; border: 1px solid #e5e7eb; display: flex; align-items: center; gap: 5px;">
+            <i class="fas fa-circle" style="font-size: 0.4rem; color: #cbd5e1; animation: pulse 1.5s infinite;"></i>
+            <i class="fas fa-circle" style="font-size: 0.4rem; color: #cbd5e1; animation: pulse 1.5s infinite 0.2s;"></i>
+            <i class="fas fa-circle" style="font-size: 0.4rem; color: #cbd5e1; animation: pulse 1.5s infinite 0.4s;"></i>
+        </div>
+    `;
+    messagesDiv.appendChild(typingWrapper);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const res = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: message, mode: mode})
+        });
+
+        const data = await res.json();
+
+        // Remove typing indicator
+        document.getElementById(typingId).remove();
+
+        if (data.success) {
+            appendMessage('bot', data.reply);
+        } else {
+            appendMessage('bot', 'Error: ' + data.error);
+        }
+    } catch (error) {
+        document.getElementById(typingId).remove();
+        appendMessage('bot', 'Sorry, I encountered a network error. Please try again.');
+    }
+}
+</script>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+</style>
+{% endblock %}
