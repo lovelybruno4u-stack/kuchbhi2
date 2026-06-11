@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block page_title %}AI Tools{% endblock %}
+{% block content %}
+<div class="dashboard-grid">
+    <div class="panel glass">
+        <h2>AI Attendance Analysis</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Analyzes all attendance records and identifies irregular students.</p>
+        <button class="btn" onclick="analyzeAtt(this)">Run Analysis</button>
+        <div id="att-res" style="margin-top: 1rem; white-space: pre-wrap; font-size: 0.95rem;"></div>
+    </div>
+
+    <div class="panel glass">
+        <h2>AI Video Summary</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Generate revision notes based on a topic.</p>
+        <input type="text" id="vid-topic" placeholder="Topic name" style="width: 100%; margin-bottom: 0.5rem;">
+        <button class="btn" onclick="genSummary(this)">Generate</button>
+        <div id="vid-res" style="margin-top: 1rem; white-space: pre-wrap; font-size: 0.95rem;"></div>
+    </div>
+
+    <div class="panel glass">
+        <h2>AI Quiz Generator</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Generate 5 MCQs for a subject/topic.</p>
+        <input type="text" id="quiz-topic" placeholder="Subject/Topic" style="width: 100%; margin-bottom: 0.5rem;">
+        <button class="btn" onclick="genQuiz(this)">Generate</button>
+        <div id="quiz-res" style="margin-top: 1rem; white-space: pre-wrap; font-size: 0.95rem;"></div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function analyzeAtt(btn) {
+        btn.textContent = 'Analyzing...'; btn.disabled = true;
+        const res = await apiCall('/api/ai/attendance', 'POST', {});
+        if(res && res.analysis) document.getElementById('att-res').textContent = res.analysis;
+        btn.textContent = 'Run Analysis'; btn.disabled = false;
+    }
+    async function genSummary(btn) {
+        const t = document.getElementById('vid-topic').value;
+        if(!t) return;
+        btn.textContent = 'Generating...'; btn.disabled = true;
+        const res = await apiCall('/api/ai/summary', 'POST', {topic: t});
+        if(res && res.summary) document.getElementById('vid-res').textContent = res.summary;
+        btn.textContent = 'Generate'; btn.disabled = false;
+    }
+    async function genQuiz(btn) {
+        const t = document.getElementById('quiz-topic').value;
+        if(!t) return;
+        btn.textContent = 'Generating...'; btn.disabled = true;
+        const res = await apiCall('/api/ai/quiz', 'POST', {topic: t});
+        if(res && res.quiz) document.getElementById('quiz-res').textContent = res.quiz;
+        btn.textContent = 'Generate'; btn.disabled = false;
+    }
+</script>
+{% endblock %}

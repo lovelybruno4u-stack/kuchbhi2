@@ -1,66 +1,54 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Dashboard{% endblock %}
-{% block page_title %}Overview{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
 <div class="dashboard-grid">
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-            <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Total Students</h3>
-            <p>{{ stats.total_students }}</p>
-        </div>
+    <div class="stat-card glass">
+        <h3>Total Students</h3>
+        <div class="value" id="stat-students">--</div>
     </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-calendar-check"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Today's Present</h3>
-            <p>{{ stats.today_attendance }}</p>
-        </div>
+    <div class="stat-card glass">
+        <h3>Today's Attendance</h3>
+        <div class="value" id="stat-attendance">--</div>
     </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">
-            <i class="fas fa-user-minus"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Lowest Attendance</h3>
-            <p style="font-size: 1.1rem;">{{ stats.lowest_attendance }}</p>
-        </div>
-    </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-user-plus"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Highest Attendance</h3>
-            <p style="font-size: 1.1rem;">{{ stats.highest_attendance }}</p>
-        </div>
-    </div>
-    <div class="glass-card stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-            <i class="fas fa-video"></i>
-        </div>
-        <div class="stat-info">
-            <h3>Latest Video</h3>
-            <p style="font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{{ stats.latest_video }}</p>
-        </div>
+    <div class="stat-card glass" style="grid-column: span 2;">
+        <h3>Recent Activity</h3>
+        <ul id="stat-recent" style="margin-top: 0.5rem; padding-left: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+            <li>No recent activity</li>
+        </ul>
     </div>
 </div>
 
-<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
-    <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-bolt" style="color: var(--warning);"></i> Quick Actions</h3>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="{{ url_for('teacher_students') }}" class="btn btn-primary" style="justify-content: flex-start;"><i class="fas fa-user-plus"></i> Add Student</a>
-            <a href="{{ url_for('teacher_attendance') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-clipboard-check"></i> Mark Attendance</a>
-            <a href="{{ url_for('teacher_videos') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-cloud-upload-alt"></i> Upload Video</a>
-            <a href="{{ url_for('teacher_announcements') }}" class="btn btn-outline" style="justify-content: flex-start;"><i class="fas fa-bullhorn"></i> New Announcement</a>
-        </div>
+<div class="panel glass">
+    <h2>Quick Actions</h2>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ url_for('teacher_students') }}" class="btn"><i class="fas fa-user-plus"></i> Add Student</a>
+        <a href="{{ url_for('teacher_attendance') }}" class="btn"><i class="fas fa-check-circle"></i> Mark Attendance</a>
+        <a href="{{ url_for('teacher_videos') }}" class="btn"><i class="fas fa-video"></i> Post Video</a>
+        <a href="{{ url_for('teacher_announcements') }}" class="btn"><i class="fas fa-bullhorn"></i> New Announcement</a>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadStats() {
+        const stats = await apiCall('/api/stats');
+        if (stats) {
+            document.getElementById('stat-students').textContent = stats.total_students;
+            document.getElementById('stat-attendance').textContent = stats.today_attendance;
+            if (stats.recent_activity && stats.recent_activity.length > 0) {
+                const ul = document.getElementById('stat-recent');
+                ul.innerHTML = '';
+                stats.recent_activity.forEach(act => {
+                    const li = document.createElement('li');
+                    li.textContent = act;
+                    ul.appendChild(li);
+                });
+            }
+        }
+    }
+    loadStats();
+</script>
 {% endblock %}

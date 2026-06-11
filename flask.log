@@ -1,0 +1,37 @@
+Using Mock Database.
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 631-326-424
+127.0.0.1 - - [11/Jun/2026 02:43:37] "[32mGET / HTTP/1.1[0m" 302 -
+127.0.0.1 - - [11/Jun/2026 02:43:37] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:37] "GET /static/script.js HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:37] "GET /static/style.css HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:40] "POST /login HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:40] "GET /teacher/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:40] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [11/Jun/2026 02:43:40] "[36mGET /static/script.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [11/Jun/2026 02:43:40] "GET /api/stats HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:42] "GET /teacher/students HTTP/1.1" 200 -
+127.0.0.1 - - [11/Jun/2026 02:43:42] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+127.0.0.1 - - [11/Jun/2026 02:43:42] "[36mGET /static/script.js HTTP/1.1[0m" 304 -
+127.0.0.1 - - [11/Jun/2026 02:43:42] "GET /api/students HTTP/1.1" 200 -
+ * Detected change in '/app/app.py', reloading
+Using Mock Database.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 631-326-424
+ * Detected change in '/app/app.py', reloading
+Using Mock Database.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 631-326-424
+ * Detected change in '/app/app.py', reloading
+Using Mock Database.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 631-326-424

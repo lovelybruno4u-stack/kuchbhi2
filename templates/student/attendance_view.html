@@ -1,64 +1,33 @@
-{% extends 'student/base.html' %}
-
-{% block title %}My Attendance{% endblock %}
-{% block page_title %}Attendance Record{% endblock %}
-
+{% extends 'base.html' %}
+{% block page_title %}My Attendance{% endblock %}
 {% block content %}
-<div class="dashboard-grid" style="grid-template-columns: 1fr 2fr;">
-    <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);">Summary</h3>
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 0;">
-            <div style="width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--success); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 15px;">
-                {{ "%.0f"|format(attendance_percentage) }}%
-            </div>
-            <p style="color: var(--text-secondary);">Overall Attendance</p>
-        </div>
-        <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span>Total Classes:</span> <strong>{{ total_classes }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--success);">
-                <span>Present:</span> <strong>{{ present_count }}</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; color: var(--danger);">
-                <span>Absent:</span> <strong>{{ absent_count }}</strong>
-            </div>
-        </div>
-    </div>
-
-    <div class="glass-card">
-        <h3 style="margin-bottom: 20px; color: var(--text-primary);">Recent Records</h3>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in attendance_records %}
-                    <tr>
-                        <td>{{ record.date }}</td>
-                        <td>
-                            {% if record.status == 'Present' %}
-                            <span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">Present</span>
-                            {% else %}
-                            <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500;">Absent</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not attendance_records %}
-                    <tr>
-                        <td colspan="2" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-                            No attendance records found.
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+<div class="panel glass">
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="att-table"></tbody>
+        </table>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    async function loadAtt() {
+        const data = await apiCall('/api/attendance');
+        if(data) {
+            const tbody = document.getElementById('att-table');
+            tbody.innerHTML = '';
+            data.forEach(r => {
+                const tr = document.createElement('tr');
+                const color = r.status === 'Present' ? 'green' : 'red';
+                tr.innerHTML = `
+                    <td>${r.date}</td>
+                    <td style="color: ${color}; font-weight: bold;">${r.status}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+    loadAtt();
+</script>
 {% endblock %}

@@ -1,15 +1,52 @@
-{% extends 'teacher/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Students{% endblock %}
-{% block page_title %}Student Management{% endblock %}
+{% block page_title %}Student Management
+<div id="edit-student-modal" class="modal-overlay">
+    <div class="modal-content glass">
+        <div class="modal-header">
+            <h2>Edit Student</h2>
+            <button class="close-btn" onclick="this.closest('.modal-overlay').classList.remove('active')">&times;</button>
+        </div>
+        <form id="edit-student-form">
+            <input type="hidden" id="edit-stu-id">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="edit-stu-name" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Class</label>
+                    <input type="text" id="edit-stu-class" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Roll Number</label>
+                    <input type="text" id="edit-stu-roll" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="edit-stu-phone" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="edit-stu-email">
+            </div>
+            <div class="form-group">
+                <label>Parent Name</label>
+                <input type="text" id="edit-stu-parent">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">Update</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
 
 {% block content %}
-<div class="glass-card" style="margin-bottom: 24px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <input type="text" id="search-input" class="form-control" placeholder="Search by name or roll number..." style="width: 300px;">
-        </div>
-        <button class="btn btn-primary" data-modal-target="#add-student-modal">
+<div class="panel glass">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+        <input type="text" id="search-student" placeholder="Search by name or roll..." style="width: 300px;">
+        <button class="btn" onclick="document.getElementById('add-student-modal').classList.add('active')">
             <i class="fas fa-plus"></i> Add Student
         </button>
     </div>
@@ -18,115 +55,160 @@
         <table>
             <thead>
                 <tr>
-                    <th>Roll No</th>
                     <th>Name</th>
                     <th>Class</th>
+                    <th>Roll No</th>
                     <th>Phone</th>
                     <th>Email</th>
-                    <th>Parent Name</th>
-                    <th>Password</th>
+                    <th>Parent</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for student in students %}
-                <tr>
-                    <td>{{ student.roll }}</td>
-                    <td style="font-weight: 500;">{{ student.name }}</td>
-                    <td>{{ student.class }}</td>
-                    <td>{{ student.phone }}</td>
-                    <td>{{ student.email }}</td>
-                    <td>{{ student.parent }}</td>
-                    <td><span style='background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem;'>{{ student.password }}</span></td>
-                    <td>
-                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-edit"></i> Edit</button>
-                        <form action="{{ url_for('delete_student', id=student.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this student?');">
-                            <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not students %}
-                <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-                        <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; color: #d1d5db;"></i>
-                        No students found. Add a new student to get started.
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
+            <tbody id="students-table"></tbody>
         </table>
     </div>
 </div>
 
-<!-- Add Student Modal -->
-<div class="modal-overlay" id="add-student-modal">
-    <div class="modal-content glass-card">
+<div id="add-student-modal" class="modal-overlay">
+    <div class="modal-content glass">
         <div class="modal-header">
-            <h3><i class="fas fa-user-plus" style="color: var(--primary-color);"></i> Add New Student</h3>
-            <button class="close-btn" data-close-button>&times;</button>
+            <h2>Add Student</h2>
+            <button class="close-btn" onclick="this.closest('.modal-overlay').classList.remove('active')">&times;</button>
         </div>
-        <form action="{{ url_for('add_student') }}" method="POST">
+        <form id="add-student-form">
             <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" name="name" class="form-control" required>
+                <label>Name</label>
+                <input type="text" id="stu-name" required>
             </div>
-            <div style="display: flex; gap: 15px;">
+            <div style="display: flex; gap: 1rem;">
                 <div class="form-group" style="flex: 1;">
-                    <label>Class/Grade</label>
-                    <input type="text" name="student_class" class="form-control" required>
+                    <label>Class</label>
+                    <input type="text" id="stu-class" required>
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Roll Number</label>
-                    <input type="text" name="roll" class="form-control" required>
+                    <input type="text" id="stu-roll" required>
                 </div>
             </div>
             <div class="form-group">
-                <label>Phone Number</label>
-                <input type="tel" name="phone" class="form-control">
+                <label>Phone</label>
+                <input type="text" id="stu-phone" required>
             </div>
             <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" class="form-control">
+                <label>Email</label>
+                <input type="email" id="stu-email">
             </div>
             <div class="form-group">
-                <label>Parent's Name</label>
-                <input type="text" name="parent" class="form-control">
+                <label>Parent Name</label>
+                <input type="text" id="stu-parent">
             </div>
-            <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
-                <label style="color: var(--primary-color);"><i class="fas fa-key"></i> Student Password</label>
-                <input type="text" name="password" class="form-control" placeholder="Set initial password for student login" required>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
-                <button type="submit" class="btn btn-primary" onclick="showLoading()">Save Student</button>
-            </div>
+            <button type="submit" class="btn" style="width: 100%;">Save</button>
         </form>
     </div>
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
-    // Simple client-side search
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const filter = this.value.toLowerCase();
-            const rows = document.querySelectorAll('tbody tr');
+    let allStudents = [];
 
-            rows.forEach(row => {
-                if (row.cells.length > 1) { // Skip empty state row
-                    const name = row.cells[1].textContent.toLowerCase();
-                    const roll = row.cells[0].textContent.toLowerCase();
-                    if (name.includes(filter) || roll.includes(filter)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                }
-            });
+    async function loadStudents() {
+        const data = await apiCall('/api/students');
+        if (data) {
+            allStudents = data;
+            renderTable(data);
+        }
+    }
+
+    function renderTable(students) {
+        const tbody = document.getElementById('students-table');
+        tbody.innerHTML = '';
+        students.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.name}</td>
+                <td>${s.class}</td>
+                <td>${s.roll}</td>
+                <td>${s.phone}</td>
+                <td>${s.email}</td>
+                <td>${s.parent}</td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('${s.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
         });
     }
+
+    document.getElementById('search-student').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = allStudents.filter(s =>
+            s.name.toLowerCase().includes(query) ||
+            String(s.roll).toLowerCase().includes(query)
+        );
+        renderTable(filtered);
+    });
+
+    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('stu-name').value,
+            class: document.getElementById('stu-class').value,
+            roll: document.getElementById('stu-roll').value,
+            phone: document.getElementById('stu-phone').value,
+            email: document.getElementById('stu-email').value,
+            parent: document.getElementById('stu-parent').value
+        };
+        const res = await apiCall('/api/students', 'POST', payload);
+        if (res && res.success) {
+            document.getElementById('add-student-modal').classList.remove('active');
+            e.target.reset();
+            loadStudents();
+            showMessage('Success', 'Student added successfully.');
+        }
+    });
+
+    async function deleteStudent(id) {
+        if(confirm('Are you sure you want to delete this student?')) {
+            const res = await apiCall(`/api/students/${id}`, 'DELETE');
+            if(res && res.success) loadStudents();
+        }
+    }
+
+
+    function openEditModal(id) {
+        const s = allStudents.find(x => x.id === id);
+        if(!s) return;
+        document.getElementById('edit-stu-id').value = s.id;
+        document.getElementById('edit-stu-name').value = s.name;
+        document.getElementById('edit-stu-class').value = s.class;
+        document.getElementById('edit-stu-roll').value = s.roll;
+        document.getElementById('edit-stu-phone').value = s.phone;
+        document.getElementById('edit-stu-email').value = s.email;
+        document.getElementById('edit-stu-parent').value = s.parent;
+        document.getElementById('edit-student-modal').classList.add('active');
+    }
+
+    document.getElementById('edit-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-stu-id').value;
+        const payload = {
+            name: document.getElementById('edit-stu-name').value,
+            class: document.getElementById('edit-stu-class').value,
+            roll: document.getElementById('edit-stu-roll').value,
+            phone: document.getElementById('edit-stu-phone').value,
+            email: document.getElementById('edit-stu-email').value,
+            parent: document.getElementById('edit-stu-parent').value
+        };
+        const res = await apiCall(`/api/students/${id}`, 'PUT', payload);
+        if (res && res.success) {
+            document.getElementById('edit-student-modal').classList.remove('active');
+            loadStudents();
+            showMessage('Success', 'Student updated successfully.');
+        }
+    });
+
+    loadStudents();
 </script>
 {% endblock %}

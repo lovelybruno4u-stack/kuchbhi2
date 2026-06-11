@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block page_title %}AI Study Bot{% endblock %}
+
+{% block content %}
+<div class="chat-container glass">
+    <div class="chat-messages" id="chat-msgs">
+        <div class="message ai">Hello! I'm your AI Study Tutor. Ask me about concept doubts, exam preparation, or study tips!</div>
+    </div>
+    <form class="chat-input" id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off" required>
+        <button type="submit" class="btn"><i class="fas fa-paper-plane"></i></button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const msgsContainer = document.getElementById('chat-msgs');
+
+    function addMsg(text, isUser) {
+        const div = document.createElement('div');
+        div.className = `message ${isUser ? 'user' : 'ai'}`;
+        div.textContent = text;
+        msgsContainer.appendChild(div);
+        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chat-input');
+        const msg = input.value.trim();
+        if(!msg) return;
+
+        addMsg(msg, true);
+        input.value = '';
+
+        const loaderDiv = document.createElement('div');
+        loaderDiv.className = 'message ai';
+        loaderDiv.textContent = '...';
+        msgsContainer.appendChild(loaderDiv);
+        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+
+        const res = await apiCall('/api/ai/chat', 'POST', {message: msg});
+        msgsContainer.removeChild(loaderDiv);
+
+        if(res && res.answer) {
+            addMsg(res.answer, false);
+        } else {
+            addMsg("Sorry, I'm having trouble responding right now.", false);
+        }
+    });
+</script>
+{% endblock %}
