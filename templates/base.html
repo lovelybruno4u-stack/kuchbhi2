@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    {% if session.get('user') %}
+    <nav class="sidebar">
+        <h2>Aswathama Classes</h2>
+        <ul class="nav-links">
+            {% if session['user']['role'] == 'teacher' %}
+            <li><a href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('teacher_students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('teacher_attendance') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('teacher_videos') }}"><i class="fas fa-video"></i> Videos</a></li>
+            <li><a href="{{ url_for('teacher_subjects') }}"><i class="fas fa-book"></i> Subjects</a></li>
+            <li><a href="{{ url_for('teacher_announcements') }}"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+            <li><a href="{{ url_for('teacher_ai_tools') }}"><i class="fas fa-robot"></i> AI Tools</a></li>
+            {% else %}
+            <li><a href="{{ url_for('student_dashboard') }}"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('student_my_videos') }}"><i class="fas fa-video"></i> My Videos</a></li>
+            <li><a href="{{ url_for('student_attendance_view') }}"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+            <li><a href="{{ url_for('student_chatbot') }}"><i class="fas fa-comments"></i> Study Bot</a></li>
+            <li><a href="{{ url_for('student_announcements') }}"><i class="fas fa-bullhorn"></i> Announcements</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <header>
+            <button class="mobile-toggle"><i class="fas fa-bars"></i></button>
+            <h1>{% block page_title %}{% endblock %}</h1>
+            <div class="user-info">
+                <span>{{ session['user']['name'] }}</span>
+            </div>
+        </header>
+        {% block content %}{% endblock %}
+    </main>
+    {% else %}
+        {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
