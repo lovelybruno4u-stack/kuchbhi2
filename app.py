@@ -956,8 +956,6 @@ def complete_task():
 
     return jsonify({'success': True, 'points_earned': 5})
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 # --- Student Specific Backend Routes ---
 @app.route('/student/dashboard', endpoint='student_dashboard')
@@ -1633,3 +1631,6 @@ def teacher_quiz_scores():
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
