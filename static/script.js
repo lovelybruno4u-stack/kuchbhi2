@@ -126,3 +126,262 @@ function hideLoading() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display = 'none';
 }
+
+// ==========================================
+// TEACHER AI TOOLS LOGIC
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Video Summary
+    const formVideo = document.getElementById('form-video-summary');
+    if (formVideo) {
+        formVideo.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const topic = document.getElementById('video-topic').value;
+            const btn = document.getElementById('btn-video-summary');
+            const resBox = document.getElementById('res-video-summary');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            resBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/ai/video_summary', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({topic})
+                });
+                const data = await res.json();
+
+                resBox.style.display = 'block';
+                if (data.success) {
+                    resBox.textContent = data.answer;
+                } else {
+                    resBox.textContent = 'Error: ' + data.error;
+                }
+            } catch (err) {
+                resBox.style.display = 'block';
+                resBox.textContent = 'Failed to generate summary.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate Summary';
+            }
+        });
+    }
+
+    // Quiz Generator
+    const formQuiz = document.getElementById('form-quiz-gen');
+    if (formQuiz) {
+        formQuiz.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const subject = document.getElementById('quiz-subject').value;
+            const topic = document.getElementById('quiz-topic').value;
+            const btn = document.getElementById('btn-quiz-gen');
+            const resBox = document.getElementById('res-quiz-gen');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            resBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/ai/quiz', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({subject, topic})
+                });
+                const data = await res.json();
+
+                resBox.style.display = 'block';
+                if (data.success) {
+                    resBox.textContent = data.answer;
+                } else {
+                    resBox.textContent = 'Error: ' + data.error;
+                }
+            } catch (err) {
+                resBox.style.display = 'block';
+                resBox.textContent = 'Failed to generate quiz.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate 5 MCQs';
+            }
+        });
+    }
+
+    // Attendance Insight
+    const btnAttendance = document.getElementById('btn-attendance-insight');
+    if (btnAttendance) {
+        btnAttendance.addEventListener('click', async () => {
+            const resBox = document.getElementById('res-attendance-insight');
+
+            btnAttendance.disabled = true;
+            btnAttendance.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            resBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/ai/attendance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await res.json();
+
+                resBox.style.display = 'block';
+                if (data.success) {
+                    resBox.textContent = data.answer;
+                } else {
+                    resBox.textContent = 'Error: ' + data.error;
+                }
+            } catch (err) {
+                resBox.style.display = 'block';
+                resBox.textContent = 'Failed to analyze attendance.';
+            } finally {
+                btnAttendance.disabled = false;
+                btnAttendance.textContent = 'Analyze Attendance';
+            }
+        });
+    }
+
+    // Announcement Generator
+    const formAnnouncement = document.getElementById('form-announcement-gen');
+    if (formAnnouncement) {
+        formAnnouncement.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const details = document.getElementById('announcement-details').value;
+            const btn = document.getElementById('btn-announcement-gen');
+            const resBox = document.getElementById('res-announcement-gen');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Drafting...';
+            resBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/ai/announcement', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({details})
+                });
+                const data = await res.json();
+
+                resBox.style.display = 'block';
+                if (data.success) {
+                    resBox.textContent = data.answer;
+                } else {
+                    resBox.textContent = 'Error: ' + data.error;
+                }
+            } catch (err) {
+                resBox.style.display = 'block';
+                resBox.textContent = 'Failed to draft announcement.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Draft Announcement';
+            }
+        });
+    }
+});
+
+// ==========================================
+// STUDENT AI CHATBOT LOGIC
+// ==========================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Chatbot
+    const formChat = document.getElementById('form-chat');
+    if (formChat) {
+        formChat.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const inputField = document.getElementById('chat-input');
+            const message = inputField.value.trim();
+            if (!message) return;
+
+            const btn = document.getElementById('btn-chat');
+            const chatWindow = document.getElementById('chat-window');
+
+            // Add user message
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'chat-message user-message';
+            userMsgDiv.style.alignSelf = 'flex-end';
+            userMsgDiv.style.background = 'rgba(255,255,255,0.1)';
+            userMsgDiv.style.padding = '0.5rem 1rem';
+            userMsgDiv.style.borderRadius = '8px';
+            userMsgDiv.textContent = message;
+            chatWindow.appendChild(userMsgDiv);
+
+            inputField.value = '';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            try {
+                const res = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message})
+                });
+                const data = await res.json();
+
+                const aiMsgDiv = document.createElement('div');
+                aiMsgDiv.className = 'chat-message ai-message';
+                aiMsgDiv.style.alignSelf = 'flex-start';
+                aiMsgDiv.style.background = 'rgba(99,102,241,0.2)';
+                aiMsgDiv.style.padding = '0.5rem 1rem';
+                aiMsgDiv.style.borderRadius = '8px';
+
+                if (data.success) {
+                    aiMsgDiv.textContent = data.answer;
+                } else {
+                    aiMsgDiv.textContent = 'Error: ' + data.error;
+                }
+                chatWindow.appendChild(aiMsgDiv);
+            } catch (err) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'chat-message ai-message';
+                errorDiv.style.alignSelf = 'flex-start';
+                errorDiv.style.background = 'rgba(239,68,68,0.2)';
+                errorDiv.style.padding = '0.5rem 1rem';
+                errorDiv.style.borderRadius = '8px';
+                errorDiv.textContent = 'Failed to connect to AI server.';
+                chatWindow.appendChild(errorDiv);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+    }
+
+    // Doubt Solver
+    const formDoubt = document.getElementById('form-doubt-solver');
+    if (formDoubt) {
+        formDoubt.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = document.getElementById('doubt-question').value;
+            const btn = document.getElementById('btn-doubt-solver');
+            const resBox = document.getElementById('res-doubt-solver');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Solving...';
+            resBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/ai/doubt_solver', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question})
+                });
+                const data = await res.json();
+
+                resBox.style.display = 'block';
+                if (data.success) {
+                    resBox.textContent = data.answer;
+                } else {
+                    resBox.textContent = 'Error: ' + data.error;
+                }
+            } catch (err) {
+                resBox.style.display = 'block';
+                resBox.textContent = 'Failed to solve doubt.';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Solve Doubt';
+            }
+        });
+    }
+});
