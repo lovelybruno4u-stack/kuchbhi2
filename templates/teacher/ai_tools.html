@@ -1,0 +1,76 @@
+{% extends 'teacher/base.html' %}
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr; gap: 2rem;">
+
+    <!-- Video Summary Generator -->
+    <div class="card glass-card">
+        <div class="card-header">
+            <h3><i class="fas fa-video"></i> Video Summary Generator</h3>
+        </div>
+        <div class="card-body">
+            <form id="form-video-summary" class="modern-form">
+                <div class="form-group">
+                    <label>Video Topic / Title</label>
+                    <input type="text" id="video-topic" class="form-control" placeholder="E.g. Newton's Laws of Motion" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-video-summary">Generate Summary</button>
+            </form>
+            <div id="res-video-summary" class="ai-response-box" style="display:none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="card glass-card">
+        <div class="card-header">
+            <h3><i class="fas fa-question-circle"></i> Quiz Generator</h3>
+        </div>
+        <div class="card-body">
+            <form id="form-quiz-gen" class="modern-form">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="quiz-subject" class="form-control" placeholder="E.g. Physics" required>
+                </div>
+                <div class="form-group">
+                    <label>Topic</label>
+                    <input type="text" id="quiz-topic" class="form-control" placeholder="E.g. Kinematics" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-quiz-gen">Generate 5 MCQs</button>
+            </form>
+            <div id="res-quiz-gen" class="ai-response-box" style="display:none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+    <!-- Attendance Insight -->
+    <div class="card glass-card">
+        <div class="card-header">
+            <h3><i class="fas fa-chart-pie"></i> Attendance Analysis</h3>
+        </div>
+        <div class="card-body">
+            <p>Analyze current attendance data directly from the Google Sheets database.</p>
+            <button class="btn btn-primary" id="btn-attendance-insight">Analyze Attendance</button>
+            <div id="res-attendance-insight" class="ai-response-box" style="display:none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+    <!-- Announcement Generator -->
+    <div class="card glass-card">
+        <div class="card-header">
+            <h3><i class="fas fa-bullhorn"></i> Announcement Generator</h3>
+        </div>
+        <div class="card-body">
+            <form id="form-announcement-gen" class="modern-form">
+                <div class="form-group">
+                    <label>Announcement Details</label>
+                    <textarea id="announcement-details" class="form-control" rows="3" placeholder="E.g. Holiday tomorrow due to heavy rain..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-announcement-gen">Draft Announcement</button>
+            </form>
+            <div id="res-announcement-gen" class="ai-response-box" style="display:none; margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
