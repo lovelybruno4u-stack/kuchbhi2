@@ -1,0 +1,221 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="header-container">
+    <div class="header-content">
+        <h1>AI Powered Tools</h1>
+        <p class="subtitle">Use AI to save time and enhance your teaching</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Attendance Analysis -->
+    <div class="card ai-tool-card" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="tool-icon" style="font-size: 2.5rem; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5;">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="tool-info" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <h3>Attendance Insights</h3>
+            <p style="margin-bottom: 1rem;">Analyze recent attendance patterns automatically.</p>
+            <button class="btn btn-primary" onclick="generateAttendanceAnalysis()">Analyze Now</button>
+        </div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="card ai-tool-card" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="tool-icon" style="font-size: 2.5rem; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="tool-info" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <h3>Video Summarizer</h3>
+            <p style="margin-bottom: 1rem;">Generate revision notes from a video topic.</p>
+            <button class="btn btn-primary" onclick="openModal('videoModal')">Create Summary</button>
+        </div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="card ai-tool-card" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="tool-icon" style="font-size: 2.5rem; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+            <i class="fas fa-tasks"></i>
+        </div>
+        <div class="tool-info" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <h3>Quiz Generator</h3>
+            <p style="margin-bottom: 1rem;">Automatically create 5 MCQs on any subject.</p>
+            <button class="btn btn-primary" onclick="openModal('quizModal')">Generate Quiz</button>
+        </div>
+    </div>
+
+    <!-- Announcement Generator -->
+    <div class="card ai-tool-card" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="tool-icon" style="font-size: 2.5rem; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;" style="background: rgba(236, 72, 153, 0.1); color: #ec4899;">
+            <i class="fas fa-bullhorn"></i>
+        </div>
+        <div class="tool-info" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <h3>Smart Announcements</h3>
+            <p style="margin-bottom: 1rem;">Draft professional announcements easily.</p>
+            <button class="btn btn-primary" onclick="openModal('announceModal')">Draft Announcement</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Results -->
+<div id="resultModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h2 id="resultTitle">AI Result</h2>
+            <button class="close-btn" onclick="closeModal('resultModal')">&times;</button>
+        </div>
+        <div class="form-group">
+            <pre id="resultContent" style="white-space: pre-wrap; background: #f8fafc; padding: 1rem; border-radius: 8px; font-family: inherit; font-size: 0.95rem; border: 1px solid #e2e8f0;"></pre>
+        </div>
+        <div class="form-actions" style="margin-top: 1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('resultModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for Inputs -->
+<!-- Video Summary Modal -->
+<div id="videoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Generate Video Summary</h2>
+            <button class="close-btn" onclick="closeModal('videoModal')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Video Topic / Concept</label>
+            <input type="text" id="videoTopicInput" class="form-control" placeholder="e.g. Newton's Third Law">
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('videoModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="generateVideoSummary()">Generate</button>
+        </div>
+    </div>
+</div>
+
+<!-- Quiz Generator Modal -->
+<div id="quizModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Generate Quick Quiz</h2>
+            <button class="close-btn" onclick="closeModal('quizModal')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Subject and Topic</label>
+            <input type="text" id="quizTopicInput" class="form-control" placeholder="e.g. History - World War II">
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('quizModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="generateQuiz()">Generate</button>
+        </div>
+    </div>
+</div>
+
+<!-- Announcement Modal -->
+<div id="announceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Draft Smart Announcement</h2>
+            <button class="close-btn" onclick="closeModal('announceModal')">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>What's the announcement about?</label>
+            <textarea id="announceInput" class="form-control" placeholder="e.g. Holiday tomorrow due to heavy rain" rows="3"></textarea>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('announceModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="generateAnnouncement()">Draft</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function showResult(title, content) {
+        document.getElementById('resultTitle').textContent = title;
+        document.getElementById('resultContent').textContent = content; // XSS Safe
+        openModal('resultModal');
+    }
+
+    async function generateAttendanceAnalysis() {
+        showResult("Generating...", "Please wait while AI analyzes attendance data...");
+        try {
+            const res = await fetch('/api/ai/attendance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({}) });
+            const data = await res.json();
+            if(data.success) {
+                showResult("Attendance Insights", data.analysis);
+            } else {
+                showResult("Error", data.error || "Failed to analyze.");
+            }
+        } catch (e) {
+            showResult("Error", "Server connection failed.");
+        }
+    }
+
+    async function generateVideoSummary() {
+        const topic = document.getElementById('videoTopicInput').value;
+        if (!topic) return;
+        closeModal('videoModal');
+        showResult("Generating...", `Creating summary for: ${topic}...`);
+
+        try {
+            const res = await fetch('/api/ai/video_summary', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
+            const data = await res.json();
+            if(data.success) {
+                showResult("Revision Notes: " + topic, data.summary);
+            } else {
+                showResult("Error", data.error || "Failed to generate summary.");
+            }
+        } catch (e) {
+            showResult("Error", "Server connection failed.");
+        }
+    }
+
+    async function generateQuiz() {
+        const topic = document.getElementById('quizTopicInput').value;
+        if (!topic) return;
+        closeModal('quizModal');
+        showResult("Generating...", `Creating quiz for: ${topic}...`);
+
+        try {
+            const res = await fetch('/api/ai/quiz', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic}) });
+            const data = await res.json();
+            if(data.success) {
+                showResult("Quiz: " + topic, data.quiz);
+            } else {
+                showResult("Error", data.error || "Failed to generate quiz.");
+            }
+        } catch (e) {
+            showResult("Error", "Server connection failed.");
+        }
+    }
+
+    async function generateAnnouncement() {
+        const prompt = document.getElementById('announceInput').value;
+        if (!prompt) return;
+        closeModal('announceModal');
+        showResult("Drafting...", `Drafting announcement...`);
+
+        try {
+            const res = await fetch('/api/ai/announcement', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({prompt}) });
+            const data = await res.json();
+            if(data.success) {
+                showResult("Drafted Announcement", data.announcement);
+            } else {
+                showResult("Error", data.error || "Failed to draft announcement.");
+            }
+        } catch (e) {
+            showResult("Error", "Server connection failed.");
+        }
+    }
+</script>
+{% endblock %}

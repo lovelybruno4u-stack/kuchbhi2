@@ -1,85 +1,62 @@
-# Ashwathama Classes
+# ASWATHAMA CLASSES
 
-A complete AI-powered web platform for educational coaching classes. Features role-based access for Teachers and Students, integrated with Google Sheets as a database, and powered by OpenAI for various educational AI tools.
-
-## Tech Stack
-* **Backend:** Flask (Python)
-* **Database:** Google Sheets API (via `gspread` & Service Accounts)
-* **AI:** OpenAI ChatGPT API (`gpt-4o-mini`)
-* **Frontend:** HTML, CSS, JS (Glassmorphism, Responsive SaaS UI)
+ASWATHAMA CLASSES is a complete AI-powered web platform built for modern coaching classes. It provides a secure, role-based session system with dedicated interfaces for Teachers (Admins) and Students (Users).
 
 ## Features
-**Teacher (Admin)**
-* Dashboard Analytics
-* Student Management (CRUD)
-* Attendance Tracking
-* Video Library Management
-* Announcements System
-* AI Tools: Quiz Generator, Attendance Analyzer, Video Summarizer
-
-**Student (User)**
-* Personal Dashboard
-* View Attendance & Announcements
-* Watch Class Recordings
-* AI Doubt Solver
-* AI Study Chatbot
-
----
+- **Modern SaaS UI**: Built with a sleek glassmorphism design, responsive layouts, sidebar navigation, and smooth animations.
+- **Role-based Authentication**: Secure teacher and student login systems with distinct dashboards.
+- **Teacher Dashboard**: Manage students, take daily attendance, schedule daily class videos, manage subjects, and post announcements.
+- **Student Dashboard**: View enrolled class videos, track attendance statistics, and view class announcements.
+- **AI Tools Integration** (Powered by ChatGPT API):
+    - **AI Doubt Solver**: Simplifies complex concepts into student-friendly language. Gives step-by-step math solutions.
+    - **AI Study Chatbot**: A friendly virtual tutor integrated into the student dashboard.
+    - **AI Attendance Analysis**: Analyzes attendance records to give teachers insights on irregular students and actionable advice.
+    - **AI Video Summary**: Generates revision notes based on a class video's topic.
+    - **AI Quiz Generator**: Generates 5 quick MCQs to test a topic.
+    - **AI Smart Announcements**: Drafts professional announcements on behalf of the teacher.
+- **Database**: Integrated with Google Sheets API as the primary database source.
 
 ## Setup Guide
 
-### 1. Automatic Google Sheet Creation
-The application will automatically create a Google Sheet Database for you when it first starts!
-It will create all the required tabs and share it to your email address. You just need to provide your `ADMIN_EMAIL` in the environment variables so you get edit access.
+### 1. How to create a Google Sheet
+- Go to [Google Sheets](https://docs.google.com/spreadsheets).
+- Create a new blank spreadsheet.
+- Create 5 separate sheets at the bottom and name them exactly: `students`, `attendance`, `videos`, `subjects`, and `announcements`.
+- For `students`, set headers: `id`, `name`, `class`, `roll`, `phone`, `email`, `parent`.
+- For `attendance`, set headers: `student_id`, `student_name`, `class`, `date`, `status`, `last_updated`.
+- For `videos`, set headers: `date`, `subject`, `drive_link`.
+- For `subjects`, set headers: `subject_name`.
+- For `announcements`, set headers: `date`, `message`.
 
-### 2. How to Enable Sheets API & Get Credentials
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project.
-3. Go to "APIs & Services" > "Library". Search for **Google Sheets API** and enable it.
-4. Search for **Google Drive API** and enable it as well.
-5. Go to "APIs & Services" > "Credentials".
-6. Click "Create Credentials" > "Service Account". Fill in details and create.
-7. Click on the created service account > "Keys" tab > "Add Key" > "Create new key" (JSON).
-8. This will download a `.json` file to your computer.
-9. **Important:** Open your Service Account details, copy the email address provided. Go back to your Google Sheet, click "Share" in the top right, and share the sheet as an "Editor" with that service account email.
+### 2. How to enable Sheets API
+- Go to the [Google Cloud Console](https://console.cloud.google.com/).
+- Create a new project.
+- Search for "Google Sheets API" in the API Library and click "Enable".
+- Search for "Google Drive API" and click "Enable".
+- Go to "Credentials", click "Create Credentials", and select "Service Account".
+- Once created, go to the "Keys" tab for the service account, click "Add Key" -> "Create new key", and choose JSON. This will download a JSON file.
+- Finally, copy the email address of the service account and share your Google Sheet with this email address, granting it "Editor" access.
 
-### 3. Where to place JSON Key
-Rename the downloaded file to `credentials.json` and place it in the root folder of this project (next to `app.py`).
+### 3. Where to place the JSON key
+- Rename the downloaded JSON file to `CREDENTIALS.JSON`.
+- Place this file in the root directory of the project (same level as `app.py`).
 
-### 4. Where to place OpenAI API Key
-1. Go to [OpenAI Platform](https://platform.openai.com/).
-2. Generate an API Key.
-3. Open the `.env` file in the root directory (create it if it doesn't exist) and add:
-   ```env
-   OPENAI_API_KEY=your_openai_key_here
-   SPREADSHEET_ID=your_spreadsheet_id_from_step_1
-   SECRET_KEY=your_random_flask_secret_key
-   ```
+### 4. Where to place the OpenAI API key
+- Create a file named `.env` in the root directory of the project.
+- Add your key to the file like this:
+  `OPENAI_API_KEY=your_actual_openai_api_key_here`
+- You can also add `SECRET_KEY=your_flask_secret_key` for session security and `GOOGLE_SHEET_NAME=your_sheet_name` to define the target Google Sheet.
 
 ### 5. How to run Flask locally
-1. Ensure Python 3.8+ is installed.
-2. Install requirements:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the app:
-   ```bash
-   python app.py
-   ```
-4. Visit `http://127.0.0.1:5000` in your browser.
+- Ensure Python 3 is installed.
+- Open a terminal and run `pip install -r requirements.txt`.
+- Run the application using the command `python3 app.py` or use gunicorn with `gunicorn app:app --bind 127.0.0.1:5000`.
+- Visit `http://127.0.0.1:5000` in your web browser.
 
-### 6. How to Deploy on Render
-1. Push this code to a GitHub repository. (Make sure `credentials.json` and `.env` are listed in `.gitignore` if making public! For private repo, Render provides secrets management).
-2. Go to [Render.com](https://render.com) and sign in.
-3. Click "New" > "Web Service".
-4. Connect your GitHub repository.
-5. Use the following settings:
-   * **Environment:** Python
-   * **Build Command:** `pip install -r requirements.txt`
-   * **Start Command:** `gunicorn app:app`
-6. Go to "Advanced" -> "Environment Variables" and add:
-   * `OPENAI_API_KEY`
-   * `SPREADSHEET_ID`
-   * `SECRET_KEY`
-7. For the `credentials.json`, either upload it securely as a "Secret File" in Render, OR base64 encode it and set it as an env variable to decode at runtime.
-8. Click "Create Web Service".
+### 6. How to deploy on Render
+- Push this code to a GitHub repository.
+- Go to [Render](https://render.com/), sign in, and click "New" -> "Web Service".
+- Connect your GitHub repository.
+- Use `pip install -r requirements.txt` as the Build Command.
+- Use `gunicorn app:app` as the Start Command.
+- In the "Environment" tab on Render, add your environment variables (`OPENAI_API_KEY`, `SECRET_KEY`, `GOOGLE_SHEET_NAME`) and you can paste the contents of your `CREDENTIALS.JSON` into an environment variable as well if you adapt the codebase to read credentials from env vars.
