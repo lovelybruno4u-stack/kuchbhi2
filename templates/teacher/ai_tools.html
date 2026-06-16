@@ -1,0 +1,228 @@
+{% extends 'teacher/base.html' %}
+{% block title %}AI Tools - Ashwathama Classes{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-robot text-primary"></i> AI Educational Tools</h1>
+    <p>Powered by ChatGPT</p>
+</div>
+
+<div class="grid-2">
+    <!-- AI Quiz Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-question-circle"></i> AI Quiz Generator</h3>
+        <p class="text-sm" style="color: var(--text-secondary); margin-bottom: 15px;">Generate 5 MCQs for any subject and topic instantly.</p>
+
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="quiz-subject" class="form-control" placeholder="e.g. Science">
+        </div>
+        <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Photosynthesis">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()">
+            <i class="fas fa-magic"></i> Generate Quiz
+        </button>
+
+        <div id="quiz-loading" style="display: none; margin-top: 15px;">
+            <i class="fas fa-spinner fa-spin"></i> Generating questions...
+        </div>
+
+        <div id="quiz-result" style="margin-top: 15px; display: none;">
+            <h4>Generated Questions:</h4>
+            <div id="quiz-questions" style="background: var(--bg-color); padding: 10px; border-radius: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+            </div>
+            <button class="btn btn-outline" style="margin-top: 10px; width: 100%;" onclick="alert('In a complete implementation, this would save to the Quiz database.')">Save to Quiz Database</button>
+        </div>
+    </div>
+
+    <!-- AI Attendance Analysis -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-pie"></i> AI Attendance Insight</h3>
+        <p class="text-sm" style="color: var(--text-secondary); margin-bottom: 15px;">Analyze student attendance patterns automatically.</p>
+
+        <button class="btn btn-primary" onclick="analyzeAttendance()">
+            <i class="fas fa-search-dollar"></i> Analyze Current Data
+        </button>
+
+        <div id="attendance-loading" style="display: none; margin-top: 15px;">
+            <i class="fas fa-spinner fa-spin"></i> Analyzing records...
+        </div>
+
+        <div id="attendance-result" style="margin-top: 15px; display: none; background: var(--bg-color); padding: 15px; border-radius: 8px; font-size: 14px; white-space: pre-wrap;">
+        </div>
+    </div>
+
+    <!-- AI Announcements -->
+    <div class="glass-card">
+        <h3><i class="fas fa-bullhorn"></i> AI Announcement Writer</h3>
+        <p class="text-sm" style="color: var(--text-secondary); margin-bottom: 15px;">Write professional announcements quickly.</p>
+
+        <div class="form-group">
+            <label>What is the announcement about?</label>
+            <input type="text" id="announcement-topic" class="form-control" placeholder="e.g. Tomorrow is a holiday due to rain">
+        </div>
+        <button class="btn btn-primary" onclick="generateAnnouncement()">
+            <i class="fas fa-pen-nib"></i> Draft Announcement
+        </button>
+
+        <div id="announcement-loading" style="display: none; margin-top: 15px;">
+            <i class="fas fa-spinner fa-spin"></i> Writing draft...
+        </div>
+
+        <div id="announcement-result" style="margin-top: 15px; display: none;">
+            <textarea id="announcement-text" class="form-control" rows="4" style="margin-bottom: 10px;"></textarea>
+            <button class="btn btn-outline" style="width: 100%;" onclick="alert('In a complete implementation, this would post the announcement.')">Post Announcement</button>
+        </div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-video"></i> AI Video Notes</h3>
+        <p class="text-sm" style="color: var(--text-secondary); margin-bottom: 15px;">Generate revision notes based on a video topic.</p>
+
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g. Newton's Laws of Motion">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoNotes()">
+            <i class="fas fa-file-alt"></i> Generate Notes
+        </button>
+
+        <div id="video-loading" style="display: none; margin-top: 15px;">
+            <i class="fas fa-spinner fa-spin"></i> Generating notes...
+        </div>
+
+        <div id="video-result" style="margin-top: 15px; display: none; background: var(--bg-color); padding: 15px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">
+        </div>
+    </div>
+</div>
+
+<script>
+    async function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+
+        if(!subject || !topic) {
+            alert('Please enter subject and topic');
+            return;
+        }
+
+        document.getElementById('quiz-loading').style.display = 'block';
+        document.getElementById('quiz-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/ai/quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({subject, topic})
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                const container = document.getElementById('quiz-questions');
+                container.innerHTML = '';
+
+                data.questions.forEach((q, i) => {
+                    container.innerHTML += `
+                        <div style="margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                            <strong>Q${i+1}: ${q.question}</strong><br>
+                            A) ${q.option1}<br>
+                            B) ${q.option2}<br>
+                            C) ${q.option3}<br>
+                            D) ${q.option4}<br>
+                            <span style="color: var(--success); font-weight: bold;">Answer: ${q.answer}</span>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('quiz-result').style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(e) {
+            alert('Failed to connect to AI server');
+        } finally {
+            document.getElementById('quiz-loading').style.display = 'none';
+        }
+    }
+
+    async function analyzeAttendance() {
+        document.getElementById('attendance-loading').style.display = 'block';
+        document.getElementById('attendance-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/ai/attendance', { method: 'POST' });
+            const data = await res.json();
+
+            if(data.success) {
+                document.getElementById('attendance-result').textContent = data.summary;
+                document.getElementById('attendance-result').style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(e) {
+            alert('Failed to connect to AI server');
+        } finally {
+            document.getElementById('attendance-loading').style.display = 'none';
+        }
+    }
+
+    async function generateAnnouncement() {
+        const topic = document.getElementById('announcement-topic').value;
+        if(!topic) return alert('Please enter a topic');
+
+        document.getElementById('announcement-loading').style.display = 'block';
+        document.getElementById('announcement-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/ai/announcement', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                document.getElementById('announcement-text').value = data.announcement;
+                document.getElementById('announcement-result').style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(e) {
+            alert('Failed to connect to AI server');
+        } finally {
+            document.getElementById('announcement-loading').style.display = 'none';
+        }
+    }
+
+    async function generateVideoNotes() {
+        const topic = document.getElementById('video-topic').value;
+        if(!topic) return alert('Please enter a topic');
+
+        document.getElementById('video-loading').style.display = 'block';
+        document.getElementById('video-result').style.display = 'none';
+
+        try {
+            const res = await fetch('/api/ai/video_summary', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                document.getElementById('video-result').textContent = data.summary;
+                document.getElementById('video-result').style.display = 'block';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(e) {
+            alert('Failed to connect to AI server');
+        } finally {
+            document.getElementById('video-loading').style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
