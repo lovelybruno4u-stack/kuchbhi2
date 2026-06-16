@@ -138,6 +138,9 @@
             <button id="sidebar-install-btn" class="btn btn-outline" style="width: 100%; display: none; text-align: left; justify-content: flex-start; padding: 10px 15px; border-radius: 8px;">
                 <i class="fas fa-download" style="margin-right: 12px; font-size: 1.1rem;"></i> Install App
             </button>
+            <a href="{{ url_for(\'teacher_ai_tools\') }}" class="nav-link {% if request.path == url_for(\'teacher_ai_tools\') %}active{% endif %}">
+                <i class="fas fa-robot"></i> AI Tools
+            </a>
             <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
