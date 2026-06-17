@@ -4,11 +4,20 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, render_template_string
 from dotenv import load_dotenv
 import gspread
+from openai import OpenAI
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # Load environment variables
 load_dotenv()
+
+# Setup OpenAI
+try:
+    openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+except Exception as e:
+    print(f"Warning: Failed to initialize OpenAI client: {e}")
+    openai_client = None
+
 
 
 from datetime import timedelta
@@ -521,8 +530,18 @@ def login():
             else:
                 flash('Invalid teacher credentials. Please try again.', 'error')
 
+
         elif role == 'student':
+            # Demo/Fallback logic
+            if username == 'student' and password == 'student':
+                session.permanent = True
+                session['user_role'] = 'student'
+                session['user_name'] = 'Demo Student'
+                session['student_id'] = 'demo123'
+                return redirect(url_for('student_dashboard'))
+
             # Fetch students from Google Sheets / DB
+
             students = get_data('students')
 
             # Find student by roll number (username field) and match password
@@ -854,10 +873,13 @@ def old_student_my_videos():
 def old_student_attendance_view():
     return render_template('student/attendance_view.html')
 
-@app.route('/old_student_chatbot')
+
+@app.route('/student/chatbot', endpoint='student_chatbot')
 @login_required(role='student')
-def old_student_chatbot():
+def student_chatbot():
     return render_template('student/chatbot.html')
+
+
 
 @app.route('/old_student_announcements')
 @login_required(role='student')
@@ -956,8 +978,7 @@ def complete_task():
 
     return jsonify({'success': True, 'points_earned': 5})
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+
 
 # --- Student Specific Backend Routes ---
 @app.route('/student/dashboard', endpoint='student_dashboard')
@@ -1626,6 +1647,12 @@ def leaderboard_live():
         return jsonify({'success': True, 'leaderboard': leaderboard, 'type': 'quiz'})
 
 
+
+@app.route('/teacher/ai_tools', endpoint='teacher_ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('teacher/ai_tools.html')
+
 @app.route('/teacher/quiz_scores')
 @login_required(role='teacher')
 def teacher_quiz_scores():
@@ -1633,3 +1660,91 @@ def teacher_quiz_scores():
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
     return render_template('teacher/quiz_scores.html', scores=scores)
+
+
+# ==========================================
+# AI INTEGRATION ROUTES
+# ==========================================
+
+def get_openai_response(system_prompt, user_content, history=None):
+    if not openai_client:
+        return {"success": False, "error": "OpenAI is not configured"}
+    try:
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            messages.extend(history)
+        messages.append({"role": "user", "content": user_content})
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        return {"success": True, "data": response.choices[0].message.content}
+    except Exception as e:
+        print(f"OpenAI error: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required(role='student')
+def ai_chat():
+    data = request.json
+    question = data.get('question')
+    history = data.get('history', [])
+    mode = data.get('mode', 'doubt_solver') # doubt_solver or chatbot
+
+    if mode == 'doubt_solver':
+        system_prompt = "Explain this concept in very simple words for a school student"
+    else:
+        system_prompt = "You are a friendly tutor. Help the student with concept doubts, exam preparation, or study tips."
+
+    result = get_openai_response(system_prompt, question, history)
+    return jsonify(result)
+
+@app.route('/api/ai/attendance', methods=['POST'])
+@login_required(role='teacher')
+def ai_attendance():
+    # Pass raw attendance data
+    try:
+        attendance_data = get_data('ATTENDANCE_V2')
+        # Format as minimal JSON string
+        summary_data = []
+        for r in attendance_data:
+            summary_data.append({"student_id": r.get("student_id"), "date": r.get("date"), "status": r.get("status")})
+        raw_data = json.dumps(summary_data)
+
+        system_prompt = "Analyze attendance data and provide insights. E.g., which students irregular, attendance percentage, suggest action."
+        result = get_openai_response(system_prompt, f"Data: {raw_data}")
+        return jsonify(result)
+    except Exception as e:
+         return jsonify({"success": False, "error": str(e)})
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def ai_video_summary():
+    data = request.json
+    topic = data.get('topic')
+    system_prompt = "Generate summary notes for revision based on the video topic."
+    result = get_openai_response(system_prompt, topic)
+    return jsonify(result)
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz():
+    data = request.json
+    topic = data.get('topic')
+    system_prompt = "Generate 5 MCQ questions with answers based on the provided subject and topic. Format the output clearly."
+    result = get_openai_response(system_prompt, topic)
+    return jsonify(result)
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    data = request.json
+    prompt = data.get('prompt')
+    system_prompt = "Write a professional coaching class announcement."
+    result = get_openai_response(system_prompt, prompt)
+    return jsonify(result)
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

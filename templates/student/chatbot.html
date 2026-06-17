@@ -1,0 +1,96 @@
+{% extends 'student/base.html' %}
+{% block title %}AI Assistant{% endblock %}
+{% block content %}
+<div class="header-content">
+    <h1>AI Assistant</h1>
+    <p>Get help with your doubts and exam preparation.</p>
+</div>
+
+<div class="card glass mt-4">
+    <div class="form-group mb-3">
+        <label>Mode</label>
+        <div class="radio-group" style="display:flex; gap:1rem;">
+            <label><input type="radio" name="chat-mode" value="doubt_solver" checked> Doubt Solver</label>
+            <label><input type="radio" name="chat-mode" value="chatbot"> Study Chatbot</label>
+        </div>
+    </div>
+
+    <div id="chat-box" style="height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: rgba(0,0,0,0.1);">
+        <!-- Messages will appear here -->
+    </div>
+
+    <div style="display: flex; gap: 0.5rem;">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type your message..." style="flex:1;">
+        <button class="btn btn-primary" onclick="sendMessage()" id="btn-send">Send</button>
+    </div>
+</div>
+
+<script>
+let chatHistory = [];
+
+function appendMessage(role, text) {
+    const box = document.getElementById('chat-box');
+    const msgDiv = document.createElement('div');
+    msgDiv.style.marginBottom = '1rem';
+    msgDiv.style.padding = '0.5rem 1rem';
+    msgDiv.style.borderRadius = '8px';
+    msgDiv.style.maxWidth = '80%';
+
+    if (role === 'user') {
+        msgDiv.style.backgroundColor = 'var(--primary)';
+        msgDiv.style.color = '#fff';
+        msgDiv.style.marginLeft = 'auto';
+    } else {
+        msgDiv.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        msgDiv.style.color = 'var(--text-color)';
+        msgDiv.style.marginRight = 'auto';
+    }
+
+    msgDiv.textContent = text;
+    box.appendChild(msgDiv);
+    box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    const mode = document.querySelector('input[name="chat-mode"]:checked').value;
+
+    appendMessage('user', question);
+    input.value = '';
+
+    const btn = document.getElementById('btn-send');
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ question, history: chatHistory, mode })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            appendMessage('assistant', data.data);
+            chatHistory.push({role: 'user', content: question});
+            chatHistory.push({role: 'assistant', content: data.data});
+        } else {
+            appendMessage('assistant', 'Error: ' + data.error);
+        }
+    } catch (e) {
+        appendMessage('assistant', 'Network error: ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Allow sending with Enter key
+document.getElementById('chat-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}

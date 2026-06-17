@@ -1,0 +1,116 @@
+{% extends 'teacher/base.html' %}
+{% block title %}AI Tools{% endblock %}
+{% block content %}
+<div class="header-content">
+    <h1>AI Tools</h1>
+    <p>Leverage AI to assist with your coaching tasks.</p>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <!-- AI Attendance Analysis -->
+    <div class="card glass">
+        <h3>📊 AI Attendance Analysis</h3>
+        <p>Analyze attendance data and get actionable insights.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" id="btn-attendance">Analyze Now</button>
+        <div id="res-attendance" class="mt-2" style="white-space: pre-wrap; font-size: 0.9rem; margin-top:1rem;"></div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div class="card glass">
+        <h3>🎥 AI Video Summary</h3>
+        <p>Generate summary notes for revision.</p>
+        <div class="form-group">
+            <label>Video Topic</label>
+            <input type="text" id="video-topic" class="form-control" placeholder="e.g. Thermodynamics">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoSummary()" id="btn-video">Generate Summary</button>
+        <div id="res-video" class="mt-2" style="white-space: pre-wrap; font-size: 0.9rem; margin-top:1rem;"></div>
+    </div>
+
+    <!-- AI Quiz Generator -->
+    <div class="card glass">
+        <h3>📝 AI Quiz Generator</h3>
+        <p>Generate 5 MCQ questions with answers.</p>
+        <div class="form-group">
+            <label>Subject & Topic</label>
+            <input type="text" id="quiz-topic" class="form-control" placeholder="e.g. Physics - Motion">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" id="btn-quiz">Generate Quiz</button>
+        <div id="res-quiz" class="mt-2" style="white-space: pre-wrap; font-size: 0.9rem; margin-top:1rem;"></div>
+    </div>
+
+    <!-- AI Announcement -->
+    <div class="card glass">
+        <h3>📢 AI Announcement</h3>
+        <p>Write a professional coaching class announcement.</p>
+        <div class="form-group">
+            <label>Announcement Details</label>
+            <input type="text" id="announcement-prompt" class="form-control" placeholder="e.g. holiday tomorrow">
+        </div>
+        <button class="btn btn-primary" onclick="generateAnnouncement()" id="btn-announcement">Draft Announcement</button>
+        <div id="res-announcement" class="mt-2" style="white-space: pre-wrap; font-size: 0.9rem; margin-top:1rem;"></div>
+    </div>
+</div>
+
+<script>
+async function callAiApi(url, body, resElementId, btnId) {
+    const btn = document.getElementById(btnId);
+    const resEl = document.getElementById(resElementId);
+
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = "Processing...";
+    resEl.textContent = "";
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (data.success) {
+            resEl.textContent = data.data;
+        } else {
+            resEl.textContent = "Error: " + data.error;
+        }
+    } catch (e) {
+        resEl.textContent = "Network error: " + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+}
+
+function analyzeAttendance() {
+    callAiApi('/api/ai/attendance', {}, 'res-attendance', 'btn-attendance');
+}
+
+function generateVideoSummary() {
+    const topic = document.getElementById('video-topic').value;
+    if(!topic) {
+        document.getElementById('res-video').textContent = "Please enter a topic.";
+        return;
+    }
+    callAiApi('/api/ai/video_summary', {topic}, 'res-video', 'btn-video');
+}
+
+function generateQuiz() {
+    const topic = document.getElementById('quiz-topic').value;
+    if(!topic) {
+        document.getElementById('res-quiz').textContent = "Please enter a topic.";
+        return;
+    }
+    callAiApi('/api/ai/quiz', {topic}, 'res-quiz', 'btn-quiz');
+}
+
+function generateAnnouncement() {
+    const prompt = document.getElementById('announcement-prompt').value;
+    if(!prompt) {
+        document.getElementById('res-announcement').textContent = "Please enter details.";
+        return;
+    }
+    callAiApi('/api/ai/announcement', {prompt}, 'res-announcement', 'btn-announcement');
+}
+</script>
+{% endblock %}
