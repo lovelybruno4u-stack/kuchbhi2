@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Videos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_student.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>My Videos</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="page-header">
+                <h3>All Video Lectures</h3>
+            </div>
+
+            <div class="grid grid-cols-3">
+                {% for video in videos %}
+                <div class="card">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--primary);">{{ video.subject }}</h4>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Date: {{ video.date }}</p>
+                    <a href="{{ video.drive_link }}" target="_blank" class="btn btn-primary" style="width: 100%;">Watch Video</a>
+                </div>
+                {% else %}
+                <p style="grid-column: span 3; color: var(--text-muted);">No videos available.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

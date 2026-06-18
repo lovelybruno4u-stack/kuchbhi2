@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_teacher.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Teacher Dashboard</h2>
+            <div class="topbar-right">
+                <div class="user-profile">Teacher Admin</div>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="grid grid-cols-4">
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Total Students</h3>
+                    <p style="font-size: 2rem; font-weight: 700; color: var(--primary);">{{ stats.total_students }}</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Today Attendance</h3>
+                    <p style="font-size: 2rem; font-weight: 700; color: var(--success);">{{ stats.today_attendance }}</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Highest Attendance</h3>
+                    <p style="font-weight: 600; margin-top: 0.5rem;">{{ stats.highest_attendance }}</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Lowest Attendance</h3>
+                    <p style="font-weight: 600; margin-top: 0.5rem;">{{ stats.lowest_attendance }}</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="/teacher/attendance" class="btn btn-primary">Mark Attendance</a>
+                    <a href="/teacher/announcements" class="btn btn-secondary">Post Announcement</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

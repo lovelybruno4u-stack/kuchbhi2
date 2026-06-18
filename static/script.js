@@ -1,128 +1,117 @@
+// Custom Role Selection for Login (Playwright friendly)
 document.addEventListener('DOMContentLoaded', () => {
-    // Role Toggle Logic
     const roleBtns = document.querySelectorAll('.role-btn');
     const roleInput = document.getElementById('role-input');
 
     if (roleBtns.length > 0) {
         roleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', () => {
                 roleBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if(roleInput) {
-                    roleInput.value = e.target.getAttribute('data-role');
+                btn.classList.add('active');
+                if (roleInput) {
+                    roleInput.value = btn.dataset.role;
                 }
             });
         });
     }
 
-    // Sidebar Toggle for Mobile
-    const hamburger = document.getElementById('hamburger');
-    const sidebar = document.getElementById('sidebar');
+    // Initialize tooltips/other UI elements if needed
+});
 
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sidebar.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        });
+// Modal Logic
+function openModal(modalId) {
+    document.getElementById(modalId).classList.add('active');
+}
 
-        // Close sidebar if clicking outside on mobile overlay
-        document.body.addEventListener('click', (e) => {
-            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
-                sidebar.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-    }
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
 
-    // Modal Logic
-    const openModalBtns = document.querySelectorAll('[data-modal-target]');
-    const closeModalBtns = document.querySelectorAll('[data-close-button]');
-    const overlay = document.getElementById('modal-overlay');
-
-    openModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = document.querySelector(button.dataset.modalTarget);
-            openModal(modal);
-        });
-    });
-
-    closeModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal-overlay');
-            closeModal(modal);
-        });
-    });
-
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                const modals = document.querySelectorAll('.modal-overlay.active');
-                modals.forEach(modal => closeModal(modal));
-            }
-        });
-    }
-
-    function openModal(modal) {
-        if (modal == null) return;
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-    }
-
-    function closeModal(modal) {
-        if (modal == null) return;
-        modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
-    }
-
-    // Chatbot Logic
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    if (chatForm && chatInput && chatMessages) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            appendMessage('user', message);
-            chatInput.value = '';
-
-            try {
-                const response = await fetch('/api/chatbot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-
-                if(!response.ok) throw new Error("Network response was not ok");
-
-                const data = await response.json();
-                appendMessage('ai', data.reply);
-            } catch (error) {
-                console.error("Chat error:", error);
-                appendMessage('ai', "Sorry, I'm having trouble connecting right now.");
-            }
-        });
-    }
-
-    function appendMessage(sender, text) {
-        if(!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
     }
 });
 
-function showLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'block';
+// API Helpers
+async function callAI(endpoint, data, btnElement) {
+    const originalText = btnElement ? btnElement.textContent : '';
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = `Generating <span class="loading-dots"></span>`;
+    }
+
+    try {
+        const response = await fetch(`/api/ai/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.textContent = originalText;
+        }
+        return result;
+    } catch (error) {
+        console.error('API Error:', error);
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.textContent = originalText;
+        }
+        return { success: false, error: error.message };
+    }
 }
 
-function hideLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'none';
+// Chatbot Logic
+let chatHistory = [];
+
+async function sendMessage(mode = 'doubt_solver') {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    appendMessage('user', msg);
+    input.value = '';
+
+    chatHistory.push({ role: 'user', content: msg });
+
+    const responseMsgId = appendMessage('ai', 'Thinking...');
+
+    const result = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatHistory, mode: mode })
+    }).then(res => res.json());
+
+    updateMessage(responseMsgId, result.success ? result.reply : 'Error: ' + result.error);
+
+    if (result.success) {
+        chatHistory.push({ role: 'assistant', content: result.reply });
+    } else {
+        chatHistory.pop(); // Remove the failed user message
+    }
+}
+
+function appendMessage(sender, text) {
+    const messagesDiv = document.getElementById('chat-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}`;
+    const id = 'msg-' + Date.now();
+    msgDiv.id = id;
+
+    // STRICTLY using textContent to prevent DOM XSS
+    msgDiv.textContent = text;
+
+    messagesDiv.appendChild(msgDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return id;
+}
+
+function updateMessage(id, text) {
+    const msgDiv = document.getElementById(id);
+    if (msgDiv) {
+        msgDiv.textContent = text;
+    }
 }

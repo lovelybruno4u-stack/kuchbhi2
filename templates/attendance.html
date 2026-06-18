@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_teacher.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Attendance Management</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="page-header">
+                <h3>Mark Attendance - {{ current_date }}</h3>
+                <div>
+                    <a href="{{ wa_link }}" target="_blank" class="btn btn-secondary">Share on WhatsApp</a>
+                    <button class="btn btn-primary" onclick="saveAttendance()">Save Attendance</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-body">
+                        {% for student in students %}
+                        <tr data-student-id="{{ student.id }}">
+                            <td>{{ student.roll }}</td>
+                            <td>{{ student.name }}</td>
+                            <td>
+                                <select class="status-select">
+                                    <option value="Present">Present</option>
+                                    <option value="Absent">Absent</option>
+                                </select>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function saveAttendance() {
+            const rows = document.querySelectorAll('#attendance-body tr');
+            const records = [];
+
+            rows.forEach(row => {
+                records.push({
+                    student_id: row.dataset.studentId,
+                    status: row.querySelector('.status-select').value
+                });
+            });
+
+            const btn = document.querySelector('button[onclick="saveAttendance()"]');
+            const originalText = btn.textContent;
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/teacher/attendance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: '{{ current_date }}',
+                        records: records
+                    })
+                });
+                const result = await response.json();
+                if(result.success) {
+                    alert('Attendance saved successfully!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch(e) {
+                alert('Request failed');
+            }
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    </script>
+</body>
+</html>

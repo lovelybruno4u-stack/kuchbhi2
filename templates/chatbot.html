@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_student.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>AI Study Tutor</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="role-selector" style="max-width: 300px; margin-bottom: 1rem;">
+                <div class="role-btn active" onclick="setChatMode('doubt_solver', this)">Doubt Solver</div>
+                <div class="role-btn" onclick="setChatMode('study_chatbot', this)">Study Tips</div>
+            </div>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message ai">Hi! I'm your AI tutor. How can I help you today?</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type your question here..." onkeypress="handleEnter(event)">
+                    <button class="btn btn-primary" onclick="triggerSend()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        let currentMode = 'doubt_solver';
+
+        function setChatMode(mode, btnElement) {
+            currentMode = mode;
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // Optional: clear chat on mode switch, but keeping it is fine.
+            chatHistory = [];
+            document.getElementById('chat-messages').innerHTML = `<div class="message ai">Switched to ${mode === 'doubt_solver' ? 'Doubt Solver' : 'Study Tutor'}. How can I help?</div>`;
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                triggerSend();
+            }
+        }
+
+        function triggerSend() {
+            sendMessage(currentMode);
+        }
+    </script>
+</body>
+</html>

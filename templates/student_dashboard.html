@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_student.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Student Dashboard</h2>
+            <div class="topbar-right">
+                <div class="user-profile">{{ session.get('user_name', 'Student') }}</div>
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="grid grid-cols-2">
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">My Attendance</h3>
+                    <p style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">{{ data.attendance_percentage }}%</p>
+                </div>
+
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Latest Announcement</h3>
+                    {% if data.latest_announcement %}
+                        <p style="font-size: 0.875rem; font-weight: 600;">{{ data.latest_announcement.date }}</p>
+                        <p style="margin-top: 0.5rem; white-space: pre-wrap;">{{ data.latest_announcement.message }}</p>
+                    {% else %}
+                        <p style="color: var(--text-muted);">No recent announcements.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">Today's Video Lecture</h3>
+                {% if data.today_video %}
+                    <h4 style="color: var(--primary);">{{ data.today_video.subject }}</h4>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">Date: {{ data.today_video.date }}</p>
+                    <a href="{{ data.today_video.drive_link }}" target="_blank" class="btn btn-primary">Watch Now</a>
+                {% else %}
+                    <p style="color: var(--text-muted);">No video lecture posted for today yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

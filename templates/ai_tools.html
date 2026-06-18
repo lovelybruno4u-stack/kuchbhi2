@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_teacher.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>AI Assistant</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="grid grid-cols-2">
+                <!-- AI Announcement -->
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">AI Announcement Generator</h3>
+                    <input type="text" id="ann-topic" placeholder="e.g. holiday tomorrow due to rain" style="margin-bottom: 1rem;">
+                    <button class="btn btn-primary" id="btn-ann" onclick="generateAnnouncement()">Generate</button>
+                    <div id="ann-result" style="margin-top: 1rem; white-space: pre-wrap; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; display: none;"></div>
+                </div>
+
+                <!-- AI Video Summary -->
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">AI Video Summary Notes</h3>
+                    <input type="text" id="vid-topic" placeholder="e.g. Newton's laws of motion" style="margin-bottom: 1rem;">
+                    <button class="btn btn-primary" id="btn-vid" onclick="generateVideoSummary()">Generate</button>
+                    <div id="vid-result" style="margin-top: 1rem; white-space: pre-wrap; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; display: none;"></div>
+                </div>
+
+                <!-- AI Quiz Generator -->
+                <div class="card" style="grid-column: span 2;">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">AI Quiz Generator (5 MCQs)</h3>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <input type="text" id="quiz-sub" placeholder="Subject">
+                        <input type="text" id="quiz-topic" placeholder="Topic">
+                    </div>
+                    <button class="btn btn-primary" id="btn-quiz" onclick="generateQuiz()">Generate</button>
+                    <div id="quiz-result" style="margin-top: 1rem; background: #f8fafc; border-radius: 0.5rem; display: none;"></div>
+                </div>
+
+                <!-- AI Attendance Analysis -->
+                <div class="card" style="grid-column: span 2;">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">AI Attendance Analysis</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Analyzes the current attendance sheet to provide insights on student regularity.</p>
+                    <button class="btn btn-primary" id="btn-att" onclick="analyzeAttendance()">Analyze Data</button>
+                    <div id="att-result" style="margin-top: 1rem; white-space: pre-wrap; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        async function generateAnnouncement() {
+            const topic = document.getElementById('ann-topic').value;
+            if(!topic) return;
+            const res = await callAI('announcement', {topic: topic}, document.getElementById('btn-ann'));
+            const div = document.getElementById('ann-result');
+            div.style.display = 'block';
+            div.textContent = res.success ? res.announcement : 'Error: ' + res.error;
+        }
+
+        async function generateVideoSummary() {
+            const topic = document.getElementById('vid-topic').value;
+            if(!topic) return;
+            const res = await callAI('video_summary', {topic: topic}, document.getElementById('btn-vid'));
+            const div = document.getElementById('vid-result');
+            div.style.display = 'block';
+            div.textContent = res.success ? res.summary : 'Error: ' + res.error;
+        }
+
+        async function analyzeAttendance() {
+            const res = await callAI('attendance', {}, document.getElementById('btn-att'));
+            const div = document.getElementById('att-result');
+            div.style.display = 'block';
+            div.textContent = res.success ? res.analysis : 'Error: ' + res.error;
+        }
+
+        async function generateQuiz() {
+            const sub = document.getElementById('quiz-sub').value;
+            const topic = document.getElementById('quiz-topic').value;
+            if(!sub || !topic) return;
+
+            const res = await callAI('quiz', {subject: sub, topic: topic}, document.getElementById('btn-quiz'));
+            const div = document.getElementById('quiz-result');
+            div.style.display = 'block';
+            div.innerHTML = ''; // Safe here as we control the structural HTML generation, but textContent for data
+
+            if(res.success && res.questions) {
+                res.questions.forEach((q, i) => {
+                    const qDiv = document.createElement('div');
+                    qDiv.style.padding = '1rem';
+                    qDiv.style.borderBottom = '1px solid var(--border)';
+
+                    const title = document.createElement('h4');
+                    title.textContent = `Q${i+1}. ${q.question}`;
+                    title.style.marginBottom = '0.5rem';
+                    qDiv.appendChild(title);
+
+                    ['option1', 'option2', 'option3', 'option4'].forEach(opt => {
+                        const p = document.createElement('p');
+                        p.textContent = `- ${q[opt]}`;
+                        p.style.fontSize = '0.875rem';
+                        qDiv.appendChild(p);
+                    });
+
+                    const ans = document.createElement('p');
+                    ans.textContent = `Ans: ${q.answer}`;
+                    ans.style.fontWeight = 'bold';
+                    ans.style.color = 'var(--success)';
+                    ans.style.marginTop = '0.5rem';
+                    ans.style.fontSize = '0.875rem';
+                    qDiv.appendChild(ans);
+
+                    div.appendChild(qDiv);
+                });
+            } else {
+                div.textContent = 'Error: ' + (res.error || 'Failed to parse format');
+            }
+        }
+    </script>
+</body>
+</html>
