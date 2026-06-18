@@ -1,6 +1,9 @@
 Flask
 gspread
 google-auth
+openai==1.50.0
+httpx<0.28
 gunicorn
 python-dotenv
-pytz
+pytest
+playwright

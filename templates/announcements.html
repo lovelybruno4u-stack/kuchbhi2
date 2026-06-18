@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_teacher.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>Announcements</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="page-header">
+                <h3>Broadcasts</h3>
+                <button class="btn btn-primary" onclick="openModal('addAnnouncementModal')">New Announcement</button>
+            </div>
+
+            <div class="grid grid-cols-2">
+                {% for announcement in announcements %}
+                <div class="card">
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">Date: {{ announcement.date }}</p>
+                    <p style="margin-bottom: 1.5rem; white-space: pre-wrap;">{{ announcement.message }}</p>
+                    <form action="/teacher/delete_announcement/{{ announcement.id }}" method="POST">
+                        <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addAnnouncementModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1.5rem;">New Announcement</h3>
+            <form action="/teacher/add_announcement" method="POST">
+                <div style="margin-bottom: 1rem;">
+                    <label>Date</label>
+                    <input type="date" name="date" required value="{{ current_date }}">
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label>Message</label>
+                    <textarea name="message" id="announcement-msg" rows="5" required></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addAnnouncementModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

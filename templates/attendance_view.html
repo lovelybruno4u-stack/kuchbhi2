@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    {% include 'sidebar_student.html' %}
+    <div class="main-content">
+        <div class="topbar">
+            <h2>My Attendance</h2>
+            <div class="topbar-right">
+                <a href="/logout" class="logout-btn">Logout</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="grid grid-cols-3" style="margin-bottom: 2rem;">
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Total Classes</h3>
+                    <p style="font-size: 1.5rem; font-weight: 700;">{{ total_classes }}</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Classes Attended</h3>
+                    <p style="font-size: 1.5rem; font-weight: 700; color: var(--success);">{{ present_count }}</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--text-muted); font-size: 0.875rem;">Percentage</h3>
+                    <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">{{ attendance_percentage }}%</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Attendance History</h3>
+                <table style="margin-top: 1rem;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                        <tr>
+                            <td>{{ record.date }}</td>
+                            <td style="color: {% if record.status == 'Present' %}var(--success){% else %}var(--danger){% endif %}; font-weight: 500;">
+                                {{ record.status }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2">No attendance records found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

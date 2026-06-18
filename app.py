@@ -154,19 +154,19 @@ def get_google_sheet(sheet_name):
         'subjects': ['id', 'subject_name'],
         'announcements': ['id', 'date', 'message', 'important'],
         'quiz': ['id', 'date', 'subject', 'question', 'option1', 'option2', 'option3', 'option4', 'answer', 'start_time', 'end_time', 'score_expiry'],
-        'quiz_scores_V3': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
+        'quiz_scores': ['quiz_id', 'student_id', 'student_name', 'score', 'percentage', 'timestamp'],
         'materials': ['id', 'title', 'subject', 'description', 'drive_link'],
         'schedule': ['id', 'date', 'subject', 'start_time', 'end_time', 'note'],
         'student_profiles': ['student_id', 'extra_notes', 'last_active_date'],
-        'video_completion_V3': ['date', 'student_id', 'subject', 'video_id', 'completed'],
-        'gamification_V3': ['student_id', 'points', 'badges'],
-        'leaderboard_cache_V3': ['student_id', 'points', 'rank'],
-        'ATTENDANCE_V2': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
-        'DPP_V2': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
-        'DPP_Status_V3': ['dpp_id', 'student_id', 'status'],
-        'TASKS_V2': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
-        'Task_Status_V3': ['task_id', 'student_id', 'status'],
-        'Student_Metrics_V3': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
+        'video_completion': ['date', 'student_id', 'subject', 'video_id', 'completed'],
+        'gamification': ['student_id', 'points', 'badges'],
+        'leaderboard_cache': ['student_id', 'points', 'rank'],
+        'attendance': ['student_id', 'student_name', 'class', 'date', 'status', 'last_updated'],
+        'dpp': ['id', 'title', 'subject', 'class', 'description', 'file_url', 'date_uploaded'],
+        'dpp_status': ['dpp_id', 'student_id', 'status'],
+        'tasks': ['id', 'title', 'description', 'subject', 'class', 'due_date', 'created_date'],
+        'task_status': ['task_id', 'student_id', 'status'],
+        'student_metrics': ['student_id', 'xp', 'level', 'streak_days', 'last_active_date', 'reputation_score', 'trusted_devices']
     }
 
     try:
@@ -303,7 +303,7 @@ def background_refresh():
     try:
         # Silently fetch latest data to update cache behind the scenes
         print("Starting silent background refresh for all V2 sheets...")
-        sheets_to_refresh = ['ATTENDANCE_V2', 'DPP_V2', 'TASKS_V2']
+        sheets_to_refresh = ['attendance', 'dpp', 'tasks']
         for s in sheets_to_refresh:
             sheet = get_google_sheet(s)
             if sheet:
@@ -397,8 +397,8 @@ def bulk_award_points(student_points_dict, reason=""):
     if not student_points_dict: return
 
     try:
-        gamification = get_data('gamification_V3')
-        sheet = get_google_sheet('gamification_V3')
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('gamification')
         if not sheet: return
 
         # Build map
@@ -419,7 +419,7 @@ def bulk_award_points(student_points_dict, reason=""):
 
         sheet.clear()
         sheet.update(new_data)
-        invalidate_cache('gamification_V3')
+        invalidate_cache('gamification')
 
         # Now bulk check badges
         bulk_check_badges(list(student_points_dict.keys()))
@@ -430,9 +430,9 @@ def bulk_award_points(student_points_dict, reason=""):
 
 def bulk_check_badges(student_ids):
     try:
-        videos = get_data('video_completion_V3')
-        gamification = get_data('gamification_V3')
-        sheet = get_google_sheet('gamification_V3')
+        videos = get_data('video_completion')
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('gamification')
         if not sheet: return
 
         record_map = {str(rec.get('student_id')): rec for rec in gamification if rec.get('student_id')}
@@ -459,7 +459,7 @@ def bulk_check_badges(student_ids):
                 new_data.append([str(rec.get(h, '')) for h in headers])
             sheet.clear()
             sheet.update(new_data)
-            invalidate_cache('gamification_V3')
+            invalidate_cache('gamification')
     except Exception as e:
         print(f"Failed bulk check badges: {e}")
 
@@ -469,8 +469,8 @@ def award_points(student_id, points_to_add, reason=""):
 
 def update_leaderboard_cache():
     try:
-        gamification = get_data('gamification_V3')
-        sheet = get_google_sheet('leaderboard_cache_V3')
+        gamification = get_data('gamification')
+        sheet = get_google_sheet('leaderboard_cache')
         if not sheet: return
 
         sorted_students = sorted(gamification, key=lambda x: int(x.get('points', 0)), reverse=True)
@@ -482,7 +482,7 @@ def update_leaderboard_cache():
             rows.append([student.get('student_id'), student.get('points'), rank])
 
         sheet.update(rows)
-        invalidate_cache('leaderboard_cache_V3')
+        invalidate_cache('leaderboard_cache')
 
     except Exception as e:
         print(f"Failed to update leaderboard cache: {e}")
@@ -555,7 +555,7 @@ def logout():
 def teacher_dashboard():
     students = get_data('students')
     videos = get_data('videos')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
 
     current_date = datetime.now().strftime('%Y-%m-%d')
     today_attendance_count = len([a for a in attendance if a.get('date') == current_date and a.get('status') == 'Present'])
@@ -600,13 +600,13 @@ def teacher_dashboard():
         'highest_attendance': highest_student,
         'latest_video': latest_video_subject
     }
-    return render_template('teacher/dashboard.html', stats=stats)
+    return render_template('dashboard.html', stats=stats)
 
 @app.route('/teacher/students')
 @login_required(role='teacher')
 def teacher_students():
     students = get_data('students')
-    return render_template('teacher/students.html', students=students)
+    return render_template('students.html', students=students)
 
 @app.route('/teacher/add_student', methods=['POST'])
 @login_required(role='teacher')
@@ -641,7 +641,7 @@ def delete_student(id):
 @login_required(role='teacher')
 def teacher_attendance():
     students = get_data('students')
-    attendance = get_data('ATTENDANCE_V2')
+    attendance = get_data('attendance')
     current_date = datetime.now().strftime('%Y-%m-%d')
 
     # Calculate today's absentees
@@ -661,7 +661,7 @@ def teacher_attendance():
 
     wa_link = "https://wa.me/?text=" + urllib.parse.quote(wa_text)
 
-    return render_template('teacher/attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
+    return render_template('attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
 
 
 import threading
@@ -673,7 +673,7 @@ def save_attendance():
     date = data.get('date')
     records = data.get('records', [])
 
-    sheet = get_google_sheet('ATTENDANCE_V2')
+    sheet = get_google_sheet('attendance')
     if not sheet:
         return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
 
@@ -732,7 +732,7 @@ def save_attendance():
         if points_to_award:
             bulk_award_points(points_to_award, "Attendance")
 
-        invalidate_cache('ATTENDANCE_V2')
+        invalidate_cache('attendance')
         refresh_local_cache()
 
         return jsonify({'success': True, 'message': 'Attendance saved successfully'})
@@ -748,7 +748,7 @@ def save_attendance():
 def teacher_videos():
     videos = get_data('videos')
     current_date = datetime.now().strftime('%Y-%m-%d')
-    return render_template('teacher/videos.html', videos=videos, current_date=current_date)
+    return render_template('videos.html', videos=videos, current_date=current_date)
 
 @app.route('/teacher/add_video', methods=['POST'])
 @login_required(role='teacher')
@@ -775,7 +775,7 @@ def delete_video(id):
 @login_required(role='teacher')
 def teacher_subjects():
     subjects = get_data('subjects')
-    return render_template('teacher/subjects.html', subjects=subjects)
+    return render_template('subjects.html', subjects=subjects)
 
 @app.route('/teacher/add_subject', methods=['POST'])
 @login_required(role='teacher')
@@ -802,7 +802,7 @@ def teacher_announcements():
     announcements = get_data('announcements')
     current_date = datetime.now().strftime('%Y-%m-%d')
     # Reverse to show newest first
-    return render_template('teacher/announcements.html', announcements=announcements[::-1], current_date=current_date)
+    return render_template('announcements.html', announcements=announcements[::-1], current_date=current_date)
 
 @app.route('/teacher/add_announcement', methods=['POST'])
 @login_required(role='teacher')
@@ -838,798 +838,210 @@ def delete_announcement(id):
 
 
 
-# --- Student Routes (Stubs for now) ---
-@app.route('/old_student_dashboard')
-@login_required(role='student')
-def old_student_dashboard():
-    return render_template('student/student_dashboard.html')
 
-@app.route('/old_student_my_videos')
-@login_required(role='student')
-def old_student_my_videos():
-    return render_template('student/my_videos.html')
-
-@app.route('/old_student_attendance')
-@login_required(role='student')
-def old_student_attendance_view():
-    return render_template('student/attendance_view.html')
-
-@app.route('/old_student_chatbot')
-@login_required(role='student')
-def old_student_chatbot():
-    return render_template('student/chatbot.html')
-
-@app.route('/old_student_announcements')
-@login_required(role='student')
-def old_student_announcements_view():
-    return render_template('student/announcements_view.html')
-
-
-# --- DPP Routes ---
-@app.route('/teacher/dpp')
+# --- Additional Rendering Routes ---
+@app.route('/teacher/ai_tools')
 @login_required(role='teacher')
-def teacher_dpp():
-    dpp = get_data('DPP_V2')
-    subjects = get_data('subjects')
-    return render_template('teacher/dpp.html', dpp=dpp, subjects=subjects)
+def teacher_ai_tools():
+    return render_template('ai_tools.html')
 
-@app.route('/teacher/add_dpp', methods=['POST'])
-@login_required(role='teacher')
-def add_dpp():
-    import uuid
-    from datetime import datetime
-    new_dpp = {
-        'id': str(uuid.uuid4())[:8],
-        'title': request.form.get('title'),
-        'subject': request.form.get('subject'),
-        'class': request.form.get('student_class'),
-        'description': request.form.get('description'),
-        'file_url': request.form.get('file_url'),
-        'date_uploaded': datetime.now().strftime('%Y-%m-%d')
-    }
-    add_data_to_sheet('DPP_V2', new_dpp)
-    flash('DPP uploaded!', 'success')
-    refresh_local_cache()
-    refresh_local_cache()
-    return redirect(url_for('teacher_dpp'))
-
-@app.route('/teacher/delete_dpp/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_dpp(id):
-    delete_data_from_sheet('DPP_V2', id)
-    flash('DPP deleted!', 'success')
-    refresh_local_cache()
-    refresh_local_cache()
-    return redirect(url_for('teacher_dpp'))
-
-# --- Daily Tasks Routes ---
-@app.route('/teacher/tasks')
-@login_required(role='teacher')
-def teacher_tasks():
-    tasks = get_data('TASKS_V2')
-    subjects = get_data('subjects')
-    return render_template('teacher/tasks.html', tasks=tasks, subjects=subjects)
-
-@app.route('/teacher/add_task', methods=['POST'])
-@login_required(role='teacher')
-def add_task():
-    import uuid
-    from datetime import datetime
-    new_task = {
-        'id': str(uuid.uuid4())[:8],
-        'title': request.form.get('title'),
-        'description': request.form.get('description'),
-        'subject': request.form.get('subject'),
-        'class': request.form.get('student_class'),
-        'due_date': request.form.get('due_date'),
-        'created_date': datetime.now().strftime('%Y-%m-%d')
-    }
-    add_data_to_sheet('TASKS_V2', new_task)
-    flash('Task assigned!', 'success')
-    refresh_local_cache()
-    refresh_local_cache()
-    return redirect(url_for('teacher_tasks'))
-
-@app.route('/teacher/delete_task/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_task(id):
-    delete_data_from_sheet('TASKS_V2', id)
-    flash('Task deleted!', 'success')
-    refresh_local_cache()
-    refresh_local_cache()
-    return redirect(url_for('teacher_tasks'))
-
-@app.route('/api/student/complete_task', methods=['POST'])
-@login_required(role='student')
-def complete_task():
-    student_id = session.get('student_id')
-    data = request.json
-    task_id = data.get('task_id')
-
-    new_status = {
-        'task_id': task_id,
-        'student_id': student_id,
-        'status': 'Completed'
-    }
-    add_data_to_sheet('Task_Status_V3', new_status)
-    award_points(student_id, 5, "Completed Daily Task")
-
-    return jsonify({'success': True, 'points_earned': 5})
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
-
-# --- Student Specific Backend Routes ---
-@app.route('/student/dashboard', endpoint='student_dashboard')
+@app.route('/student/dashboard')
 @login_required(role='student')
 def student_dashboard():
     student_id = session.get('student_id')
     videos = get_data('videos')
     announcements = get_data('announcements')
-    subjects = get_data('subjects')
-    students_data = get_data('students')
 
-    student_class = next((s.get('class') for s in students_data if str(s.get('id')) == str(student_id)), '')
-
-    # Safely fetch attendance and calculate rate
-    attendance_data = get_data('ATTENDANCE_V2')
-    if attendance_data:
-        unique_dates = set([a.get('date') for a in attendance_data if a.get('date')])
-        total = len(unique_dates) if len(unique_dates) > 0 else 1
-        present = len([a for a in attendance_data if str(a.get('student_id')) == str(student_id) and str(a.get('status')) in ['1', 'Present']])
-    else:
-        total = 1
-        present = 0
-
-    attendance_percentage = round((present / total) * 100) if present > 0 else 0
+    # Calculate attendance percentage
+    attendance_data = get_data('attendance')
+    attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
+    total = len(attendance_records)
+    present = len([a for a in attendance_records if str(a.get('status')) in ['1', 'Present']])
+    attendance_percentage = round((present / total) * 100) if total > 0 else 0
 
     from datetime import datetime
     current_date = datetime.now().strftime('%Y-%m-%d')
-
-    today_video = None
-    if videos:
-        for v in videos[::-1]:
-            if v.get('date') == current_date:
-                today_video = v
-                break
-
+    today_video = next((v for v in videos[::-1] if v.get('date') == current_date), None)
     latest_announcement = announcements[-1] if announcements else None
-
-    # Get Leaderboard Cache
-    leaderboard = get_data('leaderboard_cache_V3')
-    top_students = []
-    student_names = {str(s.get('id')): s.get('name') for s in students_data}
-
-    for entry in leaderboard[:5]: # Top 5 only
-        entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
-        top_students.append(entry)
-
-    # Fetch DPPs and Tasks
-    try:
-        dpp_data = get_data('DPP_V2')
-        my_dpps = []
-        for d in dpp_data[::-1]:
-            if class_matches(student_class, d.get('class', '')):
-                my_dpps.append(d)
-
-        tasks_data = get_data('TASKS_V2')
-        my_tasks = []
-        for t in tasks_data[::-1]:
-            if class_matches(student_class, t.get('class', '')):
-                my_tasks.append(t)
-
-        task_status_data = get_data('Task_Status_V3')
-        completed_task_ids = [str(t.get('task_id')) for t in task_status_data if str(t.get('student_id')) == str(student_id)]
-    except Exception as e:
-        print(f"Error fetching dashboard tasks/dpps: {e}")
-        my_dpps = []
-        my_tasks = []
-        completed_task_ids = []
 
     data = {
         'attendance_percentage': attendance_percentage,
         'today_video': today_video,
-        'latest_announcement': latest_announcement,
-        'subjects': subjects,
-        'leaderboard': top_students,
-        'dpps': my_dpps[:5], # Show recent 5
-        'tasks': my_tasks,
-        'completed_tasks': completed_task_ids
+        'latest_announcement': latest_announcement
     }
+    return render_template('student_dashboard.html', data=data)
 
-    return render_template('student/student_dashboard.html', data=data)
-
-@app.route('/student/leaderboard')
-@login_required(role='student')
-def student_leaderboard():
-    leaderboard = get_data('leaderboard_cache_V3')
-    all_students = get_data('students')
-    student_names = {str(s.get('id')): s.get('name') for s in all_students}
-
-    top_students = []
-    for entry in leaderboard:
-        entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
-        top_students.append(entry)
-
-    return render_template('student/leaderboard.html', leaderboard=top_students)
-
-
-@app.route('/student/my_videos', endpoint='student_my_videos')
+@app.route('/student/my_videos')
 @login_required(role='student')
 def student_my_videos():
-    student_id = session.get('student_id')
     videos = get_data('videos')
-    completions = get_data('video_completion_V3')
+    return render_template('my_videos.html', videos=videos[::-1])
 
-    completed_video_subjects = [c.get('subject') for c in completions if str(c.get('student_id')) == str(student_id)]
-
-    return render_template('student/my_videos.html', videos=videos, completed_video_subjects=completed_video_subjects)
-
-@app.route('/student/attendance', endpoint='student_attendance_view')
+@app.route('/student/attendance')
 @login_required(role='student')
 def student_attendance_view():
     student_id = session.get('student_id')
-
-    # Use Attendance_V2
-    attendance_data = get_data('ATTENDANCE_V2')
-
-    if attendance_data:
-        attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
-    else:
-        attendance_records = []
+    attendance_data = get_data('attendance')
+    attendance_records = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
 
     total = len(attendance_records)
-    # The new Attendance_V2 stores status as binary '1' or '0'
-    present = len([a for a in attendance_records if str(a.get('status')) == '1'])
+    present = len([a for a in attendance_records if str(a.get('status')) in ['1', 'Present']])
     absent = total - present
-    percentage = (present / total) * 100 if total > 0 else 0
+    percentage = round((present / total) * 100) if total > 0 else 0
 
-    # Map the binary status back to "Present"/"Absent" string for the UI template so we don't have to rewrite the HTML logic
     formatted_records = []
-    for rec in attendance_records[::-1]: # reverse chronological
+    for rec in attendance_records[::-1]:
+        status_val = str(rec.get('status'))
         formatted_records.append({
             'date': rec.get('date'),
-            'status': 'Present' if str(rec.get('status')) == '1' else 'Absent'
+            'status': 'Present' if status_val in ['1', 'Present'] else 'Absent'
         })
 
-    return render_template('student/attendance_view.html',
+    return render_template('attendance_view.html',
                            attendance_records=formatted_records,
                            total_classes=total,
                            present_count=present,
                            absent_count=absent,
                            attendance_percentage=percentage)
 
-@app.route('/student/announcements', endpoint='student_announcements_view')
+@app.route('/student/announcements')
 @login_required(role='student')
 def student_announcements_view():
     announcements = get_data('announcements')
-    return render_template('student/announcements_view.html', announcements=announcements[::-1])
+    return render_template('announcements_view.html', announcements=announcements[::-1])
 
-
-
-# --- API Endpoints for AI Features (Student) ---
-
-
-
-
-
-# --- Materials Routes ---
-@app.route('/teacher/materials')
-@login_required(role='teacher')
-def teacher_materials():
-    materials = get_data('materials')
-    subjects = get_data('subjects')
-    return render_template('teacher/materials.html', materials=materials, subjects=subjects)
-
-@app.route('/teacher/add_material', methods=['POST'])
-@login_required(role='teacher')
-def add_material():
-    import uuid
-    new_mat = {
-        'id': str(uuid.uuid4())[:8],
-        'title': request.form.get('title'),
-        'subject': request.form.get('subject'),
-        'description': request.form.get('description'),
-        'drive_link': request.form.get('drive_link')
-    }
-    add_data_to_sheet('materials', new_mat)
-    flash('Study material added!', 'success')
-    return redirect(url_for('teacher_materials'))
-
-@app.route('/teacher/delete_material/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_material(id):
-    delete_data_from_sheet('materials', id)
-    flash('Material deleted!', 'success')
-    return redirect(url_for('teacher_materials'))
-
-@app.route('/student/materials')
+@app.route('/old_student_chatbot')
 @login_required(role='student')
-def student_materials():
-    materials = get_data('materials')
-    return render_template('student/materials.html', materials=materials)
+def old_student_chatbot():
+    return render_template('chatbot.html')
 
-# --- Schedule Routes ---
-@app.route('/teacher/schedule')
-@login_required(role='teacher')
-def teacher_schedule():
-    schedule = get_data('schedule')
-    subjects = get_data('subjects')
-    # Sort by date
-    try:
-        schedule = sorted(schedule, key=lambda x: x.get('date', ''))
-    except:
-        pass
-    return render_template('teacher/schedule.html', schedule=schedule, subjects=subjects)
 
-@app.route('/teacher/add_schedule', methods=['POST'])
-@login_required(role='teacher')
-def add_schedule():
-    import uuid
-    new_sched = {
-        'id': str(uuid.uuid4())[:8],
-        'date': request.form.get('date'),
-        'subject': request.form.get('subject'),
-        'start_time': request.form.get('start_time'),
-        'end_time': request.form.get('end_time'),
-        'note': request.form.get('note')
-    }
-    add_data_to_sheet('schedule', new_sched)
-    flash('Class scheduled!', 'success')
-    return redirect(url_for('teacher_schedule'))
+# --- API Endpoints for AI Features ---
+from openai import OpenAI
+import os
 
-@app.route('/teacher/delete_schedule/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_schedule(id):
-    delete_data_from_sheet('schedule', id)
-    flash('Class removed from schedule!', 'success')
-    return redirect(url_for('teacher_schedule'))
-
-@app.route('/student/schedule')
+@app.route('/api/ai/chat', methods=['POST'])
 @login_required(role='student')
-def student_schedule():
-    schedule = get_data('schedule')
-    try:
-        schedule = sorted(schedule, key=lambda x: x.get('date', ''))
-    except:
-        pass
-    return render_template('student/schedule.html', schedule=schedule)
-
-# --- Quiz Routes ---
-@app.route('/teacher/quiz')
-@login_required(role='teacher')
-def teacher_quiz():
-    quiz_data = get_data('quiz')
-    subjects = get_data('subjects')
-    try:
-        quiz_data = sorted(quiz_data, key=lambda x: x.get('date', ''))
-    except:
-        pass
-    return render_template('teacher/quiz.html', quiz=quiz_data, subjects=subjects)
-
-@app.route('/teacher/add_quiz', methods=['POST'])
-@login_required(role='teacher')
-def add_quiz():
-    import uuid
+def ai_chat():
     data = request.json
-    if not data or 'questions' not in data:
-        return jsonify({'success': False, 'error': 'No questions provided'}), 400
+    messages = data.get('messages', [])
+    mode = data.get('mode', 'doubt_solver') # doubt_solver or study_chatbot
 
-    date = data.get('date')
-    subject = data.get('subject')
-    start_time = data.get('start_time')
-    end_time = data.get('end_time')
-    score_expiry = data.get('score_expiry')
+    if not messages:
+        return jsonify({'success': False, 'error': 'No messages provided'})
 
-    # We will generate a unique "batch ID" or just use random IDs for questions
-    # But tying them together visually is usually done by date + subject
-    # A single shared Quiz ID for this session might be good, let's use the first 8 chars of a uuid
-    quiz_group_id = str(uuid.uuid4())[:8]
+    # System prompts based on requirements
+    if mode == 'doubt_solver':
+        system_prompt = "Explain this concept in very simple words for a school student. If it is a math question, give a step by step solution."
+    else:
+        system_prompt = "You are a friendly tutor. Help the student with concept doubts, exam preparation, and study tips."
 
-    new_questions = []
-    for q in data['questions']:
-        new_q = {
-            'id': quiz_group_id, # Shared ID for grouping the quiz
-            'date': date,
-            'subject': subject,
-            'question': q.get('question'),
-            'option1': q.get('option1'),
-            'option2': q.get('option2'),
-            'option3': q.get('option3'),
-            'option4': q.get('option4'),
-            'answer': q.get('answer'),
-            'start_time': start_time,
-            'end_time': end_time,
-            'score_expiry': score_expiry
-        }
-        new_questions.append(new_q)
-        add_data_to_sheet('quiz', new_q) # Using the existing helper, though bulk add would be better
-
-    return jsonify({'success': True, 'message': f'{len(new_questions)} questions added successfully.'})
-
-@app.route('/teacher/delete_quiz/<id>', methods=['POST'])
-@login_required(role='teacher')
-def delete_quiz(id):
-    delete_data_from_sheet('quiz', id)
-    flash('Quiz question deleted!', 'success')
-    return redirect(url_for('teacher_quiz'))
-
-@app.route('/student/quiz')
-@login_required(role='student')
-def student_quiz():
-    student_id = session.get('student_id')
-    quiz_data = get_data('quiz')
-
-    # Get previously attempted quizzes
-    quiz_scores = get_data('quiz_scores_V3')
-    attempted_quiz_ids = [str(s.get('quiz_id')) for s in quiz_scores if str(s.get('student_id')) == str(student_id)]
-
-    # Group by subject and date for better UI
-    from collections import defaultdict
-    quizzes = defaultdict(list)
-    for q in quiz_data:
-        key = f"{q.get('date', '')} - {q.get('subject', '')}"
-        quizzes[key].append(q)
-
-    return render_template('student/quiz.html', quizzes=quizzes, attempted_quiz_ids=attempted_quiz_ids)
-
-# --- Profile Routes ---
-@app.route('/student/profile', endpoint='student_profile')
-@login_required(role='student')
-def student_profile():
-    student_id = session.get('student_id')
-    students = get_data('students')
-    student_data = next((s for s in students if str(s.get('id')) == str(student_id)), None)
-
-    if not student_data:
-        flash("Profile not found.", "error")
-        return redirect(url_for('student_dashboard'))
-
-    attendance_data = get_data('ATTENDANCE_V2')
-    attendance = [a for a in attendance_data if str(a.get('student_id')) == str(student_id)]
-
-    total_classes = len(attendance)
-    present_classes = len([a for a in attendance if a.get('status') == 'Present'])
-    attendance_percentage = round((present_classes / total_classes) * 100) if total_classes > 0 else 0
-
-    subjects = get_data('subjects')
-    videos = get_data('videos')
-
-    # Check/Update last active date
-    from datetime import datetime
-    current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    profiles = get_data('student_profiles')
-    profile = next((p for p in profiles if str(p.get('student_id')) == str(student_id)), None)
-
-    extra_notes = profile.get('extra_notes', '') if profile else 'Welcome to your learning journey!'
-    last_active = profile.get('last_active_date', current_date) if profile else current_date
+    api_messages = [{"role": "system", "content": system_prompt}] + messages
 
     try:
-        # Save last active
-        sheet = get_google_sheet('student_profiles')
-        if sheet:
-            if not profile:
-                sheet.append_row([student_id, extra_notes, current_date])
-                invalidate_cache('student_profiles')
-            else:
-                # Update existing row logic (simplified to just append for activity logs)
-                # If we really want to update, we find the row index.
-                records = sheet.get_all_records()
-                for i, r in enumerate(records):
-                    if str(r.get('student_id')) == str(student_id):
-                        sheet.update_cell(i + 2, 3, current_date)
-                        invalidate_cache('student_profiles')
-                        break
-    except Exception as e:
-        print(f"Failed to update profile activity: {e}")
-
-    gamification = get_data('gamification_V3')
-    leaderboard = get_data('leaderboard_cache_V3')
-    video_completion = get_data('video_completion_V3')
-    quiz_data = get_data('quiz')
-
-    student_gami = next((g for g in gamification if str(g.get('student_id')) == str(student_id)), None)
-    student_rank = next((l for l in leaderboard if str(l.get('student_id')) == str(student_id)), None)
-
-    points = student_gami.get('points', 0) if student_gami else 0
-    badges = student_gami.get('badges', '') if student_gami else ""
-    rank = student_rank.get('rank', 'N/A') if student_rank else 'N/A'
-
-    completed_vids = len([v for v in video_completion if str(v.get('student_id')) == str(student_id)])
-
-    # Layer 2 & 8: Digital Academic Passport Metrics
-    from modules.momentum import calculate_level, get_level_title, get_xp_for_next_level
-    metrics_data = get_data('Student_Metrics_V3')
-    my_metrics = next((m for m in metrics_data if str(m.get('student_id')) == str(student_id)), {
-        'xp': 0, 'level': 1, 'streak_days': 0, 'reputation_score': 50
-    })
-
-    curr_xp = int(my_metrics.get('xp', 0))
-    curr_level = calculate_level(curr_xp)
-    next_level_xp = get_xp_for_next_level(curr_level)
-    prev_level_xp = get_xp_for_next_level(curr_level - 1) if curr_level > 1 else 0
-
-    xp_in_level = curr_xp - prev_level_xp
-    xp_needed_total = next_level_xp - prev_level_xp
-    progress_pct = (xp_in_level / xp_needed_total * 100) if xp_needed_total > 0 else 0
-
-    badges_list = [b.strip() for b in badges.split(',')] if badges else []
-
-    return render_template('student/profile.html',
-                           student=student_data,
-                           metrics=my_metrics,
-                           title=get_level_title(curr_level),
-                           next_level_xp=next_level_xp,
-                           progress_pct=min(100, max(0, progress_pct)),
-                           badges=badges_list,
-                           attendance_percentage=attendance_percentage,
-                           total_subjects=len(subjects),
-                           total_videos=len(videos),
-                           extra_notes=extra_notes,
-                           last_active=last_active,
-                           points=points,
-                           rank=rank,
-                           completed_vids=completed_vids,
-                           quiz_data=quiz_data)
-
-@app.route('/api/student/submit_quiz', methods=['POST'])
-@rate_limit
-@login_required(role='student')
-def submit_quiz():
-    try:
-        student_id = session.get('student_id')
-        student_name = session.get('user_name', 'Student')
-        data = request.json
-        percentage = data.get('percentage', 0)
-        score = data.get('score', 0)
-        quiz_id = data.get('quiz_id', 'unknown')
-
-        # ANTI-CHEAT: Check if already submitted
-        existing_scores = get_data('quiz_scores_V3')
-        has_submitted = any(
-            str(s.get('quiz_id')) == str(quiz_id) and str(s.get('student_id')) == str(student_id)
-            for s in existing_scores
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=api_messages
         )
-
-        if has_submitted:
-            return jsonify({'success': False, 'error': 'You have already submitted this quiz. Multiple attempts are not allowed.'}), 403
-
-        # Store score in quiz_scores
-        from datetime import datetime
-        import pytz
-        tz = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-
-        score_record = {
-            'quiz_id': quiz_id,
-            'student_id': student_id,
-            'student_name': student_name,
-            'score': score,
-            'percentage': percentage,
-            'timestamp': now
-        }
-        success_insert = add_data_to_sheet('quiz_scores_V3', score_record)
-        if not success_insert:
-            raise Exception("Failed to append quiz score to Google Sheets")
-
-        # +10 for participation
-        points_earned = 10
-
-        # Bonus points based on score
-        if percentage >= 90:
-            points_earned += 50
-        elif percentage >= 75:
-            points_earned += 30
-        elif percentage >= 50:
-            points_earned += 15
-        else:
-            points_earned += 5
-
-        award_points(student_id, points_earned, f"Quiz Attempt ({percentage}%)")
-
-        # Psychological Intelligence Feedback
-        intel_feedback = get_intelligent_feedback(percentage)
-        belonging_signal = get_belonging_signal()
-
-        # Check Quiz Champion badge
-        gamification = get_data('gamification_V3')
-        sheet = get_google_sheet('gamification_V3')
-        if sheet:
-            for idx, rec in enumerate(gamification):
-                if str(rec.get('student_id')) == str(student_id):
-                    badges = str(rec.get('badges') or "")
-                    badges_list = [b.strip() for b in badges.split(",") if b.strip()]
-                    if "Quiz Champion" not in badges_list:
-                        badges_list.append("Quiz Champion")
-                        sheet.update_cell(idx + 2, 3, ", ".join(badges_list))
-                    break
-
-        return jsonify({
-            'success': True,
-            'points_earned': points_earned,
-            'intel_msg': intel_feedback['msg'],
-            'intel_color': intel_feedback['color'],
-            'intel_bg': intel_feedback['bg'],
-            'belonging_signal': belonging_signal
-        })
+        reply = response.choices[0].message.content
+        return jsonify({'success': True, 'reply': reply})
     except Exception as e:
-        print("Submit quiz error:", e)
+        print(f"OpenAI API Error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/student/mark_video_complete', methods=['POST'])
-@login_required(role='student')
-def mark_video_complete():
-    student_id = session.get('student_id')
-    data = request.json
-    video_id = data.get('video_id')
-    subject = data.get('subject')
-    video_date = data.get('video_date')
-
-    from datetime import datetime
-    current_date = datetime.now().strftime('%Y-%m-%d')
-
-    # ANTI-CHEAT: Check if already completed this video
-    completed_videos = get_data('video_completion_V3')
-    already_done = any(
-        str(v.get('student_id')) == str(student_id) and str(v.get('video_id')) == str(video_id)
-        for v in completed_videos
-    )
-
-    if already_done:
-        return jsonify({'success': False, 'error': 'Video points already claimed.'}), 403
-
-    new_completion = {
-        'date': current_date,
-        'student_id': student_id,
-        'subject': subject,
-        'video_id': video_id,
-        'completed': 'Yes'
-    }
-
-    add_data_to_sheet('video_completion_V3', new_completion)
-
-    points_earned = 10
-    if video_date == current_date:
-        points_earned += 5 # Same day bonus
-
-    award_points(student_id, points_earned, f"Completed Video: {subject}")
-
-    return jsonify({'success': True, 'points_earned': points_earned})
-
-@app.route('/teacher/dpp_status/<dpp_id>')
+@app.route('/api/ai/attendance', methods=['POST'])
 @login_required(role='teacher')
-def teacher_dpp_status(dpp_id):
-    dpps = get_data('DPP_V2')
-    dpp = next((d for d in dpps if str(d.get('id')) == str(dpp_id)), None)
-    if not dpp:
-        flash("DPP not found.", "error")
-        refresh_local_cache()
-    refresh_local_cache()
-    return redirect(url_for('teacher_dpp'))
+def ai_attendance_analysis():
+    attendance_data = get_data('attendance')
+    students_data = get_data('students')
 
-    students = get_data('students')
-    dpp_status_data = get_data('DPP_Status_V3')
+    # Process raw data to summarize attendance per student
+    student_map = {str(s.get('id')): s.get('name') for s in students_data}
+    summary = {}
 
-    # Filter students by class if DPP has a class assigned
-    target_class = str(dpp.get('class', ''))
-    if target_class:
-        filtered_students = [s for s in students if str(s.get('class')).lower() == target_class.lower()]
-    else:
-        filtered_students = students
+    for record in attendance_data:
+        sid = str(record.get('student_id'))
+        status = str(record.get('status'))
+        if sid not in summary:
+            summary[sid] = {'name': student_map.get(sid, 'Unknown'), 'present': 0, 'total': 0}
 
-    # Get current status
-    status_map = {str(d.get('student_id')): str(d.get('status')) for d in dpp_status_data if str(d.get('dpp_id')) == str(dpp_id)}
+        summary[sid]['total'] += 1
+        if status in ['1', 'Present']:
+            summary[sid]['present'] += 1
 
-    for s in filtered_students:
-        sid = str(s.get('id'))
-        s['completed'] = 1 if status_map.get(sid) == '1' else 0
-
-    return render_template('teacher/dpp_status.html', dpp=dpp, students=filtered_students)
-
-@app.route('/api/teacher/dpp_status', methods=['POST'])
-@login_required(role='teacher')
-def save_dpp_status():
-    data = request.json
-    dpp_id = data.get('dpp_id')
-    records = data.get('records', [])
-
-    sheet = get_google_sheet('DPP_Status_V3')
-    if not sheet:
-        return jsonify({'success': False, 'error': "Could not connect to Google Sheet"})
+    prompt = "Analyze attendance data and provide insights. Which students are irregular? Give attendance percentage. Suggest actions.\nData:\n"
+    for sid, data in summary.items():
+        if data['total'] > 0:
+            prompt += f"- {data['name']}: {data['present']}/{data['total']} present ({int(data['present']/data['total']*100)}%)\n"
 
     try:
-        all_records = sheet.get_all_records()
-        record_map = {}
-        for index, r in enumerate(all_records):
-            key = f"{r.get('dpp_id')}_{r.get('student_id')}"
-            record_map[key] = index + 2
-
-        rows_to_insert = []
-        points_to_award = {}
-        for record in records:
-            s_id = str(record['student_id'])
-            status = '1' if record['status'] == 'Completed' else '0'
-            key = f"{dpp_id}_{s_id}"
-
-            if key in record_map:
-                row_idx = record_map[key]
-                sheet.delete_rows(row_idx)
-                for k in record_map:
-                    if record_map[k] > row_idx:
-                        record_map[k] -= 1
-
-            rows_to_insert.append([dpp_id, s_id, status])
-
-        if rows_to_insert:
-            sheet.append_rows(rows_to_insert)
-            invalidate_cache('DPP_Status_V3')
-
-        return jsonify({'success': True})
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'analysis': response.choices[0].message.content})
     except Exception as e:
-        print(f"Failed to save DPP_Status: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/student/leaderboard_live')
-@login_required(role='student')
-def leaderboard_live():
-    quiz_id = request.args.get('quiz_id')
-
-    if not quiz_id:
-        # Default global gamification leaderboard
-        gamification = get_data('gamification_V3')
-        students = get_data('students')
-        student_map = {str(s.get('id')): s.get('name', 'Unknown') for s in students}
-
-        leaderboard = []
-        for g in gamification:
-            sid = str(g.get('student_id'))
-            name = student_map.get(sid, 'Unknown')
-            pts = int(g.get('points', 0))
-            leaderboard.append({'name': name, 'points': pts})
-
-        leaderboard = sorted(leaderboard, key=lambda x: x['points'], reverse=True)[:10]
-        return jsonify({'success': True, 'leaderboard': leaderboard, 'type': 'global'})
-    else:
-        # Specific quiz leaderboard
-        scores = get_data('quiz_scores_V3')
-        quiz_data = get_data('quiz')
-
-        # Check expiry
-        expiry = None
-        for q in quiz_data:
-            if str(q.get('id')) == str(quiz_id):
-                expiry = q.get('score_expiry')
-                break
-
-        if expiry and str(expiry).lower() != 'none':
-            from datetime import datetime
-            import pytz
-            tz = pytz.timezone('Asia/Kolkata')
-            now = datetime.now(tz)
-            try:
-                expiry_dt = datetime.strptime(str(expiry), '%Y-%m-%dT%H:%M')
-                expiry_dt = tz.localize(expiry_dt)
-                if now > expiry_dt:
-                    return jsonify({'success': True, 'leaderboard': [], 'type': 'expired'})
-            except Exception as e:
-                print("Expiry parse error:", e)
-
-        # Filter scores for this quiz
-        quiz_scores = [s for s in scores if str(s.get('quiz_id')) == str(quiz_id)]
-
-        leaderboard = []
-        for s in quiz_scores:
-            leaderboard.append({'name': s.get('student_name', 'Student'), 'points': int(s.get('score', 0))})
-
-        leaderboard = sorted(leaderboard, key=lambda x: x['points'], reverse=True)[:10]
-        return jsonify({'success': True, 'leaderboard': leaderboard, 'type': 'quiz'})
-
-
-@app.route('/teacher/quiz_scores')
+@app.route('/api/ai/video_summary', methods=['POST'])
 @login_required(role='teacher')
-def teacher_quiz_scores():
-    scores = get_data('quiz_scores_V3')
-    # Sort by timestamp descending
-    scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
-    return render_template('teacher/quiz_scores.html', scores=scores)
+def ai_video_summary():
+    topic = request.json.get('topic')
+    prompt = f"Generate summary notes for revision for the topic: {topic}. Include summary, key points, and revision notes."
+
+    try:
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'summary': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+def ai_quiz_generator():
+    subject = request.json.get('subject')
+    topic = request.json.get('topic')
+    prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' and topic '{topic}'. Format as JSON array of objects with keys: question, option1, option2, option3, option4, answer."
+
+    try:
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={ "type": "json_object" }
+        )
+        # Parse the JSON response
+        import json
+        result = json.loads(response.choices[0].message.content)
+        questions = result.get('questions', [])
+        # If the API returns it differently, try to adapt or just return the raw array
+        if not questions and isinstance(result, list):
+            questions = result
+        return jsonify({'success': True, 'questions': questions})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def ai_announcement():
+    topic = request.json.get('topic')
+    prompt = f"Write a professional coaching class announcement about: {topic}"
+
+    try:
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({'success': True, 'announcement': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
