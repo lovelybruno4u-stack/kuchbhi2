@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Videos - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/student_dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/my_videos" class="nav-link active">Class Videos</a></li>
+            <li class="nav-item"><a href="/attendance_view" class="nav-link">My Attendance</a></li>
+            <li class="nav-item"><a href="/chatbot" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tutor</a></li>
+            <li class="nav-item"><a href="/announcements_view" class="nav-link">Announcements</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Class Videos</h1>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="videos-table-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchAndRenderTable('/api/videos', 'videos-table-body', ['date', 'subject'], (td, item) => {
+            const btn = document.createElement('a');
+            btn.href = item.drive_link;
+            btn.target = '_blank';
+            btn.className = 'btn btn-primary';
+            btn.textContent = 'Watch Video';
+            td.appendChild(btn);
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link active">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Announcements</h1>
+            <button class="btn btn-primary" onclick="openModal('add-announcement-modal')">+ Create Announcement</button>
+        </div>
+
+        <div id="announcements-container">
+            <!-- Dynamic content -->
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="add-announcement-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Create Announcement</h3>
+            <button class="modal-close" onclick="closeModal('add-announcement-modal')">&times;</button>
+        </div>
+
+        <div style="background: rgba(168, 85, 247, 0.1); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; border: 1px solid #a855f7;">
+            <h4 style="color: #a855f7; margin-bottom: 0.5rem;">AI Announcement Generator</h4>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="ai-announce-input" class="form-control" placeholder="e.g., holiday tomorrow due to rain">
+                <button id="btn-ai-announce" class="btn" style="background: #a855f7; color: white; white-space: nowrap;">Generate</button>
+            </div>
+            <div id="ai-announce-loading" class="loading-spinner" style="display: none; margin-top: 0.5rem;"></div>
+            <div id="ai-announce-result" style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted); cursor: pointer;" onclick="document.getElementById('a-msg').value = this.textContent">
+                <!-- Result appears here. Click to apply. -->
+            </div>
+        </div>
+
+        <form id="add-announcement-form">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="a-date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="a-msg" class="form-control" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Post Announcement</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('a-date').valueAsDate = new Date();
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+    document.getElementById('add-announcement-form').onsubmit = async (e) => {
+        e.preventDefault();
+        await fetch('/api/announcements', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                date: document.getElementById('a-date').value,
+                message: document.getElementById('a-msg').value
+            })
+        });
+        closeModal('add-announcement-modal');
+        document.getElementById('add-announcement-form').reset();
+        initAnnouncementsManagement(); // from script.js
+    };
+</script>
+</body>
+</html>

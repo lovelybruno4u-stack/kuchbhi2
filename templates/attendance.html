@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link active">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Daily Attendance</h1>
+            <div>
+                <input type="date" id="attendance-date" class="form-control" style="display: inline-block; width: auto;">
+                <button class="btn btn-primary" id="submit-attendance-btn">Save Attendance</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Class</th>
+                            <th>Status (Present/Absent)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-students-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.getElementById('attendance-date').valueAsDate = new Date();
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
