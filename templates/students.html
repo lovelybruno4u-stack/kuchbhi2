@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Students - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link active">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Student Management</h1>
+            <button class="btn btn-primary" onclick="openModal('add-student-modal')">+ Add Student</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Class</th>
+                            <th>Roll Number</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Parent Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="students-table-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="add-student-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add New Student</h3>
+            <button class="modal-close" onclick="closeModal('add-student-modal')">&times;</button>
+        </div>
+        <form id="add-student-form">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="s-name" class="form-control" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Class</label>
+                    <input type="text" id="s-class" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Roll Number</label>
+                    <input type="text" id="s-roll" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="s-phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="s-email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Parent Name</label>
+                <input type="text" id="s-parent" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Save Student</button>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

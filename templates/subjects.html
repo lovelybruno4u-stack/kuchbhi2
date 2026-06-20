@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subjects & Announcements - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link active">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Manage Subjects</h1>
+            <button class="btn btn-primary" onclick="openModal('add-subject-modal')">+ Add Subject</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Subject Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subjects-table-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="add-subject-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Add New Subject</h3>
+            <button class="modal-close" onclick="closeModal('add-subject-modal')">&times;</button>
+        </div>
+        <form id="add-subject-form">
+            <div class="form-group">
+                <label>Subject Name</label>
+                <input type="text" id="subj-name" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">Save</button>
+        </form>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+    async function initSubjects() {
+        if(document.getElementById('subjects-table-body')){
+            fetchAndRenderTable('/api/subjects', 'subjects-table-body', ['subject_name'], (td, item) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-danger';
+                btn.textContent = 'Delete';
+                btn.onclick = async () => {
+                    await fetch(`/api/subjects/${item.subject_name}`, {method: 'DELETE'});
+                    initSubjects();
+                };
+                td.appendChild(btn);
+            });
+
+            const form = document.getElementById('add-subject-form');
+            if(form) {
+                form.onsubmit = async(e) => {
+                    e.preventDefault();
+                    await fetch('/api/subjects', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({subject_name: document.getElementById('subj-name').value})
+                    });
+                    closeModal('add-subject-modal');
+                    form.reset();
+                    initSubjects();
+                }
+            }
+        }
+    }
+    document.addEventListener('DOMContentLoaded', initSubjects);
+</script>
+</body>
+</html>

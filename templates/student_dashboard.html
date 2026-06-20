@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/student_dashboard" class="nav-link active">Dashboard</a></li>
+            <li class="nav-item"><a href="/my_videos" class="nav-link">Class Videos</a></li>
+            <li class="nav-item"><a href="/attendance_view" class="nav-link">My Attendance</a></li>
+            <li class="nav-item"><a href="/chatbot" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tutor</a></li>
+            <li class="nav-item"><a href="/announcements_view" class="nav-link">Announcements</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Welcome, <span id="student-name-display">{{ session.name }}</span>!</h1>
+            <div class="user-profile">
+                <span>Student</span>
+                <div style="width: 40px; height: 40px; background: var(--secondary); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center;">S</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 2rem; border-top: 4px solid var(--primary);">
+            <h3>Quick AI Doubt Solver</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.875rem;">Enter your question and our AI will explain it simply.</p>
+            <div style="display: flex; gap: 1rem;">
+                <input type="text" id="ai-doubt-input" class="form-control" placeholder="Ask a question..." style="flex: 1;">
+                <button id="btn-doubt-solve" class="btn btn-primary">Solve</button>
+            </div>
+            <div id="ai-doubt-loading" class="loading-spinner" style="display: none; margin-top: 1rem;"></div>
+            <div id="ai-doubt-result" style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.05); border-radius: var(--radius); display: block; min-height: 20px;"></div>
+        </div>
+
+        <div class="grid-cards">
+            <div class="card" style="cursor: pointer;" onclick="window.location.href='/my_videos'">
+                <div class="stat-icon" style="background: var(--primary); margin-bottom: 1rem;">📺</div>
+                <h3>Recent Videos</h3>
+                <p style="color: var(--text-muted);">Watch missed classes and revisions.</p>
+            </div>
+            <div class="card" style="cursor: pointer;" onclick="window.location.href='/chatbot'">
+                <div class="stat-icon" style="background: #a855f7; margin-bottom: 1rem;">🤖</div>
+                <h3>AI Study Chatbot</h3>
+                <p style="color: var(--text-muted);">Chat with your friendly virtual tutor.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

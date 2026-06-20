@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link active">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Overview Dashboard</h1>
+            <div class="user-profile">
+                <span>Teacher Admin</span>
+                <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center;">T</div>
+            </div>
+        </div>
+
+        <div id="teacher-dashboard-stats" class="grid-cards">
+            <div class="card stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <h3>Total Students</h3>
+                    <p id="stat-total-students">Loading...</p>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-icon" style="background: var(--secondary);">✓</div>
+                <div class="stat-info">
+                    <h3>Today's Attendance</h3>
+                    <p id="stat-today-attendance">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Recent Quick Actions</h3>
+            <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="/attendance" class="btn btn-primary">Mark Attendance</a>
+                <a href="/students" class="btn" style="background: var(--light); color: var(--dark);">Manage Students</a>
+                <a href="/videos" class="btn" style="background: var(--light); color: var(--dark);">Upload Video</a>
+                <a href="/ai_tools" class="btn" style="background: #a855f7; color: white;">AI Tools</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

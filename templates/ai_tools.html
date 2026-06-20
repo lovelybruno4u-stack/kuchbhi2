@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools - ASWATHAMA CLASSES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .ai-tool-card {
+            border-top: 4px solid #a855f7;
+        }
+        .ai-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(243, 244, 246, 0.5);
+            border-radius: var(--radius);
+            min-height: 50px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-brand">ASWATHAMA</div>
+        <ul class="nav-links">
+            <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+            <li class="nav-item"><a href="/students" class="nav-link">Students</a></li>
+            <li class="nav-item"><a href="/attendance" class="nav-link">Attendance</a></li>
+            <li class="nav-item"><a href="/videos" class="nav-link">Videos</a></li>
+            <li class="nav-item"><a href="/subjects" class="nav-link">Subjects</a></li>
+            <li class="nav-item"><a href="/announcements" class="nav-link">Announcements</a></li>
+            <li class="nav-item"><a href="/ai_tools" class="nav-link active" style="background: linear-gradient(90deg, #4F46E5, #a855f7); color: white;">AI Tools</a></li>
+        </ul>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+            <h1 class="page-title">Teacher AI Tools</h1>
+        </div>
+
+        <div class="grid-cards">
+            <!-- Attendance Analysis -->
+            <div class="card ai-tool-card">
+                <h3>Attendance Analysis</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.875rem;">AI analyzes the attendance sheet to find irregular students and suggests actions.</p>
+                <button id="btn-attendance-analysis" class="btn" style="background: #a855f7; color: white;">Analyze Data</button>
+                <div id="ai-attendance-loading" class="loading-spinner" style="display: none; margin-left: 1rem; vertical-align: middle;"></div>
+                <div id="ai-attendance-result" class="ai-result">Result will appear here...</div>
+            </div>
+
+            <!-- Quiz Generator -->
+            <div class="card ai-tool-card">
+                <h3>Quiz Generator</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.875rem;">Generate 5 MCQs for a specific subject and topic.</p>
+                <div class="form-group">
+                    <input type="text" id="ai-quiz-subject" class="form-control" placeholder="Subject (e.g., Math)">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="ai-quiz-topic" class="form-control" placeholder="Topic (e.g., Algebra)">
+                </div>
+                <button id="btn-quiz-gen" class="btn" style="background: #a855f7; color: white;">Generate Quiz</button>
+                <div id="ai-quiz-loading" class="loading-spinner" style="display: none; margin-left: 1rem; vertical-align: middle;"></div>
+                <div id="ai-quiz-result" class="ai-result">Result will appear here...</div>
+            </div>
+
+            <!-- Video Summary -->
+            <div class="card ai-tool-card">
+                <h3>Video Summary Notes</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.875rem;">Generate summary notes and key points for revision.</p>
+                <div class="form-group">
+                    <input type="text" id="ai-video-input" class="form-control" placeholder="Enter video topic...">
+                </div>
+                <button id="btn-video-summary" class="btn" style="background: #a855f7; color: white;">Generate Summary</button>
+                <div id="ai-video-loading" class="loading-spinner" style="display: none; margin-left: 1rem; vertical-align: middle;"></div>
+                <div id="ai-video-result" class="ai-result">Result will appear here...</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
