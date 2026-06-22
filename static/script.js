@@ -1,128 +1,128 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Role Toggle Logic
-    const roleBtns = document.querySelectorAll('.role-btn');
-    const roleInput = document.getElementById('role-input');
+// Custom Modal System (replaces alert)
+function showModal(title, content) {
+    let modalOverlay = document.getElementById('custom-modal');
+    if (!modalOverlay) {
+        modalOverlay = document.createElement('div');
+        modalOverlay.id = 'custom-modal';
+        modalOverlay.className = 'modal-overlay';
 
-    if (roleBtns.length > 0) {
-        roleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                roleBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if(roleInput) {
-                    roleInput.value = e.target.getAttribute('data-role');
-                }
-            });
-        });
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content glass';
+
+        modalContent.innerHTML = `
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title"></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" style="margin-top: 24px; text-align: right;">
+                <button class="btn btn-primary" onclick="closeModal()">OK</button>
+            </div>
+        `;
+
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
     }
 
-    // Sidebar Toggle for Mobile
-    const hamburger = document.getElementById('hamburger');
-    const sidebar = document.getElementById('sidebar');
-
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sidebar.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        });
-
-        // Close sidebar if clicking outside on mobile overlay
-        document.body.addEventListener('click', (e) => {
-            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
-                sidebar.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
+    document.getElementById('modal-title').textContent = title;
+    // Security: using textContent by default unless explicitly passing safe HTML
+    if (typeof content === 'string') {
+        document.getElementById('modal-body').textContent = content;
+    } else {
+        document.getElementById('modal-body').innerHTML = '';
+        document.getElementById('modal-body').appendChild(content);
     }
 
-    // Modal Logic
-    const openModalBtns = document.querySelectorAll('[data-modal-target]');
-    const closeModalBtns = document.querySelectorAll('[data-close-button]');
-    const overlay = document.getElementById('modal-overlay');
-
-    openModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = document.querySelector(button.dataset.modalTarget);
-            openModal(modal);
-        });
-    });
-
-    closeModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal-overlay');
-            closeModal(modal);
-        });
-    });
-
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                const modals = document.querySelectorAll('.modal-overlay.active');
-                modals.forEach(modal => closeModal(modal));
-            }
-        });
-    }
-
-    function openModal(modal) {
-        if (modal == null) return;
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-    }
-
-    function closeModal(modal) {
-        if (modal == null) return;
-        modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
-    }
-
-    // Chatbot Logic
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
-
-    if (chatForm && chatInput && chatMessages) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = chatInput.value.trim();
-            if (!message) return;
-
-            appendMessage('user', message);
-            chatInput.value = '';
-
-            try {
-                const response = await fetch('/api/chatbot', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
-                });
-
-                if(!response.ok) throw new Error("Network response was not ok");
-
-                const data = await response.json();
-                appendMessage('ai', data.reply);
-            } catch (error) {
-                console.error("Chat error:", error);
-                appendMessage('ai', "Sorry, I'm having trouble connecting right now.");
-            }
-        });
-    }
-
-    function appendMessage(sender, text) {
-        if(!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-});
-
-function showLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'block';
+    modalOverlay.classList.add('active');
 }
 
-function hideLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'none';
+function closeModal() {
+    const modal = document.getElementById('custom-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Custom Fetch Wrapper with UI feedback
+async function apiCall(url, options = {}) {
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.status === 401 || response.status === 403) {
+            window.location.href = '/login';
+            return null;
+        }
+
+        if (!data.success) {
+            showModal('Error', data.error || 'An unexpected error occurred.');
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        showModal('Error', 'Failed to connect to the server.');
+        return null;
+    }
+}
+
+// Chatbot functionality
+let chatHistory = [];
+
+async function sendMessage(endpoint) {
+    const inputEl = document.getElementById('chat-input');
+    const messagesEl = document.getElementById('chat-messages');
+    const loadingEl = document.getElementById('chat-loading');
+
+    const message = inputEl.value.trim();
+    if (!message) return;
+
+    // Add User Message safely
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'message user';
+    userMsgDiv.appendChild(document.createTextNode(message));
+    messagesEl.appendChild(userMsgDiv);
+
+    inputEl.value = '';
+    loadingEl.style.display = 'block';
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    // API Call
+    const data = await apiCall(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ message: message, history: chatHistory, question: message })
+    });
+
+    loadingEl.style.display = 'none';
+
+    if (data) {
+        // Add AI Message safely
+        const aiMsgDiv = document.createElement('div');
+        aiMsgDiv.className = 'message ai';
+        aiMsgDiv.appendChild(document.createTextNode(data.answer));
+        messagesEl.appendChild(aiMsgDiv);
+
+        // Update history if it's the study chatbot
+        if (endpoint.includes('/chat')) {
+            chatHistory.push({ role: 'user', content: message });
+            chatHistory.push({ role: 'assistant', content: data.answer });
+        }
+    }
+
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// Utility to render table rows safely
+function createTableCell(text) {
+    const td = document.createElement('td');
+    td.appendChild(document.createTextNode(text || '-'));
+    return td;
 }

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Student Dashboard</h1>
+        <p>Welcome back, {{ session.name }}!</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="stat-card glass" style="cursor: pointer;" onclick="window.location.href='/student/videos'">
+        <div class="stat-icon blue">
+            <i class="fas fa-video"></i>
+        </div>
+        <div class="stat-details">
+            <h3 style="font-size: 1.2rem;">Class Videos</h3>
+            <p>Watch daily recordings</p>
+        </div>
+    </div>
+
+    <div class="stat-card glass" style="cursor: pointer;" onclick="window.location.href='/student/attendance'">
+        <div class="stat-icon green">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-details">
+            <h3 style="font-size: 1.2rem;">My Attendance</h3>
+            <p>View your track record</p>
+        </div>
+    </div>
+
+    <div class="stat-card glass" style="cursor: pointer;" onclick="window.location.href='/student/chatbot'">
+        <div class="stat-icon purple">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="stat-details">
+            <h3 style="font-size: 1.2rem;">AI Tutor</h3>
+            <p>Get your doubts solved</p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Doubt Solver -->
+<div class="glass" style="padding: 24px; margin-top: 24px;">
+    <h3><i class="fas fa-bolt" style="color: #eab308;"></i> Quick Doubt Solver</h3>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Ask a quick question, get a simple explanation instantly.</p>
+
+    <div style="display: flex; gap: 12px;">
+        <input type="text" id="quick-doubt" class="form-control" placeholder="E.g. What is photosynthesis?">
+        <button class="btn btn-primary" onclick="solveDoubt()">Solve</button>
+    </div>
+    <div id="doubt-loading" class="spinner mt-4"></div>
+    <div id="doubt-result" style="margin-top: 20px; padding: 16px; background: rgba(79,70,229,0.05); border-radius: 8px; display: none;"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function solveDoubt() {
+        const q = document.getElementById('quick-doubt').value;
+        const resEl = document.getElementById('doubt-result');
+        const loadEl = document.getElementById('doubt-loading');
+
+        if(!q) return;
+
+        resEl.style.display = 'none';
+        loadEl.style.display = 'block';
+
+        const res = await apiCall('/api/ai/doubt', {
+            method: 'POST',
+            body: JSON.stringify({ question: q })
+        });
+
+        loadEl.style.display = 'none';
+
+        if (res && res.success) {
+            resEl.textContent = res.answer;
+            resEl.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %}

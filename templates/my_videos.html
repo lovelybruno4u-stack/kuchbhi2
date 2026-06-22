@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>My Videos</h1>
+        <p>Access your daily class recordings.</p>
+    </div>
+</div>
+
+<div class="glass" style="padding: 24px;">
+    <div class="table-container">
+        <table id="videos-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadVideos() {
+        const res = await apiCall('/api/videos');
+        if (res && res.data) {
+            const tbody = document.querySelector('#videos-table tbody');
+            tbody.innerHTML = '';
+
+            const sorted = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(vid => {
+                const tr = document.createElement('tr');
+                tr.appendChild(createTableCell(vid.date));
+                tr.appendChild(createTableCell(vid.subject));
+
+                const linkTd = document.createElement('td');
+                const a = document.createElement('a');
+                a.href = vid.drive_link;
+                a.target = '_blank';
+                a.className = 'btn btn-primary';
+                a.style.padding = '8px 16px';
+                a.innerHTML = '<i class="fas fa-play"></i> Watch';
+                linkTd.appendChild(a);
+                tr.appendChild(linkTd);
+
+                tbody.appendChild(tr);
+            });
+
+            if(sorted.length === 0) {
+                 const tr = document.createElement('tr');
+                 const td = document.createElement('td');
+                 td.colSpan = 3;
+                 td.textContent = 'No videos uploaded yet.';
+                 td.style.textAlign = 'center';
+                 tr.appendChild(td);
+                 tbody.appendChild(tr);
+            }
+        }
+    }
+    loadVideos();
+</script>
+{% endblock %}
