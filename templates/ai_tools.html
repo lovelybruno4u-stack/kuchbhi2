@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Teacher AI Tools</h1>
+        <p>Leverage AI to assist with your daily tasks.</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Attendance Insights -->
+    <div class="glass" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;"><i class="fas fa-chart-pie" style="color: var(--primary)"></i> Attendance Insights</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Analyze attendance patterns and identify irregular students.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()">Generate Analysis</button>
+        <div id="attendance-loading" class="spinner mt-4"></div>
+        <div id="attendance-result" style="margin-top: 20px; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;"><i class="fas fa-question-circle" style="color: var(--primary)"></i> Quiz Generator</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Generate 5 MCQs for any topic instantly.</p>
+        <input type="text" id="quiz-subject" class="form-control mb-4" placeholder="Subject (e.g. History)">
+        <input type="text" id="quiz-topic" class="form-control mb-4" placeholder="Topic (e.g. World War 2)">
+        <button class="btn btn-primary" onclick="generateQuiz()">Generate Quiz</button>
+        <div id="quiz-loading" class="spinner mt-4"></div>
+        <div id="quiz-result" style="margin-top: 20px; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass" style="padding: 24px;">
+        <h3 style="margin-bottom: 16px;"><i class="fas fa-file-alt" style="color: var(--primary)"></i> Video Notes</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Generate revision notes based on a video topic.</p>
+        <input type="text" id="video-topic" class="form-control mb-4" placeholder="Video Topic">
+        <button class="btn btn-primary" onclick="generateVideoNotes()">Generate Notes</button>
+        <div id="video-loading" class="spinner mt-4"></div>
+        <div id="video-result" style="margin-top: 20px; white-space: pre-wrap; font-size: 0.9rem;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function analyzeAttendance() {
+        const resultEl = document.getElementById('attendance-result');
+        const loadingEl = document.getElementById('attendance-loading');
+
+        resultEl.textContent = '';
+        loadingEl.style.display = 'block';
+
+        const res = await apiCall('/api/ai/attendance', { method: 'POST' });
+
+        loadingEl.style.display = 'none';
+        if (res && res.success) {
+            resultEl.textContent = res.analysis;
+        }
+    }
+
+    async function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        const resultEl = document.getElementById('quiz-result');
+        const loadingEl = document.getElementById('quiz-loading');
+
+        if(!subject || !topic) return showModal('Warning', 'Fill subject and topic');
+
+        resultEl.textContent = '';
+        loadingEl.style.display = 'block';
+
+        const res = await apiCall('/api/ai/quiz', {
+            method: 'POST',
+            body: JSON.stringify({ subject, topic })
+        });
+
+        loadingEl.style.display = 'none';
+        if (res && res.success) {
+            resultEl.textContent = res.quiz;
+        }
+    }
+
+    async function generateVideoNotes() {
+        const topic = document.getElementById('video-topic').value;
+        const resultEl = document.getElementById('video-result');
+        const loadingEl = document.getElementById('video-loading');
+
+        if(!topic) return showModal('Warning', 'Enter a topic');
+
+        resultEl.textContent = '';
+        loadingEl.style.display = 'block';
+
+        const res = await apiCall('/api/ai/video_summary', {
+            method: 'POST',
+            body: JSON.stringify({ topic })
+        });
+
+        loadingEl.style.display = 'none';
+        if (res && res.success) {
+            resultEl.textContent = res.summary;
+        }
+    }
+</script>
+{% endblock %}

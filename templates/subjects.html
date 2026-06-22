@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Subjects</h1>
+        <p>Manage curriculum subjects.</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+    <!-- Add Form -->
+    <div class="glass" style="padding: 24px; height: fit-content;">
+        <h3>Add Subject</h3>
+        <form onsubmit="submitSubject(event)" style="margin-top: 20px;">
+            <div class="form-group">
+                <label>Subject Name</label>
+                <input type="text" id="subj-name" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%">Add Subject</button>
+        </form>
+    </div>
+
+    <!-- Subject List -->
+    <div class="glass" style="padding: 24px;">
+        <h3>All Subjects</h3>
+        <div class="table-container" style="margin-top: 20px;">
+            <table id="subjects-table">
+                <thead>
+                    <tr>
+                        <th>Subject Name</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let editingSubjectName = null;
+
+    async function loadSubjects() {
+        const res = await apiCall('/api/subjects');
+        if (res && res.data) {
+            const tbody = document.querySelector('#subjects-table tbody');
+            tbody.innerHTML = '';
+
+            res.data.forEach(subj => {
+                const tr = document.createElement('tr');
+                tr.appendChild(createTableCell(subj.subject_name));
+
+                const actionsTd = document.createElement('td');
+                actionsTd.innerHTML = `
+                    <button class="btn btn-secondary" style="padding: 4px 8px; margin-right: 4px;" onclick="editSubject('${subj.subject_name}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; color: var(--danger);" onclick="deleteSubject('${subj.subject_name}')"><i class="fas fa-trash"></i></button>
+                `;
+                tr.appendChild(actionsTd);
+
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function editSubject(name) {
+        editingSubjectName = name;
+        document.getElementById('subj-name').value = name;
+        document.querySelector('form button[type="submit"]').textContent = 'Update Subject';
+    }
+
+    async function deleteSubject(name) {
+        if(confirm('Delete this subject?')) {
+            const res = await apiCall('/api/subjects', {
+                method: 'DELETE',
+                body: JSON.stringify({ subject_name: name })
+            });
+            if(res && res.success) {
+                loadSubjects();
+                showModal('Success', 'Subject deleted');
+            }
+        }
+    }
+
+    async function submitSubject(e) {
+        e.preventDefault();
+        const name = document.getElementById('subj-name').value;
+
+        const data = { subject_name: name };
+        let method = 'POST';
+
+        if (editingSubjectName) {
+            method = 'PUT';
+            data.old_name = editingSubjectName;
+        }
+
+        const res = await apiCall('/api/subjects', {
+            method: method,
+            body: JSON.stringify(data)
+        });
+
+        if (res && res.success) {
+            document.getElementById('subj-name').value = '';
+            editingSubjectName = null;
+            document.querySelector('form button[type="submit"]').textContent = 'Add Subject';
+            loadSubjects();
+            showModal('Success', method === 'POST' ? 'Subject added successfully' : 'Subject updated');
+        }
+    }
+
+    loadSubjects();
+</script>
+{% endblock %}

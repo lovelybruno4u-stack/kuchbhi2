@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Announcements</h1>
+        <p>Important updates from your teachers.</p>
+    </div>
+</div>
+
+<div class="glass" style="padding: 24px;">
+    <div id="announcements-list" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Populated by JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadAnnouncements() {
+        const res = await apiCall('/api/announcements');
+        if (res && res.data) {
+            const list = document.getElementById('announcements-list');
+            list.innerHTML = '';
+
+            const sorted = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(ann => {
+                const div = document.createElement('div');
+                div.style.padding = '20px';
+                div.style.border = '1px solid #e2e8f0';
+                div.style.borderRadius = '12px';
+                div.style.background = 'white';
+                div.style.boxShadow = '0 2px 10px rgba(0,0,0,0.02)';
+
+                const dateP = document.createElement('p');
+                dateP.style.fontSize = '0.85rem';
+                dateP.style.color = 'var(--text-muted)';
+                dateP.style.marginBottom = '12px';
+                dateP.innerHTML = `<i class="fas fa-calendar-alt"></i> ${ann.date}`;
+
+                const msgP = document.createElement('p');
+                msgP.style.lineHeight = '1.6';
+                msgP.textContent = ann.message;
+
+                div.appendChild(dateP);
+                div.appendChild(msgP);
+                list.appendChild(div);
+            });
+
+            if (sorted.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No announcements at this time.</p>';
+            }
+        }
+    }
+
+    loadAnnouncements();
+</script>
+{% endblock %}

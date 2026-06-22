@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Announcements</h1>
+        <p>Broadcast messages to all students.</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+    <!-- Add Form -->
+    <div class="glass" style="padding: 24px; height: fit-content;">
+        <h3>New Announcement</h3>
+
+        <div style="margin: 20px 0; padding: 16px; background: rgba(79, 70, 229, 0.05); border-radius: 8px;">
+            <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;"><i class="fas fa-magic"></i> AI Assistant</p>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="ai-topic" class="form-control" placeholder="e.g. holiday tomorrow">
+                <button type="button" class="btn btn-secondary" onclick="generateAnnouncement()"><i class="fas fa-bolt"></i></button>
+            </div>
+            <div id="ai-loading" class="spinner" style="margin-top: 10px;"></div>
+        </div>
+
+        <form onsubmit="submitAnnouncement(event)">
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="ann-message" class="form-control" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%">Post Announcement</button>
+        </form>
+    </div>
+
+    <!-- List -->
+    <div class="glass" style="padding: 24px;">
+        <h3>Recent Announcements</h3>
+        <div id="announcements-list" style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadAnnouncements() {
+        const res = await apiCall('/api/announcements');
+        if (res && res.data) {
+            const list = document.getElementById('announcements-list');
+            list.innerHTML = '';
+
+            const sorted = res.data.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(ann => {
+                const div = document.createElement('div');
+                div.style.padding = '16px';
+                div.style.border = '1px solid #e2e8f0';
+                div.style.borderRadius = '8px';
+                div.style.background = 'white';
+
+                const dateP = document.createElement('p');
+                dateP.style.fontSize = '0.8rem';
+                dateP.style.color = 'var(--text-muted)';
+                dateP.style.marginBottom = '8px';
+                dateP.textContent = ann.date;
+
+                const msgP = document.createElement('p');
+                msgP.textContent = ann.message;
+
+                div.appendChild(dateP);
+                div.appendChild(msgP);
+                list.appendChild(div);
+            });
+        }
+    }
+
+    async function submitAnnouncement(e) {
+        e.preventDefault();
+        const msg = document.getElementById('ann-message').value;
+
+        const res = await apiCall('/api/announcements', {
+            method: 'POST',
+            body: JSON.stringify({ message: msg })
+        });
+
+        if (res && res.success) {
+            document.getElementById('ann-message').value = '';
+            loadAnnouncements();
+            showModal('Success', 'Announcement posted');
+        }
+    }
+
+    async function generateAnnouncement() {
+        const topic = document.getElementById('ai-topic').value;
+        if (!topic) {
+            showModal('Warning', 'Please enter a topic first');
+            return;
+        }
+
+        document.getElementById('ai-loading').style.display = 'block';
+        const res = await apiCall('/api/ai/announcement', {
+            method: 'POST',
+            body: JSON.stringify({ topic })
+        });
+        document.getElementById('ai-loading').style.display = 'none';
+
+        if (res && res.success) {
+            document.getElementById('ann-message').value = res.announcement;
+        }
+    }
+
+    loadAnnouncements();
+</script>
+{% endblock %}

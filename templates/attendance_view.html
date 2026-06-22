@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>My Attendance</h1>
+        <p>Review your attendance history.</p>
+    </div>
+</div>
+
+<div class="glass" style="padding: 24px;">
+    <div style="margin-bottom: 24px;">
+        <input type="date" id="filter-date" class="form-control" style="width: auto; display: inline-block;">
+        <button class="btn btn-secondary" onclick="loadAttendance()"><i class="fas fa-search"></i> Check Date</button>
+    </div>
+
+    <div id="attendance-result" style="font-size: 1.2rem; font-weight: 600; padding: 20px; border-radius: 8px; text-align: center; display: none;">
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('filter-date').valueAsDate = new Date();
+
+    async function loadAttendance() {
+        const date = document.getElementById('filter-date').value;
+        const res = await apiCall(`/api/attendance?date=${date}`);
+
+        const resEl = document.getElementById('attendance-result');
+        resEl.style.display = 'block';
+
+        if (res && res.data) {
+            // Find student's record. user_id is in session, but the API might return all for that date.
+            // For security, a real app would filter this on the backend.
+            // We use the JS session object info if available, or just check the ID loosely.
+            const myId = '{{ session.user_id }}';
+            const myRecord = res.data.find(r => String(r.student_id) === String(myId));
+
+            if (myRecord) {
+                const status = myRecord.status.toLowerCase();
+                if (status === 'present') {
+                    resEl.style.background = 'rgba(16, 185, 129, 0.1)';
+                    resEl.style.color = 'var(--success)';
+                    resEl.innerHTML = `<i class="fas fa-check-circle"></i> You were marked PRESENT on ${date}`;
+                } else {
+                    resEl.style.background = 'rgba(239, 68, 68, 0.1)';
+                    resEl.style.color = 'var(--danger)';
+                    resEl.innerHTML = `<i class="fas fa-times-circle"></i> You were marked ABSENT on ${date}`;
+                }
+            } else {
+                resEl.style.background = '#f1f5f9';
+                resEl.style.color = 'var(--text-muted)';
+                resEl.textContent = `No attendance record found for you on ${date}`;
+            }
+        }
+    }
+    loadAttendance();
+</script>
+{% endblock %}

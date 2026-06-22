@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Student Management</h1>
+        <p>View and manage enrolled students.</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+        <input type="text" id="search-student" class="form-control" placeholder="Search by name or roll..." onkeyup="filterStudents()" style="width: 250px;">
+        <button class="btn btn-primary" onclick="openAddStudentModal()"><i class="fas fa-plus"></i> Add Student</button>
+    </div>
+</div>
+
+<div class="glass" style="padding: 24px;">
+    <div class="table-container">
+        <table id="students-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Roll No</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="add-student-modal" class="modal-overlay">
+    <div class="modal-content glass">
+        <div class="modal-header">
+            <h3 class="modal-title">Add New Student</h3>
+            <button class="modal-close" onclick="closeAddStudentModal()">&times;</button>
+        </div>
+        <form id="add-student-form" onsubmit="submitStudent(event)">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="stu-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Class</label>
+                <input type="text" id="stu-class" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Roll Number</label>
+                <input type="text" id="stu-roll" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="stu-phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="stu-email" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Parent Name</label>
+                <input type="text" id="stu-parent" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%">Save Student</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allStudents = [];
+
+    async function loadStudents() {
+        const res = await apiCall('/api/students');
+        if (res && res.data) {
+            allStudents = res.data;
+            renderStudents(allStudents);
+        }
+    }
+
+    function renderStudents(students) {
+        const tbody = document.querySelector('#students-table tbody');
+        tbody.innerHTML = '';
+        students.forEach(student => {
+            const tr = document.createElement('tr');
+            tr.appendChild(createTableCell(student.name));
+            tr.appendChild(createTableCell(student.class));
+            tr.appendChild(createTableCell(student.roll));
+            tr.appendChild(createTableCell(student.phone));
+            tr.appendChild(createTableCell(student.email));
+
+            const actionsTd = document.createElement('td');
+            actionsTd.innerHTML = `
+                <button class="btn btn-secondary" style="padding: 4px 8px; margin-right: 4px;" onclick='editStudent(${JSON.stringify(student)})'><i class="fas fa-edit"></i></button>
+                <button class="btn btn-secondary" style="padding: 4px 8px; color: var(--danger);" onclick="deleteStudent('${student.id}')"><i class="fas fa-trash"></i></button>
+            `;
+            tr.appendChild(actionsTd);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterStudents() {
+        const query = document.getElementById('search-student').value.toLowerCase();
+        const filtered = allStudents.filter(s =>
+            (s.name && s.name.toLowerCase().includes(query)) ||
+            (s.roll && String(s.roll).toLowerCase().includes(query))
+        );
+        renderStudents(filtered);
+    }
+
+    let editingStudentId = null;
+
+    function editStudent(student) {
+        editingStudentId = student.id;
+        document.querySelector('.modal-title').textContent = 'Edit Student';
+        document.getElementById('stu-name').value = student.name || '';
+        document.getElementById('stu-class').value = student.class || '';
+        document.getElementById('stu-roll').value = student.roll || '';
+        document.getElementById('stu-phone').value = student.phone || '';
+        document.getElementById('stu-email').value = student.email || '';
+        document.getElementById('stu-parent').value = student.parent || '';
+        openAddStudentModal();
+    }
+
+    async function deleteStudent(id) {
+        if(confirm('Are you sure you want to delete this student?')) {
+            const res = await apiCall('/api/students', {
+                method: 'DELETE',
+                body: JSON.stringify({ id })
+            });
+            if(res && res.success) {
+                loadStudents();
+                showModal('Success', 'Student deleted');
+            }
+        }
+    }
+
+    function openAddStudentModal() {
+        document.getElementById('add-student-modal').classList.add('active');
+    }
+
+    function closeAddStudentModal() {
+        document.getElementById('add-student-modal').classList.remove('active');
+    }
+
+    async function submitStudent(e) {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('stu-name').value,
+            class: document.getElementById('stu-class').value,
+            roll: document.getElementById('stu-roll').value,
+            phone: document.getElementById('stu-phone').value,
+            email: document.getElementById('stu-email').value,
+            parent: document.getElementById('stu-parent').value
+        };
+
+        let method = 'POST';
+        if (editingStudentId) {
+            data.id = editingStudentId;
+            method = 'PUT';
+        }
+
+        const res = await apiCall('/api/students', {
+            method: method,
+            body: JSON.stringify(data)
+        });
+
+        if (res && res.success) {
+            closeAddStudentModal();
+            document.getElementById('add-student-form').reset();
+            editingStudentId = null;
+            document.querySelector('.modal-title').textContent = 'Add New Student';
+            loadStudents();
+            showModal('Success', method === 'POST' ? 'Student added successfully' : 'Student updated successfully');
+        }
+    }
+
+    // Reset form properly when closing manually
+    const originalClose = closeAddStudentModal;
+    closeAddStudentModal = function() {
+        document.getElementById('add-student-form').reset();
+        editingStudentId = null;
+        document.querySelector('.modal-title').textContent = 'Add New Student';
+        originalClose();
+    }
+
+
+    loadStudents();
+</script>
+{% endblock %}

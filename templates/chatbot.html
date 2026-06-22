@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom: 20px;">
+    <div class="page-title">
+        <h1>AI Study Tutor</h1>
+        <p>Your personal assistant for exam prep, doubts, and tips.</p>
+    </div>
+</div>
+
+<div class="glass chat-container">
+    <div class="chat-messages" id="chat-messages">
+        <div class="message ai">
+            Hi {{ session.name }}! I'm your AI Study Tutor. How can I help you today? You can ask me to explain a concept, give study tips, or help with exam preparation.
+        </div>
+    </div>
+
+    <div id="chat-loading" style="display: none; padding: 10px 20px;">
+        <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> <span style="color: var(--text-muted); font-size: 0.9rem;">AI is typing...</span>
+    </div>
+
+    <div class="chat-input">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+        <button class="btn btn-primary" onclick="sendMessage('/api/ai/chat')">
+            <i class="fas fa-paper-plane"></i> Send
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Ensure chatHistory is initialized (handled in script.js)
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') {
+            sendMessage('/api/ai/chat');
+        }
+    }
+</script>
+{% endblock %}

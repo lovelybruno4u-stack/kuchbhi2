@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar glass" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Aswathama</h2>
+            </div>
+
+            {% if session.role == 'teacher' %}
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-item {% if request.endpoint == 'teacher_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="{{ url_for('teacher_students') }}" class="nav-item {% if request.endpoint == 'teacher_students' %}active{% endif %}">
+                    <i class="fas fa-users"></i> Students
+                </a>
+                <a href="{{ url_for('teacher_attendance') }}" class="nav-item {% if request.endpoint == 'teacher_attendance' %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a>
+                <a href="{{ url_for('teacher_videos') }}" class="nav-item {% if request.endpoint == 'teacher_videos' %}active{% endif %}">
+                    <i class="fas fa-video"></i> Videos
+                </a>
+                <a href="{{ url_for('teacher_subjects') }}" class="nav-item {% if request.endpoint == 'teacher_subjects' %}active{% endif %}">
+                    <i class="fas fa-book"></i> Subjects
+                </a>
+                <a href="{{ url_for('teacher_announcements') }}" class="nav-item {% if request.endpoint == 'teacher_announcements' %}active{% endif %}">
+                    <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-item {% if request.endpoint == 'teacher_ai_tools' %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Tools
+                </a>
+            {% elif session.role == 'student' %}
+                <a href="{{ url_for('student_dashboard') }}" class="nav-item {% if request.endpoint == 'student_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="{{ url_for('student_my_videos') }}" class="nav-item {% if request.endpoint == 'student_my_videos' %}active{% endif %}">
+                    <i class="fas fa-play-circle"></i> My Videos
+                </a>
+                <a href="{{ url_for('student_attendance_view') }}" class="nav-item {% if request.endpoint == 'student_attendance_view' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i> Attendance
+                </a>
+                <a href="{{ url_for('student_chatbot') }}" class="nav-item {% if request.endpoint == 'student_chatbot' %}active{% endif %}">
+                    <i class="fas fa-comments"></i> AI Tutor
+                </a>
+                <a href="{{ url_for('student_announcements_view') }}" class="nav-item {% if request.endpoint == 'student_announcements_view' %}active{% endif %}">
+                    <i class="fas fa-bell"></i> Announcements
+                </a>
+            {% endif %}
+
+            <div style="flex:1"></div>
+
+            <div class="user-profile">
+                <div class="avatar"><i class="fas fa-user"></i></div>
+                <div style="flex:1">
+                    <div style="font-weight: 600; font-size: 0.9rem;">{{ session.name or (session.role | title) }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted)">{{ session.role | title }}</div>
+                </div>
+            </div>
+
+            <a href="{{ url_for('logout') }}" class="nav-item" style="margin-top: 12px; color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

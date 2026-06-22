@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title">
+        <h1>Attendance Tracking</h1>
+        <p>Mark daily attendance for students.</p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <input type="date" id="attendance-date" class="form-control" style="width: auto;">
+        <button class="btn btn-primary" onclick="loadAttendanceList()"><i class="fas fa-sync"></i> Load</button>
+    </div>
+</div>
+
+<div class="glass" style="padding: 24px;">
+    <div class="table-container">
+        <table id="attendance-table">
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 24px; text-align: right;">
+        <button class="btn btn-primary" onclick="saveAttendance()"><i class="fas fa-save"></i> Save Attendance</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('attendance-date').valueAsDate = new Date();
+    let currentStudents = [];
+
+    async function loadAttendanceList() {
+        const date = document.getElementById('attendance-date').value;
+        const [studentsRes, attendanceRes] = await Promise.all([
+            apiCall('/api/students'),
+            apiCall(`/api/attendance?date=${date}`)
+        ]);
+
+        if (studentsRes && attendanceRes) {
+            currentStudents = studentsRes.data;
+            const existingRecords = attendanceRes.data.reduce((acc, curr) => {
+                acc[curr.student_id] = curr.status;
+                return acc;
+            }, {});
+
+            const tbody = document.querySelector('#attendance-table tbody');
+            tbody.innerHTML = '';
+
+            currentStudents.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.appendChild(createTableCell(student.roll));
+                tr.appendChild(createTableCell(student.name));
+                tr.appendChild(createTableCell(student.class));
+
+                const statusTd = document.createElement('td');
+                const select = document.createElement('select');
+                select.className = 'form-control attendance-select';
+                select.dataset.id = student.id;
+                select.dataset.name = student.name;
+                select.dataset.class = student.class;
+                select.style.width = '150px';
+
+                ['Present', 'Absent'].forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status.toLowerCase();
+                    option.textContent = status;
+                    select.appendChild(option);
+                });
+
+                if (existingRecords[student.id]) {
+                    select.value = existingRecords[student.id].toLowerCase();
+                }
+
+                statusTd.appendChild(select);
+                tr.appendChild(statusTd);
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    async function saveAttendance() {
+        const date = document.getElementById('attendance-date').value;
+        const selects = document.querySelectorAll('.attendance-select');
+        const records = Array.from(selects).map(select => ({
+            student_id: select.dataset.id,
+            student_name: select.dataset.name,
+            class_name: select.dataset.class,
+            status: select.value
+        }));
+
+        const res = await apiCall('/api/attendance', {
+            method: 'POST',
+            body: JSON.stringify({ date, records })
+        });
+
+        if (res && res.success) {
+            showModal('Success', 'Attendance saved successfully');
+        }
+    }
+
+    loadAttendanceList();
+</script>
+{% endblock %}
