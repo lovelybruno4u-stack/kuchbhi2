@@ -1,0 +1,19 @@
+setup guide:
+
+1 how to create google sheet
+The application will automatically create a Google Sheet Database for you when it first starts! It will create all the required tabs and share it to your email address. You just need to provide your ADMIN_EMAIL in the environment variables so you get edit access.
+
+2 how to enable sheets api
+Go to Google Cloud Console. Create a new project. Go to "APIs & Services" > "Library". Search for Google Sheets API and enable it. Search for Google Drive API and enable it as well. Go to "APIs & Services" > "Credentials". Click "Create Credentials" > "Service Account". Fill in details and create. Click on the created service account > "Keys" tab > "Add Key" > "Create new key" (JSON). This will download a .json file to your computer. Important: Open your Service Account details, copy the email address provided. Go back to your Google Sheet, click "Share" in the top right, and share the sheet as an "Editor" with that service account email.
+
+3 where to place json key
+Rename the downloaded file to credentials.json and place it in the root folder of this project (next to app.py). We have created an empty CREDENTIALS.JSON in the root for you to put the contents in.
+
+4 where to place openai api key
+Go to OpenAI Platform. Generate an API Key. Open the .env file in the root directory (create it if it doesn't exist) and add: OPENAI_API_KEY=your_openai_key_here
+
+5 how to run flask
+Ensure Python 3.8+ is installed. Install requirements: pip install -r requirements.txt. Run the app: python app.py. Visit http://127.0.0.1:5000 in your browser.
+
+6 how to deploy on render
+Push this code to a GitHub repository. (Make sure credentials.json and .env are listed in .gitignore if making public! For private repo, Render provides secrets management). Go to Render.com and sign in. Click "New" > "Web Service". Connect your GitHub repository. Use the following settings: Environment: Python, Build Command: pip install -r requirements.txt, Start Command: gunicorn app:app. Go to "Advanced" -> "Environment Variables" and add: OPENAI_API_KEY, SPREADSHEET_ID, SECRET_KEY. For the credentials.json, either upload it securely as a "Secret File" in Render, OR base64 encode it and set it as an env variable to decode at runtime. Click "Create Web Service".

@@ -1,0 +1,5 @@
+1. **Flatten Templates Directory:** I've moved all HTML templates from role-based subdirectories (`teacher/`, `student/`) directly into the `templates/` folder and updated `app.py` to reference these flat paths. I've also updated all the `{% extends %}` and `{% include %}` directives within the HTML files.
+2. **Resolve Dependencies:** I've run `pip install -r requirements.txt`, then explicitly installed `openai` (v2.43.0 as standard, plus its dependencies like `httpx`) to resolve module missing errors.
+3. **Handle Empty Credentials:** Added a blank `credentials.json` file to the root of the project to allow Render deployment and startup logic to bypass direct missing-file errors, though the app provides instructions for the user to paste actual contents in later.
+4. **Pre-commit Steps:** Run `pre_commit_instructions` and follow any specified instructions or verification checks (like static analysis, unit tests, frontend verifications).
+5. **Submit:** Provide a final submit using standard git commit messages.
