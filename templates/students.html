@@ -1,0 +1,132 @@
+{% extends 'teacher_base.html' %}
+
+{% block title %}Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <input type="text" id="search-input" class="form-control" placeholder="Search by name or roll number..." style="width: 300px;">
+        </div>
+        <button class="btn btn-primary" data-modal-target="#add-student-modal">
+            <i class="fas fa-plus"></i> Add Student
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Roll No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Parent Name</th>
+                    <th>Password</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.roll }}</td>
+                    <td style="font-weight: 500;">{{ student.name }}</td>
+                    <td>{{ student.class }}</td>
+                    <td>{{ student.phone }}</td>
+                    <td>{{ student.email }}</td>
+                    <td>{{ student.parent }}</td>
+                    <td><span style='background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem;'>{{ student.password }}</span></td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-edit"></i> Edit</button>
+                        <form action="{{ url_for('delete_student', id=student.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this student?');">
+                            <button type="submit" class="btn btn-danger" style="padding: 6px 10px; font-size: 0.8rem;"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not students %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                        <i class="fas fa-users-slash" style="font-size: 2rem; margin-bottom: 10px; display: block; color: #d1d5db;"></i>
+                        No students found. Add a new student to get started.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal-overlay" id="add-student-modal">
+    <div class="modal-content glass-card">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-plus" style="color: var(--primary-color);"></i> Add New Student</h3>
+            <button class="close-btn" data-close-button>&times;</button>
+        </div>
+        <form action="{{ url_for('add_student') }}" method="POST">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Class/Grade</label>
+                    <input type="text" name="student_class" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Roll Number</label>
+                    <input type="text" name="roll" class="form-control" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" name="phone" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Parent's Name</label>
+                <input type="text" name="parent" class="form-control">
+            </div>
+            <div class="form-group" style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+                <label style="color: var(--primary-color);"><i class="fas fa-key"></i> Student Password</label>
+                <input type="text" name="password" class="form-control" placeholder="Set initial password for student login" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
+                <button type="submit" class="btn btn-primary" onclick="showLoading()">Save Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Simple client-side search
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                if (row.cells.length > 1) { // Skip empty state row
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const roll = row.cells[0].textContent.toLowerCase();
+                    if (name.includes(filter) || roll.includes(filter)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+        });
+    }
+</script>
+{% endblock %}

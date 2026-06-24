@@ -1,0 +1,31 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Study Materials{% endblock %}
+{% block page_title %}Study Materials{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-book-open" style="color: var(--primary-color);"></i> Resources</h3>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+        {% for material in materials %}
+        <div class="glass-card" style="display: flex; flex-direction: column; gap: 15px; border-left: 4px solid var(--secondary-color);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{{ material.subject }}</span>
+                    <h4 style="margin-top: 8px; color: var(--text-primary); font-size: 1.1rem;">{{ material.title }}</h4>
+                </div>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4; flex-grow: 1;">{{ material.description }}</p>
+            <a href="{{ material.drive_link }}" target="_blank" class="btn btn-primary" style="width: 100%; text-align: center; margin-top: auto;"><i class="fas fa-external-link-alt"></i> Open Resource</a>
+        </div>
+        {% endfor %}
+        {% if not materials %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
+            <i class="far fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
+            <p>No materials shared by teachers yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
