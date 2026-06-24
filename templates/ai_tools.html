@@ -1,0 +1,110 @@
+{% extends 'teacher_base.html' %}
+
+{% block title %}AI Tools{% endblock %}
+{% block page_title %}AI Tools{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <h3>AI Quiz Generator</h3>
+        <p>Generate 5 MCQs automatically.</p>
+        <div class="form-group" style="margin-top: 15px;">
+            <input type="text" id="quiz-subject" class="form-control" placeholder="Subject">
+        </div>
+        <div class="form-group" style="margin-top: 10px;">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Topic">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()" style="width: 100%; margin-top: 10px;">Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 15px; white-space: pre-wrap; font-size: 0.9em; background: #f3f4f6; padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <h3>AI Announcement</h3>
+        <p>Write a professional announcement.</p>
+        <div class="form-group" style="margin-top: 15px;">
+            <input type="text" id="ann-topic" class="form-control" placeholder="Topic (e.g. holiday tomorrow)">
+        </div>
+        <button class="btn btn-primary" onclick="generateAnnouncement()" style="width: 100%; margin-top: 10px;">Generate</button>
+        <div id="ann-result" style="margin-top: 15px; white-space: pre-wrap; font-size: 0.9em; background: #f3f4f6; padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <h3>AI Attendance Analysis</h3>
+        <p>Get insights on irregular students.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()" style="width: 100%; margin-top: 15px;">Analyze Data</button>
+        <div id="att-result" style="margin-top: 15px; white-space: pre-wrap; font-size: 0.9em; background: #f3f4f6; padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <div class="glass-card stat-card">
+        <h3>AI Video Summary</h3>
+        <p>Generate summary notes for a video.</p>
+        <div class="form-group" style="margin-top: 15px;">
+            <input type="text" id="vid-topic" class="form-control" placeholder="Video Topic">
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoSummary()" style="width: 100%; margin-top: 10px;">Generate Notes</button>
+        <div id="vid-result" style="margin-top: 15px; white-space: pre-wrap; font-size: 0.9em; background: #f3f4f6; padding: 10px; border-radius: 8px; display: none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function apiCall(url, data, resultDivId) {
+        document.getElementById('global-loader').style.display = 'flex';
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            const resultDiv = document.getElementById(resultDivId);
+            resultDiv.style.display = 'block';
+
+            if (result.success) {
+                if (result.questions) {
+                    resultDiv.textContent = JSON.stringify(result.questions, null, 2);
+                } else if (result.announcement) {
+                    resultDiv.textContent = result.announcement;
+                } else if (result.analysis) {
+                    resultDiv.textContent = result.analysis;
+                } else if (result.summary) {
+                    resultDiv.textContent = result.summary;
+                }
+                showToast('Success!');
+            } else {
+                resultDiv.textContent = 'Error: ' + result.error;
+                showToast(result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('Network error', 'error');
+        } finally {
+            document.getElementById('global-loader').style.display = 'none';
+        }
+    }
+
+    function generateQuiz() {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        if (!subject || !topic) return showToast('Fill all fields', 'warning');
+        apiCall('/api/ai/quiz', { subject, topic }, 'quiz-result');
+    }
+
+    function generateAnnouncement() {
+        const topic = document.getElementById('ann-topic').value;
+        if (!topic) return showToast('Fill topic field', 'warning');
+        apiCall('/api/ai/announcement', { topic }, 'ann-result');
+    }
+
+    function analyzeAttendance() {
+        apiCall('/api/ai/attendance', {}, 'att-result');
+    }
+
+    function generateVideoSummary() {
+        const topic = document.getElementById('vid-topic').value;
+        if (!topic) return showToast('Fill topic field', 'warning');
+        apiCall('/api/ai/video_summary', { topic }, 'vid-result');
+    }
+</script>
+{% endblock %}

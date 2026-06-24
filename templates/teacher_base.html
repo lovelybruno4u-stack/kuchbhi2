@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashwathama Classes - {% block title %}Dashboard{% endblock %}</title>
+    <!-- Open Graph / WhatsApp / Facebook Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kuchbhi2.onrender.com/">
+    <meta property="og:title" content="Ashwathama Classes">
+    <meta property="og:description" content="Learn Practically. Smart Student Dashboard and Teacher Portal for Ashwathama Classes.">
+    <meta property="og:image" content="https://kuchbhi2.onrender.com/static/icon-512.png">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://kuchbhi2.onrender.com/">
+    <meta property="twitter:title" content="Ashwathama Classes">
+    <meta property="twitter:description" content="Learn Practically. Smart Student Dashboard and Teacher Portal for Ashwathama Classes.">
+    <meta property="twitter:image" content="https://kuchbhi2.onrender.com/static/icon-512.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+<style>
+/* Premium Toast Notifications */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+.premium-toast {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px 24px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-left: 5px solid var(--primary-color);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    pointer-events: auto;
+    min-width: 250px;
+}
+.premium-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+.premium-toast.error { border-left-color: var(--danger); }
+.premium-toast.success { border-left-color: var(--success); }
+.premium-toast.warning { border-left-color: var(--warning); }
+.premium-toast i { font-size: 1.2rem; }
+.premium-toast.error i { color: var(--danger); }
+.premium-toast.success i { color: var(--success); }
+.premium-toast.warning i { color: var(--warning); }
+</style>
+</head>
+<body>
+    <button class="hamburger-menu" id="hamburger">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Ashwathama<br>Classes</h2>
+        </div>
+        <ul class="nav-links">
+                        <li class="nav-item">
+                <a href="{{ url_for('teacher_dashboard') }}" class="nav-link {% if request.path == url_for('teacher_dashboard') %}active{% endif %}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_students') }}" class="nav-link {% if request.path == url_for('teacher_students') %}active{% endif %}">
+                    <i class="fas fa-users"></i> Students
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_attendance') }}" class="nav-link {% if request.path == url_for('teacher_attendance') %}active{% endif %}">
+                    <i class="fas fa-calendar-check"></i> Attendance
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_videos') }}" class="nav-link {% if request.path == url_for('teacher_videos') %}active{% endif %}">
+                    <i class="fas fa-video"></i> Videos
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_subjects') }}" class="nav-link {% if request.path == url_for('teacher_subjects') %}active{% endif %}">
+                    <i class="fas fa-book"></i> Subjects
+                </a>
+            </li>
+                        <li class="nav-item">
+                <a href="{{ url_for('teacher_materials') }}" class="nav-link {% if request.path == url_for('teacher_materials') %}active{% endif %}">
+                    <i class="fas fa-file-pdf"></i> Materials
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_dpp') }}" class="nav-link {% if request.path == url_for('teacher_dpp') %}active{% endif %}">
+                    <i class="fas fa-file-alt"></i> DPP
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_tasks') }}" class="nav-link {% if request.path == url_for('teacher_tasks') %}active{% endif %}">
+                    <i class="fas fa-tasks"></i> Daily Tasks
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_schedule') }}" class="nav-link {% if request.path == url_for('teacher_schedule') %}active{% endif %}">
+                    <i class="far fa-calendar-alt"></i> Schedule
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_quiz') }}" class="nav-link {% if request.path == url_for('teacher_quiz') %}active{% endif %}">
+                    <i class="fas fa-question-circle"></i> Quiz
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link {% if request.path == url_for('teacher_ai_tools') %}active{% endif %}">
+                    <i class="fas fa-robot"></i> AI Tools
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('teacher_announcements') }}" class="nav-link {% if request.path == url_for('teacher_announcements') %}active{% endif %}">
+                    <i class="fas fa-bullhorn"></i> Announcements
+                </a>
+            </li>
+
+        </ul>
+        <div class="sidebar-footer" style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="sidebar-install-btn" class="btn btn-outline" style="width: 100%; display: none; text-align: left; justify-content: flex-start; padding: 10px 15px; border-radius: 8px;">
+                <i class="fas fa-download" style="margin-right: 12px; font-size: 1.1rem;"></i> Install App
+            </button>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-navbar">
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="user-profile">
+                <div class="stat-icon" style="width: 40px; height: 40px; border-radius: 50%;">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <span style="font-weight: 600;">{{ session.user_name }}</span>
+                    <span style="display: block; font-size: 0.8rem; color: var(--text-secondary);">Admin</span>
+                </div>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 20px;">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="padding: 15px; border-radius: 8px; background-color: {% if category == 'success' %}#d1fae5{% elif category == 'error' %}#fee2e2{% else %}#e0e7ff{% endif %}; color: {% if category == 'success' %}#065f46{% elif category == 'error' %}#991b1b{% else %}#3730a3{% endif %}; font-weight: 500;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="global-loader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; flex-direction: column; justify-content: center; align-items: center;">
+        <div class="loader" style="width: 50px; height: 50px; border-width: 5px; display: block;"></div>
+        <p style="margin-top: 15px; font-weight: 600; color: var(--primary-color);">Processing Request...</p>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
+                    .then(registration => console.log('ServiceWorker registered with scope:', registration.scope))
+                    .catch(err => console.error('ServiceWorker registration failed:', err));
+            });
+        }
+    </script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--white); box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 12px; padding: 15px 20px; z-index: 9999; align-items: center; gap: 15px; border: 1px solid #e5e7eb; width: 90%; max-width: 400px;">
+        <div style="flex-grow: 1;">
+            <p style="margin: 0; font-weight: 600; color: var(--text-primary);">Install Ashwathama App</p>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Add to your home screen for quick access.</p>
+        </div>
+        <button id="pwa-install-btn" class="btn btn-primary" style="padding: 8px 15px; font-size: 0.9rem;">Install</button>
+        <button id="pwa-close-btn" style="background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer;"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const closeBtn = document.getElementById('pwa-close-btn');
+
+        // Check if already dismissed today
+        const dismissed = localStorage.getItem('pwa_dismissed');
+
+        // Show the install prompt
+        const showInstallPrompt = async () => {
+            if (deferredPrompt) {
+                installBanner.style.display = 'none';
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                deferredPrompt = null;
+                const sbBtn = document.getElementById('sidebar-install-btn');
+                if(sbBtn) sbBtn.style.display = 'none';
+            }
+        };
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Update UI notify the user they can install the PWA
+            if(dismissed !== 'true') {
+                installBanner.style.display = 'flex';
+            }
+            // Always show sidebar button if prompt is available
+            const sbBtn = document.getElementById('sidebar-install-btn');
+            if(sbBtn) sbBtn.style.display = 'flex';
+        });
+
+        if(installBtn) installBtn.addEventListener('click', showInstallPrompt);
+        const sbInstallBtn = document.getElementById('sidebar-install-btn');
+        if(sbInstallBtn) sbInstallBtn.addEventListener('click', showInstallPrompt);
+
+
+        closeBtn.addEventListener('click', () => {
+            installBanner.style.display = 'none';
+            localStorage.setItem('pwa_dismissed', 'true');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            // Log install to analytics
+            console.log('INSTALL: Success');
+            installBanner.style.display = 'none';
+        });
+    </script>
+
+<script>
+// Premium Toast Notification System
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `premium-toast ${type}`;
+
+    let icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-circle';
+    if (type === 'warning') icon = 'fa-exclamation-triangle';
+
+    toast.innerHTML = `<i class="fas ${icon}"></i> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Auto-remove
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+}
+
+// Override default window.alert globally for absolute polish
+window.originalAlert = window.alert;
+window.alert = function(message) {
+    showToast(message, 'warning'); // Default fallback is warning
+};
+</script>
+</body>
+</html>
