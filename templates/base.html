@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ashwathama Classes{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Ashwathama</span>
+            </div>
+            <nav class="sidebar-nav">
+                {% if session.get('user_role') == 'teacher' %}
+                    <a href="{{ url_for('teacher_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="{{ url_for('teacher_students') }}" class="nav-link"><i class="fas fa-users"></i> Students</a>
+                    <a href="{{ url_for('teacher_attendance') }}" class="nav-link"><i class="fas fa-calendar-check"></i> Attendance</a>
+                    <a href="{{ url_for('teacher_videos') }}" class="nav-link"><i class="fas fa-video"></i> Videos</a>
+                    <a href="{{ url_for('teacher_subjects') }}" class="nav-link"><i class="fas fa-book"></i> Subjects</a>
+                    <a href="{{ url_for('teacher_announcements') }}" class="nav-link"><i class="fas fa-bullhorn"></i> Announcements</a>
+                    <a href="{{ url_for('teacher_ai_tools') }}" class="nav-link"><i class="fas fa-robot"></i> AI Tools</a>
+                {% else %}
+                    <a href="{{ url_for('student_dashboard') }}" class="nav-link"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="{{ url_for('student_my_videos') }}" class="nav-link"><i class="fas fa-video"></i> My Videos</a>
+                    <a href="{{ url_for('student_attendance_view') }}" class="nav-link"><i class="fas fa-calendar-check"></i> Attendance</a>
+                    <a href="{{ url_for('student_announcements_view') }}" class="nav-link"><i class="fas fa-bullhorn"></i> Announcements</a>
+                    <a href="{{ url_for('student_chatbot') }}" class="nav-link"><i class="fas fa-robot"></i> AI Study Chatbot</a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar"><i class="fas fa-user"></i></div>
+                    <div class="user-details">
+                        <span class="user-name">{{ session.get('user_name') }}</span>
+                        <span class="user-role">{{ session.get('user_role') | title }}</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <h2>{% block page_title %}Dashboard{% endblock %}</h2>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="flash-messages">
+                {% for category, message in messages %}
+                  <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

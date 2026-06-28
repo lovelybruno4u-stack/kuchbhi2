@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Manage Subjects{% endblock %}
+{% block page_title %}Subjects Management{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">
+        <h3>Add New Subject</h3>
+    </div>
+    <form method="POST" action="{{ url_for('teacher_subjects') }}" style="display:flex; gap:10px;">
+        <input type="hidden" name="action" value="add">
+        <input type="text" name="subject_name" class="form-control" placeholder="Subject Name" required style="flex:1;">
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div class="glass-card mt-20">
+    <div class="card-header">
+        <h3>Subject List</h3>
+    <form method="GET" action="{{ url_for('teacher_subjects') }}" style="display: flex; gap: 10px; margin-top: 10px;">
+        <input type="text" name="search" class="form-control" placeholder="Search subject..." value="{{ search_query }}">
+        <button type="submit" class="btn btn-secondary">Search</button>
+        {% if search_query %}
+            <a href="{{ url_for('teacher_subjects') }}" class="btn btn-secondary" style="background:#e2e8f0; color:#1e293b;">Clear</a>
+        {% endif %}
+    </form>
+
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject Name</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subjects %}
+                <tr>
+                    <td>{{ sub.subject_name }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('teacher_subjects') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="subject_name" value="{{ sub.subject_name }}">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="editSubject('{{ sub.subject_name }}')"><i class="fas fa-edit"></i></button>
+           <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete subject?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+<script>
+function editSubject(oldName) {
+    let newName = prompt("Edit Subject Name:", oldName);
+    if (newName && newName !== oldName) {
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url_for('teacher_subjects') }}";
+
+        let actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'edit';
+        form.appendChild(actionInput);
+
+        let oldNameInput = document.createElement('input');
+        oldNameInput.type = 'hidden';
+        oldNameInput.name = 'old_subject_name';
+        oldNameInput.value = oldName;
+        form.appendChild(oldNameInput);
+
+        let newNameInput = document.createElement('input');
+        newNameInput.type = 'hidden';
+        newNameInput.name = 'subject_name';
+        newNameInput.value = newName;
+        form.appendChild(newNameInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>

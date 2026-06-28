@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}My Videos{% endblock %}
+{% block page_title %}Class Recordings{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos[::-1] %}
+                <tr>
+                    <td>{{ video.date }}</td>
+                    <td>{{ video.subject }}</td>
+                    <td><a href="{{ video.drive_link }}" target="_blank" class="btn btn-primary btn-sm">Watch</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

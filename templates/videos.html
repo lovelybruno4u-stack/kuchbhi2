@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Manage Videos{% endblock %}
+{% block page_title %}Video Library{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">
+        <h3>Upload New Video</h3>
+    </div>
+    <form method="POST" action="{{ url_for('teacher_videos') }}" class="form-grid">
+        <input type="hidden" name="action" value="add">
+        <div class="form-group">
+            <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
+        </div>
+        <div class="form-group">
+            <input type="text" name="subject" class="form-control" placeholder="Subject / Topic" required>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+            <input type="url" name="drive_link" class="form-control" placeholder="Google Drive Link" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="grid-column: 1 / -1;">Upload Video</button>
+    </form>
+</div>
+
+<div class="glass-card mt-20">
+    <div class="card-header">
+        <h3>Video List</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Subject</th>
+                    <th>Link</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos %}
+                <tr>
+                    <td>{{ video.date }}</td>
+                    <td>{{ video.subject }}</td>
+                    <td><a href="{{ video.drive_link }}" target="_blank" class="btn btn-secondary btn-sm">Watch</a></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('teacher_videos') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="drive_link" value="{{ video.drive_link }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this video?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

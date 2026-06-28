@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Manage Announcements{% endblock %}
+{% block page_title %}Announcements System{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">
+        <h3>Post Announcement</h3>
+        <button type="button" class="btn btn-secondary" onclick="openAIModal('announcement')"><i class="fas fa-magic"></i> AI Generate</button>
+    </div>
+    <form method="POST" action="{{ url_for('teacher_announcements') }}">
+        <input type="hidden" name="action" value="add">
+        <div class="form-group mb-3">
+            <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
+        </div>
+        <div class="form-group mb-3">
+            <textarea name="message" id="announcement-msg" class="form-control" rows="4" placeholder="Write your announcement here..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post</button>
+    </form>
+</div>
+
+<div class="glass-card mt-20">
+    <div class="card-header">
+        <h3>Recent Announcements</h3>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Message</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ann in announcements %}
+                <tr>
+                    <td style="white-space: nowrap;">{{ ann.date }}</td>
+                    <td>{{ ann.message }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('teacher_announcements') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="message" value="{{ ann.message }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete announcement?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for AI -->
+<div id="aiModal" class="modal">
+    <div class="modal-content glass-card">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle">AI Generator</h3>
+        <div class="form-group mt-3">
+            <input type="text" id="aiTopic" class="form-control" placeholder="Enter topic...">
+        </div>
+        <button class="btn btn-primary mt-3" onclick="generateAI()">Generate</button>
+        <div id="aiLoading" style="display:none; margin-top: 20px;">
+            <i class="fas fa-spinner fa-spin"></i> Generating...
+        </div>
+        <div class="form-group mt-3">
+            <textarea id="aiResult" class="form-control" rows="5" readonly></textarea>
+        </div>
+        <button class="btn btn-secondary mt-3" onclick="useAIResult()">Use This</button>
+    </div>
+</div>
+
+<script>
+    let currentAIType = '';
+
+    function openAIModal(type) {
+        currentAIType = type;
+        document.getElementById('aiModal').style.display = 'flex';
+        document.getElementById('modalTitle').textContent = 'AI Generate Announcement';
+        document.getElementById('aiTopic').placeholder = "E.g. Holiday tomorrow due to rain";
+        document.getElementById('aiResult').value = '';
+    }
+
+    function closeModal() {
+        document.getElementById('aiModal').style.display = 'none';
+    }
+
+    async function generateAI() {
+        const topic = document.getElementById('aiTopic').value;
+        if(!topic) return alert('Enter a topic');
+
+        document.getElementById('aiLoading').style.display = 'block';
+
+        try {
+            const res = await fetch('/api/ai/announcement', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('aiResult').value = data.response;
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch(e) {
+            alert('Error generating.');
+        } finally {
+            document.getElementById('aiLoading').style.display = 'none';
+        }
+    }
+
+    function useAIResult() {
+        const res = document.getElementById('aiResult').value;
+        if(res) {
+            document.getElementById('announcement-msg').value = res;
+            closeModal();
+        }
+    }
+</script>
+{% endblock %}
