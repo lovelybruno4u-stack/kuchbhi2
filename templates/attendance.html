@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Manage Attendance{% endblock %}
+{% block page_title %}Attendance Tracking{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">
+        <h3>Mark Attendance for {{ current_date }}</h3>
+    </div>
+    <form method="POST" action="{{ url_for('teacher_attendance') }}">
+        <input type="hidden" name="date" value="{{ current_date }}">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.roll }}</td>
+                        <td>{{ student.name }}</td>
+                        <td>{{ student.class }}</td>
+                        <td>
+                            <input type="hidden" name="student_id" value="{{ student.id }}">
+                            <select name="status" class="form-control" style="width: auto;">
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+            <button type="submit" class="btn btn-primary">Save Attendance</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

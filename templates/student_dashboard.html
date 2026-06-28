@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Student Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="stat-info">
+            <h3>My Attendance</h3>
+            <p>{{ data.attendance_percentage }}%</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card mt-20">
+    <h3>Latest Announcement</h3>
+    {% if data.latest_announcement %}
+        <div style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 10px;">
+            <strong>{{ data.latest_announcement.date }}</strong><br>
+            {{ data.latest_announcement.message }}
+        </div>
+    {% else %}
+        <p>No new announcements.</p>
+    {% endif %}
+</div>
+
+<div class="glass-card mt-20">
+    <h3>Today's Video</h3>
+    {% if data.today_video %}
+        <div style="padding: 15px; background: rgba(255,255,255,0.5); border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>{{ data.today_video.subject }}</strong>
+            </div>
+            <a href="{{ data.today_video.drive_link }}" target="_blank" class="btn btn-primary">Watch Now</a>
+        </div>
+    {% else %}
+        <p>No video for today.</p>
+    {% endif %}
+</div>
+{% endblock %}

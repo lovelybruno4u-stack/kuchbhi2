@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Manage Students{% endblock %}
+{% block page_title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="glass-card">
+    <div class="card-header">
+        <h3>Add New Student</h3>
+    </div>
+    <form method="POST" action="{{ url_for('teacher_students') }}" class="form-grid">
+        <input type="hidden" name="action" value="add">
+        <div class="form-group"><input type="text" name="name" class="form-control" placeholder="Student Name" required></div>
+        <div class="form-group"><input type="text" name="student_class" class="form-control" placeholder="Class" required></div>
+        <div class="form-group"><input type="text" name="roll" class="form-control" placeholder="Roll Number" required></div>
+        <div class="form-group"><input type="text" name="phone" class="form-control" placeholder="Phone Number" required></div>
+        <div class="form-group"><input type="email" name="email" class="form-control" placeholder="Email" required></div>
+        <div class="form-group"><input type="text" name="parent" class="form-control" placeholder="Parent Name" required></div>
+        <button type="submit" class="btn btn-primary" style="grid-column: 1 / -1;">Add Student</button>
+    </form>
+</div>
+
+<div class="glass-card mt-20">
+    <div class="card-header">
+        <h3>Student List</h3>
+    <form method="GET" action="{{ url_for('teacher_students') }}" style="display: flex; gap: 10px; margin-top: 10px;">
+        <input type="text" name="search" class="form-control" placeholder="Search by name or roll no..." value="{{ search_query }}">
+        <button type="submit" class="btn btn-secondary">Search</button>
+        {% if search_query %}
+            <a href="{{ url_for('teacher_students') }}" class="btn btn-secondary" style="background:#e2e8f0; color:#1e293b;">Clear</a>
+        {% endif %}
+    </form>
+
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Roll No</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.class }}</td>
+                    <td>{{ student.roll }}</td>
+                    <td>{{ student.phone }}</td>
+                    <td>{{ student.email }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('teacher_students') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="{{ student.id }}">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="editStudent('{{ student.id }}', '{{ student.name }}', '{{ student.class }}', '{{ student.roll }}', '{{ student.phone }}', '{{ student.email }}', '{{ student.parent }}')"><i class="fas fa-edit"></i></button>
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this student?')"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+<script>
+function editStudent(id, name, cls, roll, phone, email, parent) {
+    // Fill the add form with this data and change action to edit
+    const form = document.querySelector('form[action="{{ url_for(\'teacher_students\') }}"]');
+    form.querySelector('input[name="action"]').value = 'edit';
+
+    // Add id hidden input if not exists
+    let idInput = form.querySelector('input[name="id"]');
+    if (!idInput) {
+        idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'id';
+        form.appendChild(idInput);
+    }
+    idInput.value = id;
+
+    form.querySelector('input[name="name"]').value = name;
+    form.querySelector('input[name="student_class"]').value = cls;
+    form.querySelector('input[name="roll"]').value = roll;
+    form.querySelector('input[name="phone"]').value = phone;
+    form.querySelector('input[name="email"]').value = email;
+    form.querySelector('input[name="parent"]').value = parent;
+
+    const btn = form.querySelector('button[type="submit"]');
+    btn.textContent = 'Update Student';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>

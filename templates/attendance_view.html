@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}My Attendance{% endblock %}
+{% block page_title %}Attendance History{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid mb-20">
+    <div class="glass-card stat-card">
+        <div class="stat-info">
+            <h3>Attendance %</h3>
+            <p>{{ attendance_percentage }}%</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-info">
+            <h3>Present</h3>
+            <p style="color: #10b981;">{{ present_count }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-info">
+            <h3>Absent</h3>
+            <p style="color: #ef4444;">{{ absent_count }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.date }}</td>
+                    <td style="color: {% if record.status == 'Present' %}#10b981{% else %}#ef4444{% endif %}; font-weight: bold;">
+                        {{ record.status }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

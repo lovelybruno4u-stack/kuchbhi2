@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}AI Study Chatbot{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="display: flex; flex-direction: column; height: 60vh;">
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="btn btn-primary" onclick="setChatMode('chatbot')" id="btn-chatbot">Friendly Tutor</button>
+        <button class="btn btn-secondary" onclick="setChatMode('doubt_solver')" id="btn-doubt">Doubt Solver</button>
+    </div>
+
+    <div id="chat-history" style="flex: 1; overflow-y: auto; background: rgba(255,255,255,0.5); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+        <!-- Chat messages will appear here -->
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="chat-input" class="form-control" placeholder="Ask a question..." onkeypress="if(event.key === 'Enter') sendMessage()">
+        <button class="btn btn-primary" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<script>
+    let chatMode = 'chatbot';
+    let messageHistory = [];
+
+    function setChatMode(mode) {
+        chatMode = mode;
+        messageHistory = [];
+        document.getElementById('chat-history').innerHTML = '';
+
+        if(mode === 'chatbot') {
+            document.getElementById('btn-chatbot').className = 'btn btn-primary';
+            document.getElementById('btn-doubt').className = 'btn btn-secondary';
+        } else {
+            document.getElementById('btn-chatbot').className = 'btn btn-secondary';
+            document.getElementById('btn-doubt').className = 'btn btn-primary';
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if(!text) return;
+
+        input.value = '';
+
+        // Add User Message
+        addMessageBubble('User', text, true);
+        messageHistory.push({role: 'user', content: text});
+
+        // Add Loading Bubble
+        const loadingId = 'loading-' + Date.now();
+        addMessageBubble('AI', '...', false, loadingId);
+
+        try {
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({messages: messageHistory, type: chatMode})
+            });
+            const data = await res.json();
+
+            document.getElementById(loadingId).remove();
+
+            if(data.success) {
+                addMessageBubble('AI', data.response, false);
+                messageHistory.push({role: 'assistant', content: data.response});
+            } else {
+                addMessageBubble('Error', data.error, false);
+            }
+        } catch(e) {
+            document.getElementById(loadingId).remove();
+            addMessageBubble('Error', 'Failed to connect to AI.', false);
+        }
+    }
+
+    function addMessageBubble(sender, text, isUser, id = null) {
+        const historyDiv = document.getElementById('chat-history');
+        const bubble = document.createElement('div');
+        if (id) bubble.id = id;
+
+        bubble.style.padding = '10px 15px';
+        bubble.style.borderRadius = '15px';
+        bubble.style.maxWidth = '80%';
+        bubble.style.whiteSpace = 'pre-wrap';
+
+        if(isUser) {
+            bubble.style.background = '#4f46e5';
+            bubble.style.color = 'white';
+            bubble.style.alignSelf = 'flex-end';
+        } else {
+            bubble.style.background = 'white';
+            bubble.style.color = '#1e293b';
+            bubble.style.alignSelf = 'flex-start';
+            bubble.style.boxShadow = '0 2px 5px rgba(0,0,0,0.05)';
+        }
+
+        bubble.textContent = text;
+        historyDiv.appendChild(bubble);
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+    }
+</script>
+{% endblock %}

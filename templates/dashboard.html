@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Dashboard{% endblock %}
+{% block page_title %}Dashboard Analytics{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="glass-card stat-card">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-info">
+            <h3>Total Students</h3>
+            <p>{{ stats.total_students }}</p>
+        </div>
+    </div>
+    <div class="glass-card stat-card">
+        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="stat-info">
+            <h3>Today's Attendance</h3>
+            <p>{{ stats.today_attendance }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card mt-20">
+    <h3>Quick Actions</h3>
+    <div class="quick-actions-grid">
+        <a href="{{ url_for('teacher_attendance') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Mark Attendance</a>
+        <a href="{{ url_for('teacher_announcements') }}" class="btn btn-secondary"><i class="fas fa-bullhorn"></i> New Announcement</a>
+        <a href="{{ url_for('teacher_videos') }}" class="btn btn-primary"><i class="fas fa-video"></i> Upload Video</a>
+    </div>
+</div>
+{% endblock %}
