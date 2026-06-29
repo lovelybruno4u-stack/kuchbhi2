@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Student Management</h1>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h3>Add New Student</h3>
+    <form method="POST" action="{{ url_for('add_student') }}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+        <div class="form-group"><input type="text" name="name" class="form-control" placeholder="Name" required></div>
+        <div class="form-group"><input type="text" name="class_name" class="form-control" placeholder="Class" required></div>
+        <div class="form-group"><input type="text" name="roll" class="form-control" placeholder="Roll Number" required></div>
+        <div class="form-group"><input type="text" name="phone" class="form-control" placeholder="Phone Number" required></div>
+        <div class="form-group"><input type="email" name="email" class="form-control" placeholder="Email"></div>
+        <div class="form-group"><input type="text" name="parent" class="form-control" placeholder="Parent Name"></div>
+        <button type="submit" class="btn btn-primary" style="grid-column: span 2;">Add Student</button>
+    </form>
+</div>
+
+<div class="card table-container">
+    <h3>All Students</h3>
+
+<div class="card" style="margin-bottom: 20px;">
+    <form method="GET" action="{{ url_for('students') }}" style="display: flex; gap: 10px;">
+        <input type="text" name="q" class="form-control" placeholder="Search by name, roll, or class..." value="{{ search_q }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a href="{{ url_for('students') }}" class="btn" style="background: var(--bg-color); border: 1px solid var(--border-color); text-decoration: none; display: flex; align-items: center;">Clear</a>
+    </form>
+</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Name</th><th>Class</th><th>Roll</th><th>Phone</th><th>Parent</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.id }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.class }}</td>
+                <td>{{ student.roll }}</td>
+                <td>{{ student.phone }}</td>
+                <td>{{ student.parent }}</td>
+                <td style="display: flex; gap: 5px;">
+                    <button class="btn" style="background: var(--bg-color); border: 1px solid var(--primary-color); color: var(--primary-color); padding: 5px 10px; font-size: 0.8em;" onclick="openEditModal('{{ student.id }}', '{{ student.name }}', '{{ student.class }}', '{{ student.roll }}', '{{ student.phone }}', '{{ student.email }}', '{{ student.parent }}')">Edit</button>
+                    <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}" style="display: inline;">
+                        <button type="submit" class="btn" style="background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 5px 10px; font-size: 0.8em;" onclick="return confirm('Delete this student?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="editModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="min-width: 400px; background: white;">
+        <h3 style="margin-bottom: 15px;">Edit Student</h3>
+        <form id="editForm" method="POST" style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" name="name" id="edit-name" class="form-control" required>
+            <input type="text" name="class_name" id="edit-class" class="form-control" required>
+            <input type="text" name="roll" id="edit-roll" class="form-control" required>
+            <input type="text" name="phone" id="edit-phone" class="form-control" required>
+            <input type="email" name="email" id="edit-email" class="form-control">
+            <input type="text" name="parent" id="edit-parent" class="form-control">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                <button type="button" class="btn" style="flex: 1; background: var(--bg-color);" onclick="document.getElementById('editModal').style.display='none'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, name, cls, roll, phone, email, parent) {
+    document.getElementById('editForm').action = '/students/edit/' + id;
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-class').value = cls;
+    document.getElementById('edit-roll').value = roll;
+    document.getElementById('edit-phone').value = phone;
+    document.getElementById('edit-email').value = email;
+    document.getElementById('edit-parent').value = parent;
+    document.getElementById('editModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

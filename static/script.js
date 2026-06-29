@@ -1,128 +1,116 @@
+// Custom role selector logic for login page
 document.addEventListener('DOMContentLoaded', () => {
-    // Role Toggle Logic
-    const roleBtns = document.querySelectorAll('.role-btn');
+    const roleOptions = document.querySelectorAll('.role-option');
     const roleInput = document.getElementById('role-input');
 
-    if (roleBtns.length > 0) {
-        roleBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                roleBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if(roleInput) {
-                    roleInput.value = e.target.getAttribute('data-role');
-                }
+    if (roleOptions.length > 0 && roleInput) {
+        roleOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove selected class from all
+                roleOptions.forEach(opt => opt.classList.remove('selected'));
+                // Add to clicked
+                option.classList.add('selected');
+                // Update hidden input
+                roleInput.value = option.getAttribute('data-role');
             });
         });
     }
 
-    // Sidebar Toggle for Mobile
-    const hamburger = document.getElementById('hamburger');
-    const sidebar = document.getElementById('sidebar');
-
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sidebar.classList.toggle('active');
-            document.body.classList.toggle('sidebar-open');
-        });
-
-        // Close sidebar if clicking outside on mobile overlay
-        document.body.addEventListener('click', (e) => {
-            if (document.body.classList.contains('sidebar-open') && !sidebar.contains(e.target)) {
-                sidebar.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-    }
-
-    // Modal Logic
-    const openModalBtns = document.querySelectorAll('[data-modal-target]');
-    const closeModalBtns = document.querySelectorAll('[data-close-button]');
-    const overlay = document.getElementById('modal-overlay');
-
-    openModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = document.querySelector(button.dataset.modalTarget);
-            openModal(modal);
-        });
-    });
-
-    closeModalBtns.forEach(button => {
-        button.addEventListener('click', () => {
-            const modal = button.closest('.modal-overlay');
-            closeModal(modal);
-        });
-    });
-
-    if (overlay) {
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                const modals = document.querySelectorAll('.modal-overlay.active');
-                modals.forEach(modal => closeModal(modal));
-            }
-        });
-    }
-
-    function openModal(modal) {
-        if (modal == null) return;
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-    }
-
-    function closeModal(modal) {
-        if (modal == null) return;
-        modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
-    }
-
-    // Chatbot Logic
+    // Initialize chat interface if on chatbot page
     const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
+    if (chatForm) {
+        let chatHistory = [];
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const loader = document.getElementById('chat-loader');
 
-    if (chatForm && chatInput && chatMessages) {
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const message = chatInput.value.trim();
             if (!message) return;
 
+            // Add user message to UI
             appendMessage('user', message);
             chatInput.value = '';
 
+            // Add to history
+            chatHistory.push({ role: 'user', content: message });
+
+            // Show loader
+            loader.style.display = 'inline-block';
+
             try {
-                const response = await fetch('/api/chatbot', {
+                const response = await fetch('/api/ai/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ chat_history: chatHistory })
                 });
 
-                if(!response.ok) throw new Error("Network response was not ok");
-
                 const data = await response.json();
-                appendMessage('ai', data.reply);
+
+                if (response.ok) {
+                    appendMessage('ai', data.reply);
+                    chatHistory.push({ role: 'assistant', content: data.reply });
+                } else {
+                    appendMessage('ai', 'Sorry, I encountered an error. Please try again.');
+                }
             } catch (error) {
-                console.error("Chat error:", error);
-                appendMessage('ai', "Sorry, I'm having trouble connecting right now.");
+                appendMessage('ai', 'Connection error. Please check your internet.');
+            } finally {
+                loader.style.display = 'none';
             }
         });
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${sender}`;
+            msgDiv.textContent = text;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
     }
 
-    function appendMessage(sender, text) {
-        if(!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('message', sender);
-        msgDiv.textContent = text;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+    // Custom modal logic
+    window.showModal = function(title, message) {
+        let modal = document.getElementById('custom-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'custom-modal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.5); display: flex;
+                align-items: center; justify-content: center; z-index: 1000;
+            `;
+
+            const content = document.createElement('div');
+            content.className = 'card';
+            content.style.cssText = `
+                min-width: 300px; max-width: 500px; text-align: center;
+                background: white; padding: 20px; border-radius: 12px;
+            `;
+
+            const titleEl = document.createElement('h3');
+            titleEl.id = 'modal-title';
+            titleEl.style.marginBottom = '15px';
+
+            const msgEl = document.createElement('p');
+            msgEl.id = 'modal-message';
+            msgEl.style.marginBottom = '20px';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'btn btn-primary';
+            closeBtn.textContent = 'Close';
+            closeBtn.onclick = () => modal.style.display = 'none';
+
+            content.appendChild(titleEl);
+            content.appendChild(msgEl);
+            content.appendChild(closeBtn);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = message;
+        modal.style.display = 'flex';
+    };
 });
-
-function showLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'block';
-}
-
-function hideLoading() {
-    const loader = document.getElementById('global-loader');
-    if(loader) loader.style.display = 'none';
-}

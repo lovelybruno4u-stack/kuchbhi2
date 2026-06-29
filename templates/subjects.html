@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Manage Subjects</h1>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h3>Add Subject</h3>
+    <form method="POST" action="{{ url_for('add_subject') }}" style="display: flex; gap: 10px; margin-top: 15px;">
+        <input type="text" name="subject_name" class="form-control" placeholder="E.g. Mathematics" required>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div class="card table-container">
+    <h3>Current Subjects</h3>
+    <table>
+        <thead>
+            <tr><th>Subject Name</th></tr>
+        </thead>
+        <tbody>
+            {% for sub in subjects %}
+            <tr>
+                <td style="display: flex; justify-content: space-between; align-items: center;">
+                    {{ sub.subject_name }}
+                    <form method="POST" action="{{ url_for('delete_subject', subject_name=sub.subject_name) }}" style="display: inline;">
+                        <button type="submit" class="btn" style="background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 5px 10px; font-size: 0.8em;" onclick="return confirm('Delete this subject?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

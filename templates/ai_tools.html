@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Teacher AI Tools</h1>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Attendance Analysis -->
+    <div class="card">
+        <h3>📊 Attendance Analysis</h3>
+        <p style="color: var(--text-muted); margin: 10px 0; font-size: 0.9em;">Analyze recent attendance patterns automatically.</p>
+        <button onclick="analyzeAttendance()" class="btn btn-primary" id="att-btn">Analyze Now</button>
+        <div id="att-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; display:none; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="card">
+        <h3>📝 Video Summary Generator</h3>
+        <p style="color: var(--text-muted); margin: 10px 0; font-size: 0.9em;">Generate revision notes from a topic.</p>
+        <input type="text" id="vid-topic" class="form-control" placeholder="Topic (e.g. Newton's Laws)" style="margin-bottom:10px;">
+        <button onclick="generateSummary()" class="btn btn-primary" id="vid-btn">Generate Notes</button>
+        <div id="vid-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; display:none; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="card">
+        <h3>❓ Quiz Generator</h3>
+        <p style="color: var(--text-muted); margin: 10px 0; font-size: 0.9em;">Generate 5 MCQs for any topic.</p>
+        <input type="text" id="quiz-topic" class="form-control" placeholder="Topic (e.g. Cell Biology)" style="margin-bottom:10px;">
+        <button onclick="generateQuiz()" class="btn btn-primary" id="quiz-btn">Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 15px; font-size: 0.9em; white-space: pre-wrap; display:none; padding: 10px; background: rgba(0,0,0,0.05); border-radius: 8px;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function apiCall(endpoint, payload, btnId, resultId) {
+    const btn = document.getElementById(btnId);
+    const resultDiv = document.getElementById(resultId);
+
+    const prevText = btn.textContent;
+    btn.textContent = 'Working...';
+    btn.disabled = true;
+    resultDiv.style.display = 'none';
+
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        resultDiv.textContent = data.result || data.error || 'Unknown response';
+        resultDiv.style.display = 'block';
+    } catch (e) {
+        resultDiv.textContent = 'Network error occurred.';
+        resultDiv.style.display = 'block';
+    } finally {
+        btn.textContent = prevText;
+        btn.disabled = false;
+    }
+}
+
+function analyzeAttendance() {
+    apiCall('/api/ai/attendance', {}, 'att-btn', 'att-result');
+}
+
+function generateSummary() {
+    const topic = document.getElementById('vid-topic').value;
+    if(!topic) return alert("Enter a topic");
+    apiCall('/api/ai/video_summary', {topic}, 'vid-btn', 'vid-result');
+}
+
+function generateQuiz() {
+    const topic = document.getElementById('quiz-topic').value;
+    if(!topic) return alert("Enter a topic");
+    apiCall('/api/ai/quiz', {topic}, 'quiz-btn', 'quiz-result');
+}
+</script>
+{% endblock %}

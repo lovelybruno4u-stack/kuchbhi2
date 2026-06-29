@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Class Videos</h1>
+</div>
+
+<div class="card table-container">
+    <h3>Video Archive</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th><th>Subject</th><th>Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for video in videos %}
+            <tr>
+                <td>{{ video.date }}</td>
+                <td>{{ video.subject }}</td>
+                <td><a href="{{ video.drive_link }}" target="_blank" style="color: var(--primary-color);">Watch Video</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" style="text-align: center;">No videos available yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

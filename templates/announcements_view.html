@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Notice Board</h1>
+</div>
+
+<div class="dashboard-grid" style="display: flex; flex-direction: column;">
+    {% for ann in announcements %}
+    <div class="card" style="border-left: 4px solid var(--primary-color);">
+        <small style="color: var(--text-muted);">{{ ann.date }}</small>
+        <p style="margin-top: 10px; font-size: 1.1em; line-height: 1.5;">{{ ann.message }}</p>
+    </div>
+    {% else %}
+    <div class="card">
+        <p style="text-align: center; color: var(--text-muted);">No new announcements.</p>
+    </div>
+    {% endendfor %}
+</div>
+{% endblock %}

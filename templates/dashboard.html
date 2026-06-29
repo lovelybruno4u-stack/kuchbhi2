@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Teacher Dashboard</h1>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <h3>Total Students</h3>
+        <h2 style="font-size: 2.5rem; color: var(--primary-color); margin-top: 10px;">{{ total_students }}</h2>
+    </div>
+    <div class="card">
+        <h3>Today's Attendance</h3>
+        <p style="margin-top: 10px; color: var(--text-muted);">View in Attendance tab</p>
+    </div>
+    <div class="card">
+        <h3>Recent Activity</h3>
+        <p style="margin-top: 10px; color: var(--text-muted);">Platform running smoothly</p>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Quick Actions</h3>
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <a href="{{ url_for('students') }}" class="btn btn-primary" style="text-decoration: none;">Manage Students</a>
+        <a href="{{ url_for('attendance') }}" class="btn btn-primary" style="text-decoration: none;">Mark Attendance</a>
+        <a href="{{ url_for('announcements') }}" class="btn btn-primary" style="text-decoration: none;">New Announcement</a>
+    </div>
+</div>
+{% endblock %}

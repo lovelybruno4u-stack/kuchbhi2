@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>Announcements</h1>
+</div>
+
+<div class="card" style="margin-bottom: 20px;">
+    <h3>Create Announcement</h3>
+
+    <div style="margin: 15px 0; padding: 15px; background: rgba(79, 70, 229, 0.05); border-radius: 8px;">
+        <h4 style="margin-bottom: 10px;">✨ AI Assistant</h4>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="ai-topic" class="form-control" placeholder="E.g. Holiday tomorrow due to heavy rain">
+            <button type="button" class="btn btn-primary" onclick="generateAI()" id="ai-btn" style="white-space: nowrap;">Generate with AI</button>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_announcement') }}" style="display: flex; flex-direction: column; gap: 15px;">
+        <div class="form-group">
+            <label>Message</label>
+            <textarea name="message" id="message-area" class="form-control" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Announcement</button>
+    </form>
+</div>
+
+<div class="card table-container">
+    <h3>Past Announcements</h3>
+    <table>
+        <thead>
+            <tr><th>Date</th><th>Message</th></tr>
+        </thead>
+        <tbody>
+            {% for ann in announcements %}
+            <tr>
+                <td style="white-space: nowrap; vertical-align: top;">{{ ann.date }}</td>
+                <td>{{ ann.message }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateAI() {
+    const topic = document.getElementById('ai-topic').value.trim();
+    if (!topic) return alert('Please enter a topic');
+
+    const btn = document.getElementById('ai-btn');
+    const prevText = btn.textContent;
+    btn.textContent = 'Generating...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/ai/announcement', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic})
+        });
+        const data = await res.json();
+        if(res.ok) {
+            document.getElementById('message-area').value = data.announcement;
+        } else {
+            alert(data.error || 'Failed to generate');
+        }
+    } catch (e) {
+        alert('Network error');
+    } finally {
+        btn.textContent = prevText;
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
