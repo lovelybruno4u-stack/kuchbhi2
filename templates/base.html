@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aswathama Classes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% if session.get('role') %}
+    <nav class="sidebar">
+        <h2>Aswathama Classes</h2>
+        {% if session['role'] == 'teacher' %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('students') }}">Students</a>
+            <a href="{{ url_for('attendance') }}">Attendance</a>
+            <a href="{{ url_for('videos') }}">Videos</a>
+            <a href="{{ url_for('subjects') }}">Subjects</a>
+            <a href="{{ url_for('announcements') }}">Announcements</a>
+            <a href="{{ url_for('ai_tools') }}">AI Tools</a>
+        {% elif session['role'] == 'student' %}
+            <a href="{{ url_for('student_dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('my_videos') }}">My Videos</a>
+            <a href="{{ url_for('attendance_view') }}">My Attendance</a>
+            <a href="{{ url_for('announcements_view') }}">Announcements</a>
+            <a href="{{ url_for('chatbot') }}">AI Chatbot</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </nav>
+    {% endif %}
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="card" style="margin-bottom: 20px; background: rgba(79, 70, 229, 0.1); border-color: var(--primary-color);">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

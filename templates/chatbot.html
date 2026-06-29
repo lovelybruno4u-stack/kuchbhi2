@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="top-header">
+    <h1>AI Study Tutor & Doubt Solver</h1>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Ask concept doubts, get step-by-step math solutions, or ask for study tips. I am here to help!</p>
+
+    <div id="chat-container" class="chat-container">
+        <div class="chat-message ai">
+            Hello! I am your AI Tutor. What would you like to learn today?
+        </div>
+    </div>
+
+    <form id="chat-form" class="chat-input-area">
+        <input type="text" id="chat-input" class="form-control" placeholder="Type your question here..." required autocomplete="off">
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+    <div id="chat-loader" class="loader" style="margin-top: 10px; margin-left: 50%;"></div>
+</div>
+{% endblock %}
