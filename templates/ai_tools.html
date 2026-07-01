@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="glass-card">
+    <h2 style="color: var(--primary-color); margin-bottom: 20px;"><i class="fas fa-robot"></i> AI Teaching Tools</h2>
+
+    <!-- AI Quiz Generator -->
+    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;"><i class="fas fa-question-circle"></i> AI Quiz Generator</h3>
+        <input type="text" id="quiz-subject" placeholder="Subject (e.g. Science)" class="form-control" style="margin-bottom: 10px;">
+        <input type="text" id="quiz-topic" placeholder="Topic (e.g. Photosynthesis)" class="form-control" style="margin-bottom: 10px;">
+        <button id="btn-generate-quiz" class="btn btn-primary">Generate 5 MCQs</button>
+        <div id="quiz-result" style="margin-top: 15px; white-space: pre-wrap; font-family: monospace; background: white; padding: 15px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- AI Announcement Generator -->
+    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;"><i class="fas fa-bullhorn"></i> AI Announcement Generator</h3>
+        <input type="text" id="announcement-topic" placeholder="Topic (e.g. Holiday Tomorrow)" class="form-control" style="margin-bottom: 10px;">
+        <button id="btn-generate-announcement" class="btn btn-primary">Generate Announcement</button>
+        <div id="announcement-result" style="margin-top: 15px; white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px; display: none;"></div>
+    </div>
+
+    <!-- AI Video Summary -->
+    <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;"><i class="fas fa-video"></i> AI Video Summary</h3>
+        <input type="text" id="video-topic" placeholder="Video Topic (e.g. Newton's Laws)" class="form-control" style="margin-bottom: 10px;">
+        <button id="btn-generate-summary" class="btn btn-primary">Generate Summary</button>
+        <div id="summary-result" style="margin-top: 15px; white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px; display: none;"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+<script>
+    function setText(id, text) {
+        const el = document.getElementById(id);
+        el.textContent = text;
+        el.style.display = 'block';
+    }
+
+    document.getElementById('btn-generate-quiz').addEventListener('click', async () => {
+        const subject = document.getElementById('quiz-subject').value;
+        const topic = document.getElementById('quiz-topic').value;
+        if (!subject || !topic) return alert('Enter subject and topic');
+
+        setText('quiz-result', 'Generating...');
+        try {
+            const res = await fetch('/api/ai/quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({subject, topic})
+            });
+            const data = await res.json();
+            if (data.success) {
+                setText('quiz-result', JSON.stringify(data.questions, null, 2));
+            } else {
+                setText('quiz-result', 'Error: ' + data.error);
+            }
+        } catch (e) {
+            setText('quiz-result', 'Error: ' + e);
+        }
+    });
+
+    document.getElementById('btn-generate-announcement').addEventListener('click', async () => {
+        const topic = document.getElementById('announcement-topic').value;
+        if (!topic) return alert('Enter topic');
+
+        setText('announcement-result', 'Generating...');
+        try {
+            const res = await fetch('/api/ai/announcement', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if (data.success) {
+                setText('announcement-result', data.announcement);
+            } else {
+                setText('announcement-result', 'Error: ' + data.error);
+            }
+        } catch (e) {
+            setText('announcement-result', 'Error: ' + e);
+        }
+    });
+
+    document.getElementById('btn-generate-summary').addEventListener('click', async () => {
+        const topic = document.getElementById('video-topic').value;
+        if (!topic) return alert('Enter topic');
+
+        setText('summary-result', 'Generating...');
+        try {
+            const res = await fetch('/api/ai/video_summary', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({topic})
+            });
+            const data = await res.json();
+            if (data.success) {
+                setText('summary-result', data.summary);
+            } else {
+                setText('summary-result', 'Error: ' + data.error);
+            }
+        } catch (e) {
+            setText('summary-result', 'Error: ' + e);
+        }
+    });
+</script>

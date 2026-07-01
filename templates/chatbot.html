@@ -1,0 +1,83 @@
+{% extends 'student_base.html' %}
+{% block content %}
+<div class="glass-card" style="display: flex; flex-direction: column; height: 75vh;">
+    <h2 style="color: var(--primary-color); margin-bottom: 20px; flex-shrink: 0;"><i class="fas fa-robot"></i> AI Study Chatbot</h2>
+
+    <div id="chat-window" style="flex-grow: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; overflow-y: auto; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;">
+        <!-- Initial Message -->
+        <div style="align-self: flex-start; background: #e0e7ff; color: #3730a3; padding: 12px 18px; border-radius: 16px; border-bottom-left-radius: 4px; max-width: 80%;">
+            Hello! I am your friendly AI Study Chatbot. Feel free to ask any doubts, request exam tips, or discuss study concepts!
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-shrink: 0;">
+        <input type="text" id="chat-input" placeholder="Type your doubt here..." class="form-control" style="flex-grow: 1;" onkeypress="if(event.key === 'Enter') document.getElementById('btn-send').click();">
+        <button id="btn-send" class="btn btn-primary" style="white-space: nowrap;"><i class="fas fa-paper-plane"></i> Send</button>
+    </div>
+</div>
+{% endblock %}
+
+<script>
+    let chatHistory = [];
+    const chatWindow = document.getElementById('chat-window');
+
+    function appendMessage(role, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.style.padding = '12px 18px';
+        msgDiv.style.borderRadius = '16px';
+        msgDiv.style.maxWidth = '80%';
+        msgDiv.style.whiteSpace = 'pre-wrap';
+
+        if (role === 'user') {
+            msgDiv.style.alignSelf = 'flex-end';
+            msgDiv.style.background = 'var(--primary-color)';
+            msgDiv.style.color = 'white';
+            msgDiv.style.borderBottomRightRadius = '4px';
+        } else {
+            msgDiv.style.alignSelf = 'flex-start';
+            msgDiv.style.background = '#e0e7ff';
+            msgDiv.style.color = '#3730a3';
+            msgDiv.style.borderBottomLeftRadius = '4px';
+        }
+
+        const textNode = document.createTextNode(text);
+        msgDiv.appendChild(textNode);
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    document.getElementById('btn-send').addEventListener('click', async () => {
+        const inputEl = document.getElementById('chat-input');
+        const question = inputEl.value.trim();
+        if (!question) return;
+
+        inputEl.value = '';
+        inputEl.disabled = true;
+        document.getElementById('btn-send').disabled = true;
+
+        appendMessage('user', question);
+
+        try {
+            const res = await fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ question, history: chatHistory })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                appendMessage('assistant', data.answer);
+                chatHistory.push({role: 'user', content: question});
+                chatHistory.push({role: 'assistant', content: data.answer});
+            } else {
+                appendMessage('assistant', 'Error: ' + data.error);
+            }
+        } catch (e) {
+            appendMessage('assistant', 'Error: ' + e);
+        }
+
+        inputEl.disabled = false;
+        document.getElementById('btn-send').disabled = false;
+        inputEl.focus();
+    });
+</script>
