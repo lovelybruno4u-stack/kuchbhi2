@@ -10,6 +10,11 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 
+from openai import OpenAI
+import os
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+
 
 from datetime import timedelta
 app = Flask(__name__)
@@ -600,13 +605,13 @@ def teacher_dashboard():
         'highest_attendance': highest_student,
         'latest_video': latest_video_subject
     }
-    return render_template('teacher/dashboard.html', stats=stats)
+    return render_template('dashboard.html', stats=stats)
 
 @app.route('/teacher/students')
 @login_required(role='teacher')
 def teacher_students():
     students = get_data('students')
-    return render_template('teacher/students.html', students=students)
+    return render_template('students.html', students=students)
 
 @app.route('/teacher/add_student', methods=['POST'])
 @login_required(role='teacher')
@@ -661,7 +666,7 @@ def teacher_attendance():
 
     wa_link = "https://wa.me/?text=" + urllib.parse.quote(wa_text)
 
-    return render_template('teacher/attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
+    return render_template('attendance.html', students=students, current_date=current_date, wa_link=wa_link, absent_count=len(absent_students))
 
 
 import threading
@@ -748,7 +753,7 @@ def save_attendance():
 def teacher_videos():
     videos = get_data('videos')
     current_date = datetime.now().strftime('%Y-%m-%d')
-    return render_template('teacher/videos.html', videos=videos, current_date=current_date)
+    return render_template('videos.html', videos=videos, current_date=current_date)
 
 @app.route('/teacher/add_video', methods=['POST'])
 @login_required(role='teacher')
@@ -775,7 +780,7 @@ def delete_video(id):
 @login_required(role='teacher')
 def teacher_subjects():
     subjects = get_data('subjects')
-    return render_template('teacher/subjects.html', subjects=subjects)
+    return render_template('subjects.html', subjects=subjects)
 
 @app.route('/teacher/add_subject', methods=['POST'])
 @login_required(role='teacher')
@@ -802,7 +807,7 @@ def teacher_announcements():
     announcements = get_data('announcements')
     current_date = datetime.now().strftime('%Y-%m-%d')
     # Reverse to show newest first
-    return render_template('teacher/announcements.html', announcements=announcements[::-1], current_date=current_date)
+    return render_template('announcements.html', announcements=announcements[::-1], current_date=current_date)
 
 @app.route('/teacher/add_announcement', methods=['POST'])
 @login_required(role='teacher')
@@ -826,7 +831,98 @@ def delete_announcement(id):
 
 
 
+
+@app.route('/teacher/ai_tools')
+@login_required(role='teacher')
+def teacher_ai_tools():
+    return render_template('ai_tools.html')
+
+@app.route('/student/chatbot')
+@login_required(role='student')
+def student_chatbot():
+    return render_template('chatbot.html')
+
 # --- API Endpoints for AI Features (Teacher) ---
+
+@app.route('/api/ai/announcement', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_announcement():
+    data = request.json
+    topic = data.get('topic', '')
+
+    if not topic:
+        return jsonify({'success': False, 'error': 'Topic is required'}), 400
+
+    prompt = f"Write a professional coaching class announcement about: {topic}."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an assistant for a coaching class. Write professional, clear, and concise announcements."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        announcement = response.choices[0].message.content
+        return jsonify({'success': True, 'announcement': announcement})
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate announcement.'}), 500
+
+@app.route('/api/ai/attendance', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_attendance():
+    data = request.json
+    records = data.get('records', {})
+
+    if not records:
+        return jsonify({'success': False, 'error': 'Attendance records are required'}), 400
+
+    import json
+    records_str = json.dumps(records)
+
+    prompt = f"Analyze attendance data and provide insights. The data is a mapping of student IDs to their attendance records (e.g., present/absent counts). Data: {records_str}. Suggest which students are irregular, their attendance percentage, and suggest actions."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an educational data analyst. Provide clear, concise insights and actionable recommendations."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        insights = response.choices[0].message.content
+        return jsonify({'success': True, 'insights': insights})
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate insights.'}), 500
+
+@app.route('/api/ai/video_summary', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_video_summary():
+    data = request.json
+    topic = data.get('topic', '')
+
+    if not topic:
+        return jsonify({'success': False, 'error': 'Video topic is required'}), 400
+
+    prompt = f"Generate summary notes for revision for a class video on the topic: '{topic}'. Include a brief summary and key points."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful teaching assistant generating study materials."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        summary = response.choices[0].message.content
+        return jsonify({'success': True, 'summary': summary})
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate summary.'}), 500
+
+
 
 
 
@@ -842,27 +938,27 @@ def delete_announcement(id):
 @app.route('/old_student_dashboard')
 @login_required(role='student')
 def old_student_dashboard():
-    return render_template('student/student_dashboard.html')
+    return render_template('student_dashboard.html')
 
 @app.route('/old_student_my_videos')
 @login_required(role='student')
 def old_student_my_videos():
-    return render_template('student/my_videos.html')
+    return render_template('my_videos.html')
 
 @app.route('/old_student_attendance')
 @login_required(role='student')
 def old_student_attendance_view():
-    return render_template('student/attendance_view.html')
+    return render_template('attendance_view.html')
 
 @app.route('/old_student_chatbot')
 @login_required(role='student')
 def old_student_chatbot():
-    return render_template('student/chatbot.html')
+    return render_template('chatbot.html')
 
 @app.route('/old_student_announcements')
 @login_required(role='student')
 def old_student_announcements_view():
-    return render_template('student/announcements_view.html')
+    return render_template('announcements_view.html')
 
 
 # --- DPP Routes ---
@@ -871,7 +967,7 @@ def old_student_announcements_view():
 def teacher_dpp():
     dpp = get_data('DPP_V2')
     subjects = get_data('subjects')
-    return render_template('teacher/dpp.html', dpp=dpp, subjects=subjects)
+    return render_template('dpp.html', dpp=dpp, subjects=subjects)
 
 @app.route('/teacher/add_dpp', methods=['POST'])
 @login_required(role='teacher')
@@ -908,7 +1004,7 @@ def delete_dpp(id):
 def teacher_tasks():
     tasks = get_data('TASKS_V2')
     subjects = get_data('subjects')
-    return render_template('teacher/tasks.html', tasks=tasks, subjects=subjects)
+    return render_template('tasks.html', tasks=tasks, subjects=subjects)
 
 @app.route('/teacher/add_task', methods=['POST'])
 @login_required(role='teacher')
@@ -956,8 +1052,6 @@ def complete_task():
 
     return jsonify({'success': True, 'points_earned': 5})
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 # --- Student Specific Backend Routes ---
 @app.route('/student/dashboard', endpoint='student_dashboard')
@@ -1037,7 +1131,7 @@ def student_dashboard():
         'completed_tasks': completed_task_ids
     }
 
-    return render_template('student/student_dashboard.html', data=data)
+    return render_template('student_dashboard.html', data=data)
 
 @app.route('/student/leaderboard')
 @login_required(role='student')
@@ -1051,7 +1145,7 @@ def student_leaderboard():
         entry['name'] = student_names.get(str(entry.get('student_id')), "Unknown Student")
         top_students.append(entry)
 
-    return render_template('student/leaderboard.html', leaderboard=top_students)
+    return render_template('leaderboard.html', leaderboard=top_students)
 
 
 @app.route('/student/my_videos', endpoint='student_my_videos')
@@ -1063,7 +1157,7 @@ def student_my_videos():
 
     completed_video_subjects = [c.get('subject') for c in completions if str(c.get('student_id')) == str(student_id)]
 
-    return render_template('student/my_videos.html', videos=videos, completed_video_subjects=completed_video_subjects)
+    return render_template('my_videos.html', videos=videos, completed_video_subjects=completed_video_subjects)
 
 @app.route('/student/attendance', endpoint='student_attendance_view')
 @login_required(role='student')
@@ -1092,7 +1186,7 @@ def student_attendance_view():
             'status': 'Present' if str(rec.get('status')) == '1' else 'Absent'
         })
 
-    return render_template('student/attendance_view.html',
+    return render_template('attendance_view.html',
                            attendance_records=formatted_records,
                            total_classes=total,
                            present_count=present,
@@ -1103,11 +1197,77 @@ def student_attendance_view():
 @login_required(role='student')
 def student_announcements_view():
     announcements = get_data('announcements')
-    return render_template('student/announcements_view.html', announcements=announcements[::-1])
+    return render_template('announcements_view.html', announcements=announcements[::-1])
 
 
 
 # --- API Endpoints for AI Features (Student) ---
+
+@app.route('/api/ai/chat', methods=['POST'])
+@login_required(role='student')
+def api_ai_chat():
+    data = request.json
+    chat_history = data.get('history', [])
+    question = data.get('question', '')
+
+    if not question:
+        return jsonify({'success': False, 'error': 'No question provided'}), 400
+
+    messages = [{"role": "system", "content": "Explain this concept in very simple words for a school student. If it is a math question, give a step-by-step solution. Behave like a friendly tutor."}]
+
+    # Append history
+    for msg in chat_history:
+        messages.append({"role": msg['role'], "content": msg['content']})
+
+    # Append new question
+    messages.append({"role": "user", "content": question})
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        answer = response.choices[0].message.content
+        return jsonify({'success': True, 'answer': answer})
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate response from AI.'}), 500
+
+@app.route('/api/ai/quiz', methods=['POST'])
+@login_required(role='teacher')
+def api_ai_quiz():
+    data = request.json
+    subject = data.get('subject', '')
+    topic = data.get('topic', '')
+
+    if not subject or not topic:
+        return jsonify({'success': False, 'error': 'Subject and topic are required'}), 400
+
+    prompt = f"Generate 5 MCQ questions with answers for the subject '{subject}' on the topic '{topic}'. Return ONLY a valid JSON array of objects. Each object must have keys: 'question', 'option1', 'option2', 'option3', 'option4', 'answer'. Do not include markdown formatting or backticks."
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful quiz generator. Return only raw JSON array."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        quiz_json_str = response.choices[0].message.content.strip()
+        if quiz_json_str.startswith("```json"):
+            quiz_json_str = quiz_json_str[7:-3].strip()
+        elif quiz_json_str.startswith("```"):
+            quiz_json_str = quiz_json_str[3:-3].strip()
+
+        import json
+        quiz_data = json.loads(quiz_json_str)
+        return jsonify({'success': True, 'questions': quiz_data})
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return jsonify({'success': False, 'error': 'Failed to generate quiz.'}), 500
+
+
 
 
 
@@ -1119,7 +1279,7 @@ def student_announcements_view():
 def teacher_materials():
     materials = get_data('materials')
     subjects = get_data('subjects')
-    return render_template('teacher/materials.html', materials=materials, subjects=subjects)
+    return render_template('materials.html', materials=materials, subjects=subjects)
 
 @app.route('/teacher/add_material', methods=['POST'])
 @login_required(role='teacher')
@@ -1147,7 +1307,7 @@ def delete_material(id):
 @login_required(role='student')
 def student_materials():
     materials = get_data('materials')
-    return render_template('student/materials.html', materials=materials)
+    return render_template('student_materials.html', materials=materials)
 
 # --- Schedule Routes ---
 @app.route('/teacher/schedule')
@@ -1160,7 +1320,7 @@ def teacher_schedule():
         schedule = sorted(schedule, key=lambda x: x.get('date', ''))
     except:
         pass
-    return render_template('teacher/schedule.html', schedule=schedule, subjects=subjects)
+    return render_template('schedule.html', schedule=schedule, subjects=subjects)
 
 @app.route('/teacher/add_schedule', methods=['POST'])
 @login_required(role='teacher')
@@ -1193,7 +1353,7 @@ def student_schedule():
         schedule = sorted(schedule, key=lambda x: x.get('date', ''))
     except:
         pass
-    return render_template('student/schedule.html', schedule=schedule)
+    return render_template('student_schedule.html', schedule=schedule)
 
 # --- Quiz Routes ---
 @app.route('/teacher/quiz')
@@ -1205,7 +1365,7 @@ def teacher_quiz():
         quiz_data = sorted(quiz_data, key=lambda x: x.get('date', ''))
     except:
         pass
-    return render_template('teacher/quiz.html', quiz=quiz_data, subjects=subjects)
+    return render_template('quiz.html', quiz=quiz_data, subjects=subjects)
 
 @app.route('/teacher/add_quiz', methods=['POST'])
 @login_required(role='teacher')
@@ -1271,7 +1431,7 @@ def student_quiz():
         key = f"{q.get('date', '')} - {q.get('subject', '')}"
         quizzes[key].append(q)
 
-    return render_template('student/quiz.html', quizzes=quizzes, attempted_quiz_ids=attempted_quiz_ids)
+    return render_template('student_quiz.html', quizzes=quizzes, attempted_quiz_ids=attempted_quiz_ids)
 
 # --- Profile Routes ---
 @app.route('/student/profile', endpoint='student_profile')
@@ -1356,7 +1516,7 @@ def student_profile():
 
     badges_list = [b.strip() for b in badges.split(',')] if badges else []
 
-    return render_template('student/profile.html',
+    return render_template('profile.html',
                            student=student_data,
                            metrics=my_metrics,
                            title=get_level_title(curr_level),
@@ -1525,7 +1685,7 @@ def teacher_dpp_status(dpp_id):
         sid = str(s.get('id'))
         s['completed'] = 1 if status_map.get(sid) == '1' else 0
 
-    return render_template('teacher/dpp_status.html', dpp=dpp, students=filtered_students)
+    return render_template('dpp_status.html', dpp=dpp, students=filtered_students)
 
 @app.route('/api/teacher/dpp_status', methods=['POST'])
 @login_required(role='teacher')
@@ -1632,4 +1792,7 @@ def teacher_quiz_scores():
     scores = get_data('quiz_scores_V3')
     # Sort by timestamp descending
     scores = sorted(scores, key=lambda x: x.get('timestamp', ''), reverse=True)
-    return render_template('teacher/quiz_scores.html', scores=scores)
+    return render_template('quiz_scores.html', scores=scores)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
