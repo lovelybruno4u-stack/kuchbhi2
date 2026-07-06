@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <h1>AI Tools</h1>
+    <p>Powered by OpenAI</p>
+</div>
+
+<div class="grid-layout">
+    <!-- Quiz Generator -->
+    <div class="card">
+        <h3>AI Quiz Generator</h3>
+        <p class="text-gray-500 mb-4">Generate 5 MCQ questions with answers.</p>
+        <div class="form-group">
+            <label>Subject</label>
+            <input type="text" id="quizSubject" class="form-control" placeholder="e.g. Physics">
+        </div>
+        <div class="form-group">
+            <label>Topic</label>
+            <input type="text" id="quizTopic" class="form-control" placeholder="e.g. Newton's Laws">
+        </div>
+        <button class="btn btn-primary" onclick="generateQuiz()">Generate Quiz</button>
+        <div id="quizResult" class="mt-4 p-4 bg-gray-50 rounded" style="display:none; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Attendance Analyzer -->
+    <div class="card">
+        <h3>AI Attendance Analyzer</h3>
+        <p class="text-gray-500 mb-4">Analyze attendance data and provide insights.</p>
+        <button class="btn btn-primary" onclick="analyzeAttendance()">Analyze Current Data</button>
+        <div id="attendanceResult" class="mt-4 p-4 bg-gray-50 rounded" style="display:none; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Video Summarizer -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <h3>AI Video Summarizer</h3>
+        <p class="text-gray-500 mb-4">Generate summary notes for revision.</p>
+        <div class="form-group">
+            <label>Video Topic / Transcript Summary</label>
+            <textarea id="videoTopic" class="form-control" rows="3" placeholder="Enter what the video is about..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="summarizeVideo()">Generate Summary</button>
+        <div id="videoResult" class="mt-4 p-4 bg-gray-50 rounded" style="display:none; white-space: pre-wrap;"></div>
+    </div>
+</div>
+
+<script>
+async function generateQuiz() {
+    const subject = document.getElementById('quizSubject').value;
+    const topic = document.getElementById('quizTopic').value;
+    const resultDiv = document.getElementById('quizResult');
+
+    resultDiv.style.display = 'block';
+    resultDiv.textContent = 'Generating...';
+
+    try {
+        const res = await fetch('/api/ai/quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({subject, topic})
+        });
+        const data = await res.json();
+        resultDiv.textContent = data.response || data.error;
+    } catch (e) {
+        resultDiv.textContent = 'Error occurred.';
+    }
+}
+
+async function analyzeAttendance() {
+    const resultDiv = document.getElementById('attendanceResult');
+    resultDiv.style.display = 'block';
+    resultDiv.textContent = 'Analyzing...';
+
+    try {
+        const res = await fetch('/api/ai/attendance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        const data = await res.json();
+        resultDiv.textContent = data.response || data.error;
+    } catch (e) {
+        resultDiv.textContent = 'Error occurred.';
+    }
+}
+
+async function summarizeVideo() {
+    const topic = document.getElementById('videoTopic').value;
+    const resultDiv = document.getElementById('videoResult');
+
+    resultDiv.style.display = 'block';
+    resultDiv.textContent = 'Summarizing...';
+
+    try {
+        const res = await fetch('/api/ai/video_summary', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({topic})
+        });
+        const data = await res.json();
+        resultDiv.textContent = data.response || data.error;
+    } catch (e) {
+        resultDiv.textContent = 'Error occurred.';
+    }
+}
+</script>
+{% endblock %}
