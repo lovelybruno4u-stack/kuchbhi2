@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>AI Tools</h1>
+    <p>Leverage Artificial Intelligence to enhance your teaching.</p>
+</div>
+
+<div class="dashboard-cards" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+    <!-- Attendance Insights -->
+    <div class="glass-card">
+        <h3><i class="fas fa-chart-line" style="color: var(--primary-color);"></i> AI Attendance Analysis</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Analyze attendance patterns to identify irregular students and get actionable insights.</p>
+        <button id="btn-attendance" class="btn btn-primary" onclick="analyzeAttendance()"><i class="fas fa-magic"></i> Generate Insights</button>
+        <div id="attendance-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid var(--primary-color); white-space: pre-wrap; font-size: 0.9em; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Quiz Generator -->
+    <div class="glass-card">
+        <h3><i class="fas fa-question-circle" style="color: var(--secondary-color);"></i> AI Quiz Generator</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Automatically generate multiple-choice questions for any topic.</p>
+        <div class="form-group">
+            <input type="text" id="quiz-subject" class="form-control" placeholder="Subject (e.g. Physics)" style="margin-bottom: 10px;">
+            <input type="text" id="quiz-topic" class="form-control" placeholder="Topic (e.g. Newton's Laws)" style="margin-bottom: 10px;">
+        </div>
+        <button id="btn-quiz" class="btn btn-secondary" onclick="generateQuiz()"><i class="fas fa-bolt"></i> Generate Quiz</button>
+        <div id="quiz-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid var(--secondary-color); white-space: pre-wrap; font-size: 0.9em; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="glass-card">
+        <h3><i class="fas fa-bullhorn" style="color: var(--warning);"></i> AI Announcement</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Write professional and engaging class announcements.</p>
+        <div class="form-group">
+            <input type="text" id="announcement-topic" class="form-control" placeholder="Topic (e.g. Tomorrow is a holiday due to rain)" style="margin-bottom: 10px;">
+        </div>
+        <button id="btn-announcement" class="btn btn-outline" style="color: var(--warning); border-color: var(--warning);" onclick="generateAnnouncement()"><i class="fas fa-pen-fancy"></i> Draft Announcement</button>
+        <div id="announcement-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid var(--warning); white-space: pre-wrap; font-size: 0.9em; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- Video Summary -->
+    <div class="glass-card">
+        <h3><i class="fas fa-video" style="color: var(--danger);"></i> AI Video Summary</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Generate revision notes and key points for class videos.</p>
+        <div class="form-group">
+            <input type="text" id="video-topic" class="form-control" placeholder="Video Topic (e.g. Chemical Bonding Part 1)" style="margin-bottom: 10px;">
+        </div>
+        <button id="btn-video" class="btn btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="generateVideoSummary()"><i class="fas fa-file-alt"></i> Generate Notes</button>
+        <div id="video-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid var(--danger); white-space: pre-wrap; font-size: 0.9em; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<script>
+async function callAI(url, data, btnId, resultId, originalText) {
+    const btn = document.getElementById(btnId);
+    const resDiv = document.getElementById(resultId);
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    btn.disabled = true;
+    resDiv.style.display = 'none';
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const json = await response.json();
+
+        resDiv.style.display = 'block';
+        if (json.success) {
+            resDiv.textContent = json.result; // Use textContent for security
+        } else {
+            resDiv.textContent = "Error: " + json.error;
+        }
+    } catch(e) {
+        resDiv.style.display = 'block';
+        resDiv.textContent = "Request failed: " + e;
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+function analyzeAttendance() {
+    callAI('/api/ai/attendance', {}, 'btn-attendance', 'attendance-result', '<i class="fas fa-magic"></i> Generate Insights');
+}
+
+function generateQuiz() {
+    const subject = document.getElementById('quiz-subject').value;
+    const topic = document.getElementById('quiz-topic').value;
+    if(!subject || !topic) return alert('Please enter subject and topic');
+    callAI('/api/ai/quiz', {subject, topic}, 'btn-quiz', 'quiz-result', '<i class="fas fa-bolt"></i> Generate Quiz');
+}
+
+function generateAnnouncement() {
+    const topic = document.getElementById('announcement-topic').value;
+    if(!topic) return alert('Please enter a topic');
+    callAI('/api/ai/announcement', {topic}, 'btn-announcement', 'announcement-result', '<i class="fas fa-pen-fancy"></i> Draft Announcement');
+}
+
+function generateVideoSummary() {
+    const topic = document.getElementById('video-topic').value;
+    if(!topic) return alert('Please enter a topic');
+    callAI('/api/ai/video_summary', {topic}, 'btn-video', 'video-result', '<i class="fas fa-file-alt"></i> Generate Notes');
+}
+</script>
+{% endblock %}

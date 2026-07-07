@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Quiz Scores{% endblock %}
+{% block page_title %}Student Quiz Scores{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 15px; margin-bottom: 24px;">
+    <a href="{{ url_for('teacher_quiz') }}" class="btn btn-outline" style="flex: 1; text-align: center;"><i class="fas fa-question-circle"></i> Question Bank</a>
+    <a href="{{ url_for('teacher_quiz_scores') }}" class="btn btn-primary" style="flex: 1; text-align: center;"><i class="fas fa-trophy"></i> View Scores & Leaderboard</a>
+</div>
+
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="color: var(--text-primary); margin-bottom: 20px;"><i class="fas fa-list-ol" style="color: var(--primary-color);"></i> Recent Submissions</h3>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Quiz ID (Group)</th>
+                    <th>Student Name</th>
+                    <th>Score</th>
+                    <th>Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in scores %}
+                <tr>
+                    <td style="color: var(--text-secondary); font-size: 0.9rem;">{{ s.timestamp }}</td>
+                    <td><span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">{{ s.quiz_id }}</span></td>
+                    <td style="font-weight: 600;">{{ s.student_name }}</td>
+                    <td>{{ s.score }}</td>
+                    <td>
+                        <span style="font-weight: 600; color: {% if s.percentage|float >= 80 %}var(--success){% elif s.percentage|float >= 50 %}var(--warning){% else %}var(--danger){% endif %};">
+                            {{ s.percentage }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not scores %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                        No quiz scores recorded yet.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

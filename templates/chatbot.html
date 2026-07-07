@@ -1,0 +1,133 @@
+{% extends 'student_base.html' %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>AI Study Assistant</h1>
+    <p>Ask concept doubts, get exam prep help, and study tips.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+    <!-- Chatbot Area -->
+    <div class="glass-card" style="display: flex; flex-direction: column; height: 60vh;">
+        <div id="chat-history" style="flex: 1; overflow-y: auto; padding: 15px; background: #f8fafc; border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="align-self: flex-start; background: white; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                Hello! I'm your AI Tutor. How can I help you today?
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="chat-input" class="form-control" placeholder="Ask a question or type a message..." style="flex: 1;" onkeypress="if(event.key === 'Enter') sendMessage()">
+            <button class="btn btn-primary" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+        </div>
+    </div>
+
+    <!-- Doubt Solver Quick Area -->
+    <div class="glass-card">
+        <h3><i class="fas fa-brain" style="color: var(--secondary-color);"></i> AI Doubt Solver</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Get simple explanations for complex concepts or step-by-step math solutions.</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="doubt-input" class="form-control" placeholder="E.g. Explain photosynthesis" style="flex: 1;">
+            <button id="btn-doubt" class="btn btn-secondary" onclick="solveDoubt()"><i class="fas fa-magic"></i> Solve</button>
+        </div>
+        <div id="doubt-result" style="margin-top: 15px; display: none; background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid var(--secondary-color); white-space: pre-wrap; font-size: 0.9em;"></div>
+    </div>
+</div>
+
+<script>
+let chatHistoryArray = [];
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    input.value = '';
+
+    const historyDiv = document.getElementById('chat-history');
+
+    // Add user message to UI
+    const userBubble = document.createElement('div');
+    userBubble.style.cssText = "align-self: flex-end; background: var(--primary-color); color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; max-width: 80%; box-shadow: 0 2px 5px rgba(0,0,0,0.1);";
+    userBubble.textContent = msg;
+    historyDiv.appendChild(userBubble);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    // Add loading indicator
+    const loadingBubble = document.createElement('div');
+    loadingBubble.style.cssText = "align-self: flex-start; background: white; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; box-shadow: 0 2px 5px rgba(0,0,0,0.05); color: var(--text-secondary);";
+    loadingBubble.innerHTML = '<i class="fas fa-ellipsis-h fa-beat"></i>';
+    historyDiv.appendChild(loadingBubble);
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    try {
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                history: chatHistoryArray,
+                message: msg
+            })
+        });
+
+        const json = await response.json();
+
+        historyDiv.removeChild(loadingBubble);
+
+        const aiBubble = document.createElement('div');
+        aiBubble.style.cssText = "align-self: flex-start; background: white; padding: 10px 15px; border-radius: 15px 15px 15px 0; max-width: 80%; box-shadow: 0 2px 5px rgba(0,0,0,0.05); white-space: pre-wrap;";
+
+        if (json.success) {
+            aiBubble.textContent = json.result;
+            chatHistoryArray.push({role: 'user', content: msg});
+            chatHistoryArray.push({role: 'assistant', content: json.result});
+        } else {
+            aiBubble.textContent = "Error: " + json.error;
+            aiBubble.style.color = 'var(--danger)';
+        }
+        historyDiv.appendChild(aiBubble);
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+
+    } catch(e) {
+        historyDiv.removeChild(loadingBubble);
+        const errBubble = document.createElement('div');
+        errBubble.style.cssText = "align-self: flex-start; background: white; padding: 10px 15px; border-radius: 15px 15px 15px 0; color: var(--danger);";
+        errBubble.textContent = "Request failed: " + e;
+        historyDiv.appendChild(errBubble);
+    }
+}
+
+async function solveDoubt() {
+    const input = document.getElementById('doubt-input').value;
+    if(!input) return;
+
+    const btn = document.getElementById('btn-doubt');
+    const resDiv = document.getElementById('doubt-result');
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+    resDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/ai/doubt', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({question: input})
+        });
+        const json = await response.json();
+
+        resDiv.style.display = 'block';
+        if (json.success) {
+            resDiv.textContent = json.result;
+        } else {
+            resDiv.textContent = "Error: " + json.error;
+        }
+    } catch(e) {
+        resDiv.style.display = 'block';
+        resDiv.textContent = "Request failed: " + e;
+    } finally {
+        btn.innerHTML = '<i class="fas fa-magic"></i> Solve';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

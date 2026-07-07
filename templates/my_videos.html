@@ -1,0 +1,86 @@
+{% extends 'student_base.html' %}
+
+{% block title %}My Videos{% endblock %}
+{% block page_title %}Class Recordings{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary);"><i class="fas fa-play-circle" style="color: var(--primary-color);"></i> Recent Lectures</h3>
+
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+        {% for video in videos %}
+        <div class="glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="background-color: #f3f4f6; height: 160px; display: flex; align-items: center; justify-content: center; position: relative;">
+                <i class="fab fa-youtube" style="font-size: 3rem; color: #ff0000;"></i>
+                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                    {{ video.date }}
+                </div>
+                {% if video.subject in completed_video_subjects %}
+                <div style="position: absolute; top: 10px; right: 10px; background: var(--success); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                    <i class="fas fa-check-circle"></i> Completed
+                </div>
+                {% endif %}
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; flex-grow: 1;">
+                <h4 style="margin-bottom: 8px; font-size: 1.1rem; color: var(--text-primary);">{{ video.subject }}</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px; flex-grow: 1;">
+                    Review this lecture to clear your concepts and earn points!
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="{{ video.drive_link }}" target="_blank" class="btn btn-outline" style="width: 100%;"><i class="fas fa-external-link-alt"></i> Watch Video</a>
+                    {% if video.subject not in completed_video_subjects %}
+                    <button class="btn btn-primary complete-btn" data-video-id="{{ video.id }}" data-subject="{{ video.subject }}" data-date="{{ video.date }}" style="width: 100%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));"><i class="fas fa-check"></i> Mark as Completed</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not videos %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
+            <i class="fas fa-film" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
+            <p>No class recordings available yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.complete-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        if (!confirm("Wait... are you absolutely sure you watched the whole thing? Be truthful! 🤨 The system knows... just kidding, but your conscience does!")) {
+            return;
+        }
+
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        this.disabled = true;
+
+        const videoId = this.dataset.videoId;
+        const subject = this.dataset.subject;
+        const videoDate = this.dataset.date;
+
+        try {
+            const response = await fetch('/api/student/mark_video_complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ video_id: videoId, subject: subject, video_date: videoDate })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast(`Video marked completed! You earned +${data.points_earned} points!`);
+                location.reload();
+            } else {
+                showToast('Error saving completion.');
+                this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
+                this.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            showToast('Network error.');
+            this.innerHTML = '<i class="fas fa-check"></i> Mark as Completed';
+            this.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}
