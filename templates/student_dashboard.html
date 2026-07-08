@@ -1,0 +1,219 @@
+{% extends 'student_base.html' %}
+
+{% block title %}Dashboard<!-- Leaderboard Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-trophy" style="color: #fbbf24;"></i> Class Leaderboard Top 5</h3>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for item in data.leaderboard %}
+        <div style="display: flex; justify-content: space-between; padding: 10px 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-weight: 700; color: {% if loop.index == 1 %}#fbbf24{% elif loop.index == 2 %}#94a3b8{% elif loop.index == 3 %}#b45309{% else %}var(--text-secondary){% endif %}; width: 20px;">#{{ loop.index }}</span>
+                <span style="font-weight: 500; color: var(--text-primary);">{{ item.name }} {% if item.student_id|string == session.student_id|string %}(You){% endif %}</span>
+            </div>
+            <span style="font-weight: 700; color: var(--success);">{{ item.points }} pts</span>
+        </div>
+        {% endfor %}
+        {% if not data.leaderboard %}
+        <p style="color: var(--text-secondary); text-align: center;">No points awarded yet. Be the first!</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block page_title %}Welcome, {{ session.user_name }} 👋<!-- Leaderboard Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-trophy" style="color: #fbbf24;"></i> Class Leaderboard Top 5</h3>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for item in data.leaderboard %}
+        <div style="display: flex; justify-content: space-between; padding: 10px 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-weight: 700; color: {% if loop.index == 1 %}#fbbf24{% elif loop.index == 2 %}#94a3b8{% elif loop.index == 3 %}#b45309{% else %}var(--text-secondary){% endif %}; width: 20px;">#{{ loop.index }}</span>
+                <span style="font-weight: 500; color: var(--text-primary);">{{ item.name }} {% if item.student_id|string == session.student_id|string %}(You){% endif %}</span>
+            </div>
+            <span style="font-weight: 700; color: var(--success);">{{ item.points }} pts</span>
+        </div>
+        {% endfor %}
+        {% if not data.leaderboard %}
+        <p style="color: var(--text-secondary); text-align: center;">No points awarded yet. Be the first!</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+
+    <!-- Today's Video Card -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--primary-color);">
+        <div>
+            <h3 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-play-circle" style="color: var(--primary-color);"></i> Today's Class Video</h3>
+            {% if data.today_video %}
+                <p style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">{{ data.today_video.subject }}</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px;">{{ data.today_video.date }}</p>
+            {% else %}
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">No video uploaded for today yet.</p>
+            {% endif %}
+        </div>
+        {% if data.today_video %}
+            <a href="{{ data.today_video.drive_link }}" target="_blank" class="btn btn-primary" style="width: 100%;"><i class="fas fa-external-link-alt"></i> Watch Now</a>
+        {% else %}
+            <a href="{{ url_for('student_my_videos') }}" class="btn btn-outline" style="width: 100%;"><i class="fas fa-history"></i> Past Videos</a>
+        {% endif %}
+    </div>
+
+    <!-- Attendance Card -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="margin-bottom: 15px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-calendar-check" style="color: var(--success);"></i> My Attendance</h3>
+            <div style="display: flex; align-items: flex-end; gap: 10px; margin-bottom: 10px;">
+                <span style="font-size: 2.5rem; font-weight: 700; color: var(--text-primary); line-height: 1;">{{ data.attendance_percentage }}%</span>
+                <span style="color: var(--text-secondary); margin-bottom: 5px;">Overall</span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="width: 100%; background-color: #e5e7eb; border-radius: 999px; height: 10px; overflow: hidden; margin-bottom: 20px;">
+                <div style="background-color: var(--success); height: 100%; width: {{ data.attendance_percentage }}%; border-radius: 999px;"></div>
+            </div>
+        </div>
+        <a href="{{ url_for('student_attendance_view') }}" class="btn btn-outline" style="width: 100%;"><i class="fas fa-chart-line"></i> View Details</a>
+    </div>
+
+    <!-- Latest Announcement Card -->
+    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid var(--warning);">
+        <div>
+            <h3 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-bullhorn" style="color: var(--warning);"></i> Latest Announcement</h3>
+            {% if data.latest_announcement %}
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">{{ data.latest_announcement.date }}</p>
+                <p style="font-size: 1rem; color: var(--text-primary); margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">{{ data.latest_announcement.message }}</p>
+            {% else %}
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">No announcements to show.</p>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('student_announcements_view') }}" class="btn btn-outline" style="width: 100%;"><i class="fas fa-list"></i> View All</a>
+    </div>
+
+</div>
+
+<!-- Today's Tasks Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-check-square" style="color: var(--success);"></i> Today's Tasks</h3>
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+        {% for task in data.tasks %}
+        <div style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; background: var(--white); border: 1px solid #e5e7eb; border-radius: 12px; {% if task.id|string in data.completed_tasks %}opacity: 0.6;{% endif %}">
+            <div>
+                {% if task.id|string in data.completed_tasks %}
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>
+                {% else %}
+                <button class="task-complete-btn" data-task-id="{{ task.id }}" style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cbd5e1; background: white; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--success)'" onmouseout="this.style.borderColor='#cbd5e1'"></button>
+                {% endif %}
+            </div>
+            <div style="flex-grow: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-weight: 600; color: var(--text-primary); {% if task.id|string in data.completed_tasks %}text-decoration: line-through;{% endif %}">{{ task.title }}</span>
+                    <span style="font-size: 0.8rem; color: var(--danger); font-weight: 600;"><i class="far fa-clock"></i> Due: {{ task.due_date }}</span>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">{{ task.description }}</p>
+                <span style="background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">{{ task.subject }}</span>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not data.tasks %}
+        <div style="text-align: center; color: var(--text-secondary); padding: 30px; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+            <i class="fas fa-glass-cheers" style="font-size: 2.5rem; margin-bottom: 10px; color: #d1d5db;"></i>
+            <p>No tasks assigned for today. Relax!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Daily Practice Problems (DPP) -->
+<div class="glass-card" style="margin-top: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-file-alt" style="color: var(--primary-color);"></i> Daily Practice Problems (DPP)</h3>
+    </div>
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+        {% for dpp in data.dpps %}
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 15px; background: var(--white); border: 1px solid #e5e7eb; border-radius: 12px; border-left: 4px solid var(--primary-color);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h4 style="color: var(--text-primary); font-size: 1.05rem;">{{ dpp.title }}</h4>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ dpp.date_uploaded }}</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">{{ dpp.description }}</p>
+            <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; width: fit-content; margin-bottom: 10px;">{{ dpp.subject }}</span>
+            <a href="{{ dpp.file_url }}" target="_blank" class="btn btn-outline" style="width: 100%; font-size: 0.9rem; padding: 8px;"><i class="fas fa-download"></i> Download / View</a>
+        </div>
+        {% endfor %}
+        {% if not data.dpps %}
+        <div style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); padding: 30px; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+            <p>No DPPs uploaded yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.task-complete-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const taskId = this.dataset.taskId;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin" style="color: var(--primary-color);"></i>';
+        this.disabled = true;
+        this.style.border = 'none';
+
+        try {
+            const response = await fetch('/api/student/complete_task', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId })
+            });
+            const data = await response.json();
+            if(data.success) {
+                this.outerHTML = '<i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i>';
+                // Find parent title and strike it
+                const container = this.closest('div').nextElementSibling;
+                const title = container.querySelector('span');
+                title.style.textDecoration = 'line-through';
+                showToast('Task completed! +5 Points!');
+            }
+        } catch (e) {
+            console.error(e);
+            this.innerHTML = '';
+            this.disabled = false;
+            this.style.border = '2px solid #cbd5e1';
+            showToast('Network error.');
+        }
+    });
+});
+</script>
+
+<!-- Subjects Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-book" style="color: var(--secondary-color);"></i> My Subjects</h3>
+    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+        {% for subject in data.subjects %}
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 20px; border-radius: 8px; font-weight: 500; color: var(--text-primary);">
+                {{ subject.subject_name }}
+            </div>
+        {% endfor %}
+        {% if not data.subjects %}
+            <p style="color: var(--text-secondary);">No subjects assigned yet.</p>
+        {% endif %}
+    </div>
+</div>
+<!-- Leaderboard Section -->
+<div class="glass-card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.2rem;"><i class="fas fa-trophy" style="color: #fbbf24;"></i> Class Leaderboard Top 5</h3>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for item in data.leaderboard %}
+        <div style="display: flex; justify-content: space-between; padding: 10px 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-weight: 700; color: {% if loop.index == 1 %}#fbbf24{% elif loop.index == 2 %}#94a3b8{% elif loop.index == 3 %}#b45309{% else %}var(--text-secondary){% endif %}; width: 20px;">#{{ loop.index }}</span>
+                <span style="font-weight: 500; color: var(--text-primary);">{{ item.name }} {% if item.student_id|string == session.student_id|string %}(You){% endif %}</span>
+            </div>
+            <span style="font-weight: 700; color: var(--success);">{{ item.points }} pts</span>
+        </div>
+        {% endfor %}
+        {% if not data.leaderboard %}
+        <p style="color: var(--text-secondary); text-align: center;">No points awarded yet. Be the first!</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

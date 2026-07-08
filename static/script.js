@@ -126,3 +126,64 @@ function hideLoading() {
     const loader = document.getElementById('global-loader');
     if(loader) loader.style.display = 'none';
 }
+
+// CUSTOM DOM MODAL TO REPLACE ALERT()
+function createModalDOM() {
+    if (document.getElementById('customModalOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'customModalOverlay';
+    overlay.className = 'custom-modal-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'custom-modal';
+    modal.id = 'customModalBox';
+
+    const title = document.createElement('div');
+    title.className = 'custom-modal-title';
+    title.id = 'customModalTitle';
+    title.textContent = 'Notification';
+
+    const body = document.createElement('div');
+    body.className = 'custom-modal-body';
+    body.id = 'customModalBody';
+
+    const btn = document.createElement('button');
+    btn.className = 'custom-modal-btn';
+    btn.textContent = 'OK';
+    btn.onclick = closeCustomModal;
+
+    modal.appendChild(title);
+    modal.appendChild(body);
+    modal.appendChild(btn);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+}
+
+function showCustomModal(message, title='Notice') {
+    createModalDOM();
+    document.getElementById('customModalTitle').textContent = title;
+    document.getElementById('customModalBody').textContent = message;
+
+    const overlay = document.getElementById('customModalOverlay');
+    const box = document.getElementById('customModalBox');
+
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+        box.classList.add('show');
+    }, 10);
+}
+
+function closeCustomModal() {
+    const overlay = document.getElementById('customModalOverlay');
+    const box = document.getElementById('customModalBox');
+
+    box.classList.remove('show');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+    }, 300);
+}
+
+// Override native alert (optional but good for catching old code)
+window.alert = function(msg) {
+    showCustomModal(msg);
+};

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Class Announcements{% endblock %}
+
+{% block content %}
+<div class="glass-card" style="margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary);"><i class="fas fa-bullhorn" style="color: var(--primary-color);"></i> Recent Announcements</h3>
+        <button class="btn btn-primary" data-modal-target="#add-announcement-modal">
+            <i class="fas fa-plus"></i> New Announcement
+        </button>
+    </div>
+
+    <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+        {% for announcement in announcements %}
+        <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; gap: 15px; border-left: 4px solid var(--primary-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); font-size: 0.9rem;">
+                <span><i class="far fa-calendar-alt"></i> {{ announcement.date }}</span>
+                <div style="display: flex; gap: 8px;">
+                    <a href="https://wa.me/?text={{ announcement.message | urlencode }}" target="_blank" class="btn" style="background-color: #25D366; color: white; padding: 4px 8px; font-size: 0.8rem;" title="Share on WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                    <form action="{{ url_for('delete_announcement', id=announcement.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this announcement?');">
+                        <button type="submit" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" title="Delete"><i class="fas fa-times"></i></button>
+                    </form>
+                </div>
+            </div>
+            <p style="color: var(--text-primary); font-size: 1.1rem; line-height: 1.5; white-space: pre-wrap;">{{ announcement.message }}</p>
+        </div>
+        {% endfor %}
+        {% if not announcements %}
+        <div style="text-align: center; color: var(--text-secondary); padding: 40px; background: var(--white); border-radius: 12px;">
+            <i class="far fa-bell-slash" style="font-size: 3rem; margin-bottom: 15px; color: #d1d5db;"></i>
+            <p>No announcements yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Announcement Modal -->
+<div class="modal-overlay" id="add-announcement-modal">
+    <div class="modal-content glass-card" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-pen-fancy" style="color: var(--primary-color);"></i> Create Announcement</h3>
+            <button class="close-btn" data-close-button>&times;</button>
+        </div>
+
+
+
+        <form action="{{ url_for('add_announcement') }}" method="POST">
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" name="date" class="form-control" value="{{ current_date }}" required>
+            </div>
+            <div class="form-group">
+                <label>Message Content</label>
+                <textarea name="message" id="announcement-message" class="form-control" rows="6" placeholder="Type your announcement here..." required></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-outline" data-close-button>Cancel</button>
+                <button type="submit" class="btn btn-primary" onclick="showLoading()">Post Announcement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}
